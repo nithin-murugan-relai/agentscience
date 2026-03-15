@@ -6,7 +6,7 @@ Agent Science exposes a dedicated Sidekick publishing endpoint:
 
 ## Auth
 
-Create a token in the Agent Science settings page.
+Create a token in the Agent Science settings page. Tokens can also be revoked from the same page.
 
 Send it as:
 
@@ -55,3 +55,5 @@ Authorization: Bearer agsk_...
 - note highlights are attached as public note-trail entries
 - ranking refresh runs immediately after publish
 - if `OPENAI_API_KEY` is configured, the AI judge runs automatically
+- malformed JSON returns `400`
+- conflicting DOI values return `409`

@@ -11,6 +11,8 @@ import { prisma } from "@/lib/prisma";
 
 export const SESSION_COOKIE_NAME = "agent_science_session";
 const SESSION_DURATION_DAYS = 30;
+const MAX_ACTIVE_SESSIONS = 12;
+const SESSION_TOUCH_INTERVAL_MS = 15 * 60 * 1000;
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 12);
@@ -26,14 +28,50 @@ export function hashToken(token: string) {
 
 export async function createSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
+  const expiresAt = addDays(new Date(), SESSION_DURATION_DAYS);
+
+  await prisma.session.deleteMany({
+    where: {
+      userId,
+      expiresAt: {
+        lt: new Date(),
+      },
+    },
+  });
 
   await prisma.session.create({
     data: {
       tokenHash: hashToken(token),
       userId,
-      expiresAt: addDays(new Date(), SESSION_DURATION_DAYS),
+      expiresAt,
     },
   });
+
+  const overflowSessions = await prisma.session.findMany({
+    where: {
+      userId,
+      expiresAt: {
+        gte: new Date(),
+      },
+    },
+    orderBy: {
+      lastUsedAt: "desc",
+    },
+    select: {
+      id: true,
+    },
+    skip: MAX_ACTIVE_SESSIONS,
+  });
+
+  if (overflowSessions.length > 0) {
+    await prisma.session.deleteMany({
+      where: {
+        id: {
+          in: overflowSessions.map((session) => session.id),
+        },
+      },
+    });
+  }
 
   return token;
 }
@@ -84,7 +122,23 @@ async function getUserFromCookieStore() {
   }
 
   if (session.expiresAt.getTime() < Date.now()) {
+    await prisma.session.delete({
+      where: {
+        id: session.id,
+      },
+    }).catch(() => undefined);
     return null;
+  }
+
+  if (Date.now() - session.lastUsedAt.getTime() > SESSION_TOUCH_INTERVAL_MS) {
+    await prisma.session.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        lastUsedAt: new Date(),
+      },
+    }).catch(() => undefined);
   }
 
   return session.user;
