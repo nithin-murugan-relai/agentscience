@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 
 type IntegrationKeySummary = {
   id: string;
@@ -12,26 +12,47 @@ type IntegrationKeySummary = {
 
 export function IntegrationKeyPanel({
   existingKeys,
+  publishEndpoint,
 }: {
   existingKeys: IntegrationKeySummary[];
+  publishEndpoint: string;
 }) {
   const [keys, setKeys] = useState(existingKeys);
-  const [name, setName] = useState("Sidekick iPhone publisher");
+  const [name, setName] = useState("Sidekick iPhone");
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [deletingKeyId, setDeletingKeyId] = useState<string | null>(null);
+  const [copied, setCopied] = useState<"endpoint" | "token" | null>(null);
 
-  async function handleCreateKey() {
+  async function copyValue(value: string, target: "endpoint" | "token") {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(target);
+      window.setTimeout(() => {
+        setCopied((current) => (current === target ? null : current));
+      }, 1400);
+    } catch {
+      setError("Clipboard not available.");
+    }
+  }
+
+  async function handleCreateKey(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError("Give this token a name.");
+      return;
+    }
+
     setPending(true);
     setError(null);
 
     try {
       const response = await fetch("/api/integrations/keys", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmedName }),
       });
 
       const payload = (await response.json()) as
@@ -46,94 +67,143 @@ export function IntegrationKeyPanel({
       setKeys((currentKeys) => [payload.key, ...currentKeys]);
     } catch (caughtError) {
       setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Failed to create a new integration key."
+        caughtError instanceof Error ? caughtError.message : "Failed to create key."
       );
     } finally {
       setPending(false);
     }
   }
 
-  return (
-    <div className="glass-panel rounded-[2rem] p-6">
-      <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-        Sidekick integration
-      </div>
-      <h2 className="mt-3 font-display text-3xl text-foreground">
-        Create a publish token
-      </h2>
-      <p className="mt-3 max-w-2xl text-sm leading-7 text-foreground-soft">
-        Sidekick can publish generated papers directly into Agent Science by
-        sending a bearer token to the Sidekick publish endpoint.
-      </p>
+  async function handleDeleteKey(keyId: string) {
+    const confirmed = window.confirm("Revoke this Sidekick token?");
+    if (!confirmed) {
+      return;
+    }
 
-      <div className="mt-6 grid gap-3 md:grid-cols-[1fr_auto]">
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          className="rounded-2xl border border-border bg-surface-strong px-4 py-3 text-sm text-foreground"
-          placeholder="Token name"
-        />
+    setDeletingKeyId(keyId);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/integrations/keys/${keyId}`, {
+        method: "DELETE",
+      });
+
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to revoke key.");
+      }
+
+      setKeys((currentKeys) => currentKeys.filter((key) => key.id !== keyId));
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error ? caughtError.message : "Failed to revoke key."
+      );
+    } finally {
+      setDeletingKeyId(null);
+    }
+  }
+
+  return (
+    <div className="mt-6 space-y-6">
+      {/* Endpoint */}
+      <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 px-4 py-3">
+        <code className="text-sm text-foreground-soft break-all">{publishEndpoint}</code>
         <button
           type="button"
-          onClick={handleCreateKey}
-          disabled={pending}
-          className="rounded-2xl bg-foreground px-5 py-3 text-sm font-semibold text-white hover:-translate-y-0.5 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => copyValue(publishEndpoint, "endpoint")}
+          className="shrink-0 text-sm text-accent hover:text-accent-hover font-medium"
         >
-          {pending ? "Creating..." : "Create token"}
+          {copied === "endpoint" ? "Copied" : "Copy"}
         </button>
       </div>
 
-      {token ? (
-        <div className="mt-5 rounded-[1.5rem] border border-emerald-700/20 bg-accent-soft p-4">
-          <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
-            Copy once
-          </div>
-          <div className="mt-2 overflow-x-auto rounded-xl bg-foreground px-4 py-3 font-mono text-sm text-white">
-            {token}
-          </div>
-        </div>
-      ) : null}
+      {/* Create key */}
+      <form onSubmit={handleCreateKey} className="flex gap-3">
+        <input
+          value={name}
+          maxLength={48}
+          onChange={(e) => setName(e.target.value)}
+          className="field-input text-sm flex-1"
+          placeholder="Token name"
+        />
+        <button
+          type="submit"
+          disabled={pending || name.trim().length === 0}
+          className="btn-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {pending ? "Creating..." : "Create token"}
+        </button>
+      </form>
 
-      {error ? (
-        <div className="mt-5 rounded-[1.5rem] border border-red-900/10 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      ) : null}
-
-      <div className="mt-8 space-y-3">
-        {keys.length === 0 ? (
-          <div className="rounded-[1.5rem] border border-dashed border-border px-4 py-6 text-sm text-foreground-soft">
-            No active publish tokens yet.
-          </div>
-        ) : (
-          keys.map((key) => (
-            <div
-              key={key.id}
-              className="rounded-[1.5rem] border border-border bg-surface-strong px-4 py-4"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{key.name}</div>
-                  <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-muted">
-                    {key.tokenPrefix}...
-                  </div>
-                </div>
-                <div className="text-right text-xs leading-6 text-foreground-soft">
-                  <div>Created {new Date(key.createdAt).toLocaleDateString()}</div>
-                  <div>
-                    Last used{" "}
-                    {key.lastUsedAt
-                      ? new Date(key.lastUsedAt).toLocaleDateString()
-                      : "never"}
-                  </div>
-                </div>
+      {/* New token display */}
+      {token && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-sm font-medium text-foreground">Token created</div>
+              <div className="mt-1 text-xs text-foreground-soft">
+                Copy it now. It will not be shown again.
               </div>
             </div>
-          ))
-        )}
-      </div>
+            <button
+              type="button"
+              onClick={() => copyValue(token, "token")}
+              className="text-sm text-accent hover:text-accent-hover font-medium"
+            >
+              {copied === "token" ? "Copied" : "Copy"}
+            </button>
+          </div>
+          <code className="mt-3 block rounded-lg bg-foreground px-4 py-3 text-sm text-white break-all">
+            {token}
+          </code>
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {/* Existing keys */}
+      {keys.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border/60 px-4 py-3 text-sm text-muted">
+          No active tokens yet.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {keys.map((key) => (
+            <div
+              key={key.id}
+              className="flex items-center justify-between gap-4 rounded-xl border border-border/60 px-4 py-3"
+            >
+              <div>
+                <div className="text-sm font-medium text-foreground">{key.name}</div>
+                <code className="text-xs text-muted">{key.tokenPrefix}...</code>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right text-xs text-muted">
+                  <div>Created {new Date(key.createdAt).toLocaleDateString()}</div>
+                  <div>
+                    {key.lastUsedAt
+                      ? `Used ${new Date(key.lastUsedAt).toLocaleDateString()}`
+                      : "Never used"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteKey(key.id)}
+                  disabled={deletingKeyId === key.id}
+                  className="text-xs font-medium text-muted hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deletingKeyId === key.id ? "Revoking..." : "Revoke"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

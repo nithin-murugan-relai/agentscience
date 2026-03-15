@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { getCurrentUser } from "@/lib/auth";
+import { buildPathWithNext, getSafeRedirectFromSearchParams } from "@/lib/request";
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -10,93 +14,66 @@ export default async function SignUpPage({ searchParams }: PageProps) {
     typeof resolvedSearchParams.error === "string"
       ? resolvedSearchParams.error
       : undefined;
+  const nextPath = getSafeRedirectFromSearchParams(resolvedSearchParams);
+  const user = await getCurrentUser();
+
+  if (user) {
+    redirect(nextPath);
+  }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="glass-panel rounded-[2.5rem] p-8 md:p-10">
-        <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-accent">
-          Create account
-        </div>
-        <h1 className="mt-4 text-5xl text-foreground">Join the network</h1>
-        <p className="mt-4 max-w-2xl text-base leading-8 text-foreground-soft">
-          Agent Science accounts are intentionally simple: name, handle, email,
-          and a strong password. No performative profiles. No vanity features.
-        </p>
+    <div className="page-enter mx-auto max-w-md pt-8 md:pt-16">
+      <h1 className="text-3xl font-semibold tracking-tight text-foreground text-center">
+        Create account
+      </h1>
 
-        <form action="/api/auth/sign-up" method="post" className="mt-8 grid gap-4 md:grid-cols-2">
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-foreground">Name</span>
-            <input
-              name="name"
-              required
-              className="w-full rounded-2xl border border-border bg-surface-strong px-4 py-3 text-sm text-foreground"
-            />
+      <form action="/api/auth/sign-up" method="post" className="mt-8 space-y-4">
+        <input type="hidden" name="next" value={nextPath} />
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">Name</span>
+            <input name="name" required autoComplete="name" className="field-input text-sm" />
           </label>
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-foreground">Handle</span>
-            <input
-              name="handle"
-              required
-              className="w-full rounded-2xl border border-border bg-surface-strong px-4 py-3 text-sm text-foreground"
-              placeholder="maya-alvarez"
-            />
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">Handle</span>
+            <input name="handle" required autoComplete="username" spellCheck={false} className="field-input text-sm" placeholder="jane-doe" />
           </label>
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-foreground">Email</span>
-            <input
-              type="email"
-              name="email"
-              required
-              className="w-full rounded-2xl border border-border bg-surface-strong px-4 py-3 text-sm text-foreground"
-            />
-          </label>
-          <label className="space-y-2">
-            <span className="text-sm font-semibold text-foreground">Institution</span>
-            <input
-              name="institution"
-              className="w-full rounded-2xl border border-border bg-surface-strong px-4 py-3 text-sm text-foreground"
-            />
-          </label>
-          <label className="space-y-2 md:col-span-2">
-            <span className="text-sm font-semibold text-foreground">Bio</span>
-            <textarea
-              name="bio"
-              maxLength={220}
-              className="min-h-[120px] w-full rounded-2xl border border-border bg-surface-strong px-4 py-4 text-sm leading-7 text-foreground"
-            />
-          </label>
-          <label className="space-y-2 md:col-span-2">
-            <span className="text-sm font-semibold text-foreground">Password</span>
-            <input
-              type="password"
-              name="password"
-              required
-              minLength={10}
-              className="w-full rounded-2xl border border-border bg-surface-strong px-4 py-3 text-sm text-foreground"
-            />
-          </label>
-          {error ? (
-            <div className="rounded-2xl border border-red-900/10 bg-red-50 px-4 py-3 text-sm text-red-700 md:col-span-2">
-              {error}
-            </div>
-          ) : null}
-          <div className="md:col-span-2">
-            <button
-              type="submit"
-              className="w-full rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-white hover:-translate-y-0.5 hover:bg-accent"
-            >
-              Create account
-            </button>
+        </div>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-foreground">Email</span>
+          <input type="email" name="email" required autoComplete="email" className="field-input text-sm" />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-foreground">Institution</span>
+          <input name="institution" autoComplete="organization" className="field-input text-sm" />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-foreground">Bio</span>
+          <textarea name="bio" maxLength={220} className="field-textarea min-h-[80px] text-sm leading-relaxed" placeholder="Optional" />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-foreground">Password</span>
+          <input type="password" name="password" required minLength={10} autoComplete="new-password" className="field-input text-sm" />
+        </label>
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
           </div>
-        </form>
+        )}
+        <button type="submit" className="btn-primary w-full">
+          Create account
+        </button>
+      </form>
 
-        <div className="mt-6 text-sm text-foreground-soft">
-          Already have an account?{" "}
-          <Link href="/sign-in" className="font-semibold text-accent hover:text-accent-strong">
-            Sign in
-          </Link>
-        </div>
-      </div>
+      <p className="mt-6 text-center text-sm text-muted">
+        Already have an account?{" "}
+        <Link
+          href={buildPathWithNext("/sign-in", nextPath)}
+          className="text-accent hover:text-accent-hover font-medium"
+        >
+          Sign in
+        </Link>
+      </p>
     </div>
   );
 }

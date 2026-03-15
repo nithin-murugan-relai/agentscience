@@ -18,6 +18,7 @@ import {
   extractKeywords,
   slugify,
 } from "@/lib/utils";
+import { getUniqueConstraintTargets, UserFacingError } from "@/lib/errors";
 import type {
   IdeaFormInput,
   IntegrationKeyInput,
@@ -27,7 +28,6 @@ import type {
 } from "@/lib/validation";
 
 export const publicUserSelect = {
-  id: true,
   name: true,
   handle: true,
   institution: true,
@@ -85,14 +85,51 @@ export const paperFullInclude = {
   metric: true,
 } satisfies Prisma.PaperInclude;
 
+export const paperListInclude = {
+  authors: {
+    include: {
+      user: {
+        select: publicUserSelect,
+      },
+    },
+    orderBy: {
+      position: "asc",
+    },
+  },
+  metric: true,
+} satisfies Prisma.PaperInclude;
+
 export type PaperWithRelations = Prisma.PaperGetPayload<{
   include: typeof paperFullInclude;
 }>;
 
+export type PaperListItem = Prisma.PaperGetPayload<{
+  include: typeof paperListInclude;
+}>;
+
 const DOI_PATTERN = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
+const MAX_ACTIVE_INTEGRATION_KEYS = 12;
 
 function summarizeIdea(content: string) {
   return content.length > 140 ? `${content.slice(0, 140)}…` : content;
+}
+
+function uniqueStrings(values: string[]) {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function getImportedNoteHighlights(metadata: Prisma.JsonValue | null | undefined) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return [];
+  }
+
+  const noteHighlights = (metadata as Record<string, Prisma.JsonValue>).noteHighlights;
+
+  if (!Array.isArray(noteHighlights)) {
+    return [];
+  }
+
+  return noteHighlights.filter((value): value is string => typeof value === "string");
 }
 
 function verdictFromScore(score: number) {
@@ -173,16 +210,41 @@ async function ensureImportedUser(author: SidekickPublishInput["authors"][number
     normalizedEmail ??
     createTemporaryEmail(author.name, randomBytes(6).toString("hex"));
 
-  return prisma.user.create({
-    data: {
-      name: author.name,
-      handle,
-      email,
-      institution: author.institution,
-      role: inferredRoleFromAuthor(author.name, handle),
-      passwordHash: await hashPassword(randomBytes(24).toString("hex")),
-    },
-  });
+  try {
+    return await prisma.user.create({
+      data: {
+        name: author.name,
+        handle,
+        email,
+        institution: author.institution,
+        role: inferredRoleFromAuthor(author.name, handle),
+        passwordHash: await hashPassword(randomBytes(24).toString("hex")),
+      },
+    });
+  } catch (error) {
+    const uniqueTargets = getUniqueConstraintTargets(error);
+    if (uniqueTargets.includes("email") || uniqueTargets.includes("handle")) {
+      const concurrentUser = normalizedEmail
+        ? await prisma.user.findUnique({
+            where: {
+              email: normalizedEmail,
+            },
+          })
+        : normalizedHandle || handle
+          ? await prisma.user.findUnique({
+              where: {
+                handle: normalizedHandle || handle,
+              },
+            })
+          : null;
+
+      if (concurrentUser) {
+        return concurrentUser;
+      }
+    }
+
+    throw error;
+  }
 }
 
 type NormalizedReference = {
@@ -349,7 +411,48 @@ export async function syncAiReviewForPaper(paperId: string) {
 
 export async function refreshPaperMetrics() {
   const papers = await prisma.paper.findMany({
-    include: paperFullInclude,
+    select: {
+      id: true,
+      title: true,
+      abstract: true,
+      markdown: true,
+      keywords: true,
+      authors: {
+        select: {
+          userId: true,
+        },
+      },
+      ideas: {
+        select: {
+          id: true,
+        },
+      },
+      reviews: {
+        select: {
+          kind: true,
+          summary: true,
+          novelty: true,
+          rigor: true,
+          clarity: true,
+          reproducibility: true,
+        },
+      },
+      saves: {
+        select: {
+          id: true,
+        },
+      },
+      referencesOut: {
+        select: {
+          targetPaperId: true,
+        },
+      },
+      metric: {
+        select: {
+          aiStatus: true,
+        },
+      },
+    },
   });
 
   const rankings = buildPaperRankings(
@@ -442,7 +545,9 @@ export async function refreshPaperMetrics() {
   );
 }
 
-function sortPapersByRank(papers: PaperWithRelations[]) {
+function sortPapersByRank<T extends { metric: { finalScore: number | null } | null; publishedAt: Date }>(
+  papers: T[]
+) {
   return [...papers].sort((left, right) => {
     const rightScore = right.metric?.finalScore ?? 0;
     const leftScore = left.metric?.finalScore ?? 0;
@@ -460,7 +565,7 @@ export async function getRankedPapers(limit?: number) {
     where: {
       visibility: "PUBLIC",
     },
-    include: paperFullInclude,
+    include: paperListInclude,
   });
 
   const ranked = sortPapersByRank(papers);
@@ -473,28 +578,12 @@ export async function getHomeData() {
       where: {
         visibility: "PUBLIC",
       },
-      include: paperFullInclude,
+      include: paperListInclude,
       orderBy: {
         publishedAt: "desc",
       },
     }),
-    prisma.idea.findMany({
-      include: {
-        author: {
-          select: publicUserSelect,
-        },
-        paper: {
-          select: {
-            title: true,
-            slug: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 6,
-    }),
+    getRecentIdeas(),
   ]);
 
   const ranked = sortPapersByRank(papers);
@@ -505,6 +594,36 @@ export async function getHomeData() {
     ideas,
     paperCount: papers.length,
   };
+}
+
+export async function getRecentIdeas(limit = 6) {
+  return prisma.idea.findMany({
+    where: {
+      OR: [
+        { paperId: null },
+        {
+          paper: {
+            visibility: "PUBLIC",
+          },
+        },
+      ],
+    },
+    include: {
+      author: {
+        select: publicUserSelect,
+      },
+      paper: {
+        select: {
+          title: true,
+          slug: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: limit,
+  });
 }
 
 export async function getPaperBySlug(slug: string) {
@@ -527,10 +646,10 @@ export async function createManualPaper(userId: string, input: PaperFormInput) {
   const slug = await ensureUniqueSlug(slugify(input.title));
   const keywords =
     input.keywords.length > 0
-      ? input.keywords.map((keyword) => keyword.toLowerCase())
+      ? uniqueStrings(input.keywords.map((keyword) => keyword.toLowerCase()))
       : extractKeywords(input.title, input.abstract, input.markdown);
   const referenceRecords = await resolveReferenceRecords(
-    input.references.map((reference) => normalizeTextReference(reference))
+    uniqueStrings(input.references).map((reference) => normalizeTextReference(reference))
   );
 
   const paper = await prisma.$transaction(async (transaction) => {
@@ -594,6 +713,10 @@ export async function createIdeaForUser(userId: string, input: IdeaFormInput) {
       })
     : null;
 
+  if (input.paperSlug && !linkedPaper) {
+    throw new UserFacingError("Paper not found.", 404);
+  }
+
   const idea = await prisma.idea.create({
     data: {
       authorId: userId,
@@ -614,29 +737,61 @@ export async function addReviewForUser(
 ) {
   const paper = await prisma.paper.findUnique({
     where: { slug: paperSlug },
-    select: { id: true },
+    select: {
+      id: true,
+      authors: {
+        select: {
+          userId: true,
+        },
+      },
+    },
   });
 
   if (!paper) {
-    throw new Error("Paper not found.");
+    throw new UserFacingError("Paper not found.", 404);
   }
 
-  await prisma.review.create({
-    data: {
+  if (paper.authors.some((author) => author.userId === userId)) {
+    throw new UserFacingError("Authors cannot review their own paper.", 403);
+  }
+
+  const existingReview = await prisma.review.findFirst({
+    where: {
       paperId: paper.id,
       reviewerId: userId,
-      reviewerName: null,
       kind: ReviewKind.HUMAN,
-      verdict: input.verdict,
-      summary: input.summary,
-      strengths: input.strengths,
-      concerns: input.concerns,
-      novelty: input.novelty,
-      rigor: input.rigor,
-      clarity: input.clarity,
-      reproducibility: input.reproducibility,
     },
   });
+
+  const reviewData = {
+    verdict: input.verdict,
+    summary: input.summary,
+    strengths: input.strengths,
+    concerns: input.concerns,
+    novelty: input.novelty,
+    rigor: input.rigor,
+    clarity: input.clarity,
+    reproducibility: input.reproducibility,
+  };
+
+  if (existingReview) {
+    await prisma.review.update({
+      where: {
+        id: existingReview.id,
+      },
+      data: reviewData,
+    });
+  } else {
+    await prisma.review.create({
+      data: {
+        paperId: paper.id,
+        reviewerId: userId,
+        reviewerName: null,
+        kind: ReviewKind.HUMAN,
+        ...reviewData,
+      },
+    });
+  }
 
   await refreshPaperMetrics();
 }
@@ -648,7 +803,7 @@ export async function togglePaperSave(userId: string, paperSlug: string) {
   });
 
   if (!paper) {
-    throw new Error("Paper not found.");
+    throw new UserFacingError("Paper not found.", 404);
   }
 
   const existingSave = await prisma.savedPaper.findUnique({
@@ -683,6 +838,19 @@ export async function togglePaperSave(userId: string, paperSlug: string) {
 }
 
 export async function createIntegrationKey(userId: string, input: IntegrationKeyInput) {
+  const activeKeyCount = await prisma.integrationKey.count({
+    where: {
+      userId,
+    },
+  });
+
+  if (activeKeyCount >= MAX_ACTIVE_INTEGRATION_KEYS) {
+    throw new UserFacingError(
+      "You already have the maximum number of active Sidekick tokens. Revoke one before creating another.",
+      409
+    );
+  }
+
   const token = `agsk_${randomBytes(24).toString("base64url")}`;
   const tokenPrefix = token.slice(0, 12);
 
@@ -699,6 +867,28 @@ export async function createIntegrationKey(userId: string, input: IntegrationKey
     key,
     token,
   };
+}
+
+export async function deleteIntegrationKey(userId: string, keyId: string) {
+  const key = await prisma.integrationKey.findFirst({
+    where: {
+      id: keyId,
+      userId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!key) {
+    throw new UserFacingError("Integration key not found.", 404);
+  }
+
+  await prisma.integrationKey.delete({
+    where: {
+      id: key.id,
+    },
+  });
 }
 
 export async function authenticateIntegrationToken(token: string) {
@@ -730,16 +920,27 @@ export async function authenticateIntegrationToken(token: string) {
 export async function upsertSidekickPaper(input: SidekickPublishInput) {
   const authors = await Promise.all(input.authors.map((author) => ensureImportedUser(author)));
   const primaryAuthor = authors[0];
+  const noteHighlights = uniqueStrings(input.noteHighlights);
   const keywords =
     input.keywords.length > 0
-      ? input.keywords.map((keyword) => keyword.toLowerCase())
+      ? uniqueStrings(input.keywords.map((keyword) => keyword.toLowerCase()))
       : extractKeywords(input.title, input.abstract, input.markdown);
   const references = await resolveReferenceRecords(
-    input.references.map((reference) => ({
-      referenceTitle: reference.title,
-      referenceDoi: reference.doi?.toLowerCase(),
-      targetSlug: reference.targetSlug,
-    }))
+    input.references
+      .map((reference) => ({
+        referenceTitle: reference.title?.trim(),
+        referenceDoi: reference.doi?.toLowerCase(),
+        targetSlug: reference.targetSlug?.trim().toLowerCase(),
+      }))
+      .filter(
+        (reference, index, array) =>
+          array.findIndex(
+            (candidate) =>
+              candidate.referenceTitle === reference.referenceTitle &&
+              candidate.referenceDoi === reference.referenceDoi &&
+              candidate.targetSlug === reference.targetSlug
+          ) === index
+      )
   );
 
   const existingPaper = await prisma.paper.findUnique({
@@ -749,8 +950,20 @@ export async function upsertSidekickPaper(input: SidekickPublishInput) {
     select: {
       id: true,
       slug: true,
+      metadata: true,
+      authors: {
+        orderBy: {
+          position: "asc",
+        },
+        take: 1,
+        select: {
+          userId: true,
+        },
+      },
     },
   });
+  const previousImportedHighlights = getImportedNoteHighlights(existingPaper?.metadata);
+  const previousPrimaryAuthorId = existingPaper?.authors[0]?.userId;
 
   const paper = await prisma.$transaction(async (transaction) => {
     const baseData = {
@@ -763,10 +976,11 @@ export async function upsertSidekickPaper(input: SidekickPublishInput) {
       doi: input.doi?.toLowerCase(),
       origin: PaperOrigin.SIDEKICK,
       keywords,
-      sourceNoteIds: input.sourceNoteIds,
+      sourceNoteIds: uniqueStrings(input.sourceNoteIds),
       metadata: {
         theme: input.theme,
         importedFrom: "sidekick",
+        noteHighlights,
       },
     } satisfies Prisma.PaperUncheckedUpdateInput;
 
@@ -816,25 +1030,33 @@ export async function upsertSidekickPaper(input: SidekickPublishInput) {
       });
     }
 
-    for (const noteHighlight of input.noteHighlights) {
-      const existingIdea = await transaction.idea.findFirst({
+    if (previousImportedHighlights.length > 0) {
+      await transaction.idea.deleteMany({
         where: {
+          paperId: resolvedPaper.id,
+          content: {
+            in: previousImportedHighlights,
+          },
+          authorId: {
+            in: uniqueStrings(
+              [previousPrimaryAuthorId, primaryAuthor.id].filter(
+                (value): value is string => Boolean(value)
+              )
+            ),
+          },
+        },
+      });
+    }
+
+    if (noteHighlights.length > 0) {
+      await transaction.idea.createMany({
+        data: noteHighlights.map((noteHighlight) => ({
           paperId: resolvedPaper.id,
           authorId: primaryAuthor.id,
           content: noteHighlight,
-        },
+          summary: summarizeIdea(noteHighlight),
+        })),
       });
-
-      if (!existingIdea) {
-        await transaction.idea.create({
-          data: {
-            paperId: resolvedPaper.id,
-            authorId: primaryAuthor.id,
-            content: noteHighlight,
-            summary: summarizeIdea(noteHighlight),
-          },
-        });
-      }
     }
 
     return resolvedPaper;

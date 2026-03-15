@@ -1,9 +1,38 @@
-import { AuthGateCard, SectionHeading } from "@/components/site-shell";
+import { headers } from "next/headers";
+
+import { AuthGateCard } from "@/components/site-shell";
 import { IntegrationKeyPanel } from "@/components/forms/integration-key-panel";
 import { getCurrentUser } from "@/lib/auth";
 import { getIntegrationKeys } from "@/lib/papers";
 
 export const dynamic = "force-dynamic";
+
+const SIDEKICK_PUBLISH_PATH = "/api/integrations/sidekick/publish";
+
+async function getPublishEndpoint() {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    try {
+      return new URL(SIDEKICK_PUBLISH_PATH, process.env.NEXT_PUBLIC_APP_URL).toString();
+    } catch {
+      // Fall through to request headers when the configured URL is malformed.
+    }
+  }
+
+  const headerStore = await headers();
+  const forwardedHost = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  const host = forwardedHost?.split(",")[0]?.trim();
+
+  if (!host) {
+    return SIDEKICK_PUBLISH_PATH;
+  }
+
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+  const protocol =
+    forwardedProto?.split(",")[0]?.trim() ||
+    (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+
+  return `${protocol}://${host}${SIDEKICK_PUBLISH_PATH}`;
+}
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -11,35 +40,41 @@ export default async function SettingsPage() {
   if (!user) {
     return (
       <AuthGateCard
-        title="Settings and Sidekick integration"
-        description="Sign in to manage your account and create the bearer token that lets Sidekick publish straight into Agent Science."
+        title="Sign in to continue"
+        description="Sign in to manage your Sidekick integration tokens."
+        nextPath="/settings"
       />
     );
   }
 
-  const keys = await getIntegrationKeys(user.id);
+  const [keys, publishEndpoint] = await Promise.all([
+    getIntegrationKeys(user.id),
+    getPublishEndpoint(),
+  ]);
 
   return (
-    <div className="space-y-8">
-      <SectionHeading
-        eyebrow="Settings"
-        title="Profile and integrations"
-        description="The network is deliberately quiet. Settings mostly exist so you can connect Sidekick and keep authorship clean."
-      />
+    <div className="page-enter max-w-2xl">
+      <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
+        Settings
+      </h1>
 
-      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <div className="glass-panel rounded-[2rem] p-6">
-          <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
-            Profile
-          </div>
-          <h2 className="mt-4 text-4xl text-foreground">{user.name}</h2>
-          <div className="mt-2 text-sm text-foreground-soft">@{user.handle}</div>
-          <div className="mt-5 space-y-3 text-sm leading-7 text-foreground-soft">
-            <p>{user.email}</p>
-            {user.institution ? <p>{user.institution}</p> : null}
-            {user.bio ? <p>{user.bio}</p> : null}
-          </div>
+      {/* Profile */}
+      <section className="mt-10 pb-8 border-b border-border/50">
+        <h2 className="text-lg font-semibold text-foreground">{user.name}</h2>
+        <div className="mt-1 text-sm text-muted">@{user.handle}</div>
+        <div className="mt-3 text-sm text-foreground-soft space-y-1">
+          <p>{user.email}</p>
+          {user.institution && <p>{user.institution}</p>}
+          {user.bio && <p>{user.bio}</p>}
         </div>
+      </section>
+
+      {/* Sidekick integration */}
+      <section className="mt-8">
+        <h2 className="text-lg font-semibold text-foreground">Sidekick</h2>
+        <p className="mt-2 text-sm text-foreground-soft">
+          Connect your iPhone to publish directly from Sidekick.
+        </p>
 
         <IntegrationKeyPanel
           existingKeys={keys.map((key) => ({
@@ -49,38 +84,9 @@ export default async function SettingsPage() {
             createdAt: key.createdAt.toISOString(),
             lastUsedAt: key.lastUsedAt?.toISOString() ?? null,
           }))}
+          publishEndpoint={publishEndpoint}
         />
-      </div>
-
-      <div className="glass-panel rounded-[2.5rem] p-8">
-        <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-accent">
-          Sidekick publish contract
-        </div>
-        <h2 className="mt-4 text-4xl text-foreground">What Sidekick should send</h2>
-        <p className="mt-4 max-w-3xl text-sm leading-8 text-foreground-soft">
-          Agent Science expects a bearer token and a paper payload with title,
-          abstract, markdown, authors, note highlights, and optional PDF or DOI
-          metadata. The dedicated endpoint is stable enough to wire directly
-          into the iPhone app once you are ready.
-        </p>
-
-        <div className="mt-6 overflow-x-auto rounded-[1.75rem] bg-foreground px-5 py-5 font-mono text-sm leading-7 text-white">
-          <pre>{`POST /api/integrations/sidekick/publish
-Authorization: Bearer agsk_...
-
-{
-  "externalId": "sidekick-draft-123",
-  "title": "...",
-  "abstract": "...",
-  "markdown": "...",
-  "authors": [
-    { "name": "Dr. Maya Alvarez", "email": "maya@example.org" }
-  ],
-  "keywords": ["genomics", "causal-inference"],
-  "noteHighlights": ["field note one", "field note two"]
-}`}</pre>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
