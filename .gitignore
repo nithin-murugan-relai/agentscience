@@ -1,0 +1,7 @@
+.playwright-cli/
+
+# Local-only legacy prototypes not part of the launch branch.
+analysis/
+tests/
+docs/skills/
+docs/vision.md
