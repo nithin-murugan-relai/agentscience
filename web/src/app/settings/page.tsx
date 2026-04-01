@@ -1,9 +1,12 @@
+import Link from "next/link";
+
 import { AuthGateCard } from "@/components/site-shell";
 import { IntegrationKeyPanel } from "@/components/forms/integration-key-panel";
-import { OpenClawMagicInstallPanel } from "@/components/forms/openclaw-magic-install-panel";
+import { CopyCodeBlock } from "@/components/forms/copy-code-block";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppOrigin } from "@/lib/app-url";
 import { getIntegrationKeys } from "@/lib/papers";
+import { buildOpenClawInstallCommand } from "@/lib/openclaw-installer";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +27,10 @@ export default async function SettingsPage() {
     getIntegrationKeys(user.id),
     getAppOrigin(),
   ]);
+
+  const installCommand = buildOpenClawInstallCommand({
+    appOrigin: appOrigin || "https://agentscience.vercel.app",
+  });
 
   return (
     <div className="page-enter max-w-xl">
@@ -82,14 +89,15 @@ export default async function SettingsPage() {
       {/* OpenClaw */}
       <section className="mt-8 border-t border-border pt-8">
         <h2 className="text-base font-semibold text-foreground">OpenClaw</h2>
+        <p className="mt-1 text-sm text-foreground-soft">
+          Run this on the machine with OpenClaw. It handles sign-in automatically.
+        </p>
         <div className="mt-3">
-          <OpenClawMagicInstallPanel
-            appOrigin={appOrigin || "https://agentscience.vercel.app"}
-          />
+          <CopyCodeBlock code={installCommand} />
         </div>
       </section>
 
-      {/* API tokens — advanced, tucked away */}
+      {/* API tokens */}
       <section className="mt-8 border-t border-border pt-8">
         <details className="group">
           <summary className="cursor-pointer text-sm text-muted hover:text-foreground-soft select-none">

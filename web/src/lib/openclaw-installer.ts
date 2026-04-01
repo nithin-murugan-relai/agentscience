@@ -15,13 +15,21 @@ export function buildOpenClawInstallCommand({
   token,
 }: {
   appOrigin: string;
-  token: string;
+  token?: string;
 }) {
   const origin = normalizeOrigin(appOrigin);
   const installerUrl = `${origin}/api/openclaw/install`;
+
+  if (token) {
+    return `curl -fsSL ${quoteShell(installerUrl)} | SIDEKICK_SOCIAL_BASE_URL=${quoteShell(
+      origin
+    )} SIDEKICK_SOCIAL_TOKEN=${quoteShell(token)} bash`;
+  }
+
+  // No token — the script will handle auth via device flow
   return `curl -fsSL ${quoteShell(installerUrl)} | SIDEKICK_SOCIAL_BASE_URL=${quoteShell(
     origin
-  )} SIDEKICK_SOCIAL_TOKEN=${quoteShell(token)} bash`;
+  )} bash`;
 }
 
 export function buildOpenClawInstallScript(appOrigin: string) {
@@ -56,10 +64,83 @@ prepend_path() {
   esac
 }
 
+open_browser() {
+  local url="$1"
+  if command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$url" 2>/dev/null &
+  elif command -v open >/dev/null 2>&1; then
+    open "$url" 2>/dev/null &
+  else
+    return 1
+  fi
+}
+
+# ── Authentication ──────────────────────────────────────
+
 if [ -z "\${SIDEKICK_SOCIAL_TOKEN:-}" ]; then
-  printf 'SIDEKICK_SOCIAL_TOKEN is required. Generate the install command again from Sidekick Social.\\n' >&2
-  exit 1
+  log "No token provided — starting device authorization"
+
+  require_cmd curl
+
+  DEVICE_RESPONSE=$(curl -fsSL -X POST "$APP_URL/api/auth/device" \\
+    -H "Content-Type: application/json" -d '{}')
+
+  DEVICE_CODE=$(printf '%s' "$DEVICE_RESPONSE" | grep -o '"code":"[^"]*"' | head -1 | cut -d'"' -f4)
+  VERIFY_URL=$(printf '%s' "$DEVICE_RESPONSE" | grep -o '"verificationUrl":"[^"]*"' | head -1 | cut -d'"' -f4)
+  POLL_URL=$(printf '%s' "$DEVICE_RESPONSE" | grep -o '"pollUrl":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+  if [ -z "$DEVICE_CODE" ] || [ -z "$POLL_URL" ]; then
+    printf 'Failed to start device authorization.\\n' >&2
+    exit 1
+  fi
+
+  printf '\\n'
+  printf '  Open this URL to sign in and approve:\\n'
+  printf '\\n'
+  printf '    %s\\n' "$VERIFY_URL"
+  printf '\\n'
+  printf '  Code: %s\\n' "$DEVICE_CODE"
+  printf '\\n'
+
+  if open_browser "$VERIFY_URL"; then
+    printf '  Browser opened. Waiting for approval...\\n'
+  else
+    printf '  Open the URL above in a browser.\\n'
+  fi
+  printf '\\n'
+
+  ELAPSED=0
+  TIMEOUT=600
+  while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
+    sleep 3
+    ELAPSED=$((ELAPSED + 3))
+
+    POLL_RESULT=$(curl -fsSL "$POLL_URL" 2>/dev/null || echo '{"status":"error"}')
+    POLL_STATUS=$(printf '%s' "$POLL_RESULT" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+    if [ "$POLL_STATUS" = "complete" ]; then
+      SIDEKICK_SOCIAL_TOKEN=$(printf '%s' "$POLL_RESULT" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
+      if [ -z "$SIDEKICK_SOCIAL_TOKEN" ]; then
+        printf 'Approved but token was empty.\\n' >&2
+        exit 1
+      fi
+      log "Authorized"
+      break
+    fi
+
+    if [ "$POLL_STATUS" = "expired" ]; then
+      printf 'Device code expired. Run the command again.\\n' >&2
+      exit 1
+    fi
+  done
+
+  if [ -z "\${SIDEKICK_SOCIAL_TOKEN:-}" ]; then
+    printf 'Timed out waiting for approval.\\n' >&2
+    exit 1
+  fi
 fi
+
+# ── Install ─────────────────────────────────────────────
 
 if [ -n "\${OPENCLAW_BIN:-}" ] && [ -x "\${OPENCLAW_BIN}" ]; then
   prepend_path "$(dirname "$OPENCLAW_BIN")"

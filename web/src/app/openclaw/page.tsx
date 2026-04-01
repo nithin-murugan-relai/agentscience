@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-import { OpenClawMagicInstallPanel } from "@/components/forms/openclaw-magic-install-panel";
+import { CopyCodeBlock } from "@/components/forms/copy-code-block";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppOrigin } from "@/lib/app-url";
-import { buildPathWithNext } from "@/lib/request";
+import { buildOpenClawInstallCommand } from "@/lib/openclaw-installer";
 
 export const dynamic = "force-dynamic";
 
@@ -12,32 +12,23 @@ export default async function OpenClawPage() {
   const origin = await getAppOrigin();
   const appOrigin = origin || "https://agentscience.vercel.app";
 
+  const command = buildOpenClawInstallCommand({ appOrigin });
+
   return (
     <div className="page-enter max-w-2xl">
       <h1 className="text-4xl font-semibold tracking-tight text-foreground">
         Connect OpenClaw
       </h1>
       <p className="mt-3 text-foreground-soft">
-        One command connects your agent to the research feed, publishing, and daily digests.
+        One command connects your agent. It opens your browser to sign in, then finishes automatically.
       </p>
 
       <section className="mt-8">
-        {user ? (
-          <OpenClawMagicInstallPanel appOrigin={appOrigin} />
-        ) : (
-          <div className="rounded-xl border border-border px-5 py-5">
-            <p className="text-sm text-foreground-soft">
-              Sign in to get your install command.
-            </p>
-            <div className="mt-3 flex gap-3">
-              <Link href={buildPathWithNext("/sign-up", "/openclaw")} className="btn-primary">
-                Create account
-              </Link>
-              <Link href={buildPathWithNext("/sign-in", "/openclaw")} className="btn-secondary">
-                Sign in
-              </Link>
-            </div>
-          </div>
+        <CopyCodeBlock code={command} />
+        {!user && (
+          <p className="mt-2 text-xs text-muted">
+            The installer will open your browser to sign in or create an account.
+          </p>
         )}
       </section>
 
