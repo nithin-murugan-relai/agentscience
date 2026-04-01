@@ -242,16 +242,16 @@ export default async function PaperDetailPage({
         )}
 
         {user ? (
-          <form action={`/api/papers/${paper.slug}/comments`} method="post" className="mt-6 max-w-2xl space-y-3">
+          <form action={`/api/papers/${paper.slug}/comments`} method="post" className="mt-5 max-w-2xl">
             <input type="hidden" name="redirectTo" value={`/papers/${paper.slug}`} />
             <textarea
               name="body"
               required
               minLength={2}
-              className="field-textarea min-h-[100px] text-sm leading-relaxed"
+              className="field-textarea min-h-[80px] text-sm leading-relaxed"
               placeholder="Add a comment..."
             />
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary mt-2">
               Post
             </button>
           </form>
@@ -311,79 +311,73 @@ export default async function PaperDetailPage({
       {user && isAuthor ? (
         <section className="border-t border-border py-10">
           <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Write a review
+            Review
           </h2>
-          <p className="mt-3 text-sm text-foreground-soft">
+          <p className="mt-2 text-sm text-foreground-soft">
             Authors cannot review their own paper.
           </p>
         </section>
       ) : user ? (
         <section className="border-t border-border py-10">
           <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Write a review
+            Review
           </h2>
           {viewerReview && (
-            <p className="mt-3 text-sm text-foreground-soft">
-              You already reviewed this paper. Submitting again updates your existing review.
+            <p className="mt-2 text-sm text-foreground-soft">
+              Submitting again updates your existing review.
             </p>
           )}
           {error && (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           )}
           <form
             action={`/api/papers/${paper.slug}/reviews`}
             method="post"
-            className="mt-5 max-w-2xl space-y-4"
+            className="mt-4 max-w-2xl space-y-4"
           >
             <input type="hidden" name="redirectTo" value={`/papers/${paper.slug}`} />
 
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">Summary</span>
-              <textarea
-                name="summary"
-                required
-                minLength={40}
-                className="field-textarea min-h-[100px] text-sm leading-relaxed"
-                defaultValue={viewerReview?.summary ?? ""}
-              />
-            </label>
+            <textarea
+              name="summary"
+              required
+              minLength={40}
+              className="field-textarea min-h-[80px] text-sm leading-relaxed"
+              placeholder="Your review..."
+              defaultValue={viewerReview?.summary ?? ""}
+            />
 
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="block space-y-1">
-                <span className="text-sm font-medium text-foreground">Strengths</span>
-                <textarea
-                  name="strengths"
-                  className="field-textarea min-h-[80px] text-sm leading-relaxed"
-                  defaultValue={viewerReview?.strengths ?? ""}
-                />
-              </label>
-              <label className="block space-y-1">
-                <span className="text-sm font-medium text-foreground">Concerns</span>
-                <textarea
-                  name="concerns"
-                  className="field-textarea min-h-[80px] text-sm leading-relaxed"
-                  defaultValue={viewerReview?.concerns ?? ""}
-                />
-              </label>
+              <textarea
+                name="strengths"
+                className="field-textarea min-h-[60px] text-sm leading-relaxed"
+                placeholder="Strengths (optional)"
+                defaultValue={viewerReview?.strengths ?? ""}
+              />
+              <textarea
+                name="concerns"
+                className="field-textarea min-h-[60px] text-sm leading-relaxed"
+                placeholder="Concerns (optional)"
+                defaultValue={viewerReview?.concerns ?? ""}
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="flex flex-wrap items-center gap-3">
               {[
                 ["novelty", "Novelty"],
                 ["rigor", "Rigor"],
                 ["clarity", "Clarity"],
-                ["reproducibility", "Reproducibility"],
+                ["reproducibility", "Repro"],
               ].map(([name, label]) => (
-                <label key={name} className="block space-y-1">
-                  <span className="text-sm font-medium text-foreground">{label}</span>
+                <label key={name} className="flex items-center gap-1.5 text-sm">
+                  <span className="text-muted">{label}</span>
                   <select
                     name={name}
                     defaultValue={String(
                       reviewScoreDefaults[name as keyof typeof reviewScoreDefaults]
                     )}
-                    className="field-select text-sm"
+                    className="field-select w-14 !h-8 text-sm"
                   >
                     {[1, 2, 3, 4, 5].map((value) => (
                       <option key={value} value={value}>
@@ -393,24 +387,23 @@ export default async function PaperDetailPage({
                   </select>
                 </label>
               ))}
+              <label className="flex items-center gap-1.5 text-sm">
+                <span className="text-muted">Verdict</span>
+                <select
+                  name="verdict"
+                  defaultValue={viewerReview?.verdict ?? "ENDORSE"}
+                  className="field-select w-auto !h-8 text-sm"
+                >
+                  <option value="STRONG_ENDORSE">Strong endorse</option>
+                  <option value="ENDORSE">Endorse</option>
+                  <option value="MIXED">Mixed</option>
+                  <option value="CONCERN">Concern</option>
+                </select>
+              </label>
             </div>
 
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">Verdict</span>
-              <select
-                name="verdict"
-                defaultValue={viewerReview?.verdict ?? "ENDORSE"}
-                className="field-select text-sm"
-              >
-                <option value="STRONG_ENDORSE">Strong endorse</option>
-                <option value="ENDORSE">Endorse</option>
-                <option value="MIXED">Mixed</option>
-                <option value="CONCERN">Concern</option>
-              </select>
-            </label>
-
             <button type="submit" className="btn-primary">
-              {viewerReview ? "Update review" : "Submit review"}
+              {viewerReview ? "Update" : "Submit"}
             </button>
           </form>
         </section>
