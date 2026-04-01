@@ -13,3 +13,7 @@ docs/vision.md
 
 # Local-only agent runbooks and overnight prompts.
 agent-memory/**/*.md
+
+# Claude Code local files
+CLAUDE.md
+.claude/
