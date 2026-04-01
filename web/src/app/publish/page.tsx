@@ -27,21 +27,21 @@ export default async function PublishPage({ searchParams }: PageProps) {
 
   return (
     <div className="page-enter max-w-2xl">
-      <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
+      <h1 className="text-4xl font-semibold tracking-tight text-foreground">
         Publish
       </h1>
-      <p className="mt-3 text-lg text-foreground-soft">
-        Publish a real paper bundle with LaTeX, bibliography, figures, PDF, and reproducible code.
+      <p className="mt-3 text-foreground-soft">
+        LaTeX, bibliography, figures, PDF, and reproducible code.
       </p>
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      <form action="/api/papers" method="post" className="mt-10 space-y-6">
-        <label className="block space-y-1.5">
+      <form action="/api/papers" method="post" className="mt-8 space-y-5">
+        <label className="block space-y-1">
           <span className="text-sm font-medium text-foreground">Title</span>
           <input
             name="title"
@@ -53,41 +53,41 @@ export default async function PublishPage({ searchParams }: PageProps) {
           />
         </label>
 
-        <label className="block space-y-1.5">
+        <label className="block space-y-1">
           <span className="text-sm font-medium text-foreground">Abstract</span>
           <textarea
             name="abstract"
             required
             minLength={80}
             maxLength={4000}
-            className="field-textarea min-h-[140px] text-sm leading-relaxed"
+            className="field-textarea min-h-[120px] text-sm leading-relaxed"
             placeholder="A brief summary of your work"
           />
         </label>
 
-        <label className="block space-y-1.5">
+        <label className="block space-y-1">
           <span className="text-sm font-medium text-foreground">Agent-readable summary</span>
           <textarea
             name="markdown"
             spellCheck={false}
-            className="field-textarea min-h-[360px] font-mono text-sm leading-relaxed"
-            placeholder="Optional narrative summary, notes, or plain-text synopsis for search and agent indexing."
+            className="field-textarea min-h-[280px] font-mono text-sm leading-relaxed"
+            placeholder="Optional plain-text synopsis for search and agent indexing."
           />
         </label>
 
-        <label className="block space-y-1.5">
+        <label className="block space-y-1">
           <span className="text-sm font-medium text-foreground">LaTeX source</span>
           <textarea
             name="latexSource"
             required
-            className="field-textarea min-h-[220px] font-mono text-sm leading-relaxed"
+            className="field-textarea min-h-[180px] font-mono text-sm leading-relaxed"
             placeholder="\\documentclass{article} ..."
             spellCheck={false}
           />
         </label>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          <label className="block space-y-1.5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="block space-y-1">
             <span className="text-sm font-medium text-foreground">Compiled PDF</span>
             <input
               name="pdf"
@@ -97,7 +97,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
               className="field-input text-sm file:mr-4 file:border-0 file:bg-transparent file:text-sm"
             />
           </label>
-          <label className="block space-y-1.5">
+          <label className="block space-y-1">
             <span className="text-sm font-medium text-foreground">Figures</span>
             <input
               name="figures"
@@ -109,15 +109,15 @@ export default async function PublishPage({ searchParams }: PageProps) {
           </label>
         </div>
 
-        <div className="border-t border-border/50 pt-6">
-          <h2 className="text-lg font-semibold text-foreground">Metadata and reproducibility</h2>
+        <div className="border-t border-border pt-5">
+          <h2 className="text-base font-semibold text-foreground">Metadata</h2>
 
-          <div className="mt-5 grid gap-5 md:grid-cols-2">
-            <label className="block space-y-1.5">
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="block space-y-1">
               <span className="text-sm font-medium text-foreground">Canonical URL</span>
               <input name="canonicalUrl" type="url" className="field-input text-sm" placeholder="https://..." />
             </label>
-            <label className="block space-y-1.5">
+            <label className="block space-y-1">
               <span className="text-sm font-medium text-foreground">GitHub repository</span>
               <input
                 name="githubUrl"
@@ -127,40 +127,40 @@ export default async function PublishPage({ searchParams }: PageProps) {
                 placeholder="https://github.com/..."
               />
             </label>
-            <label className="block space-y-1.5">
+            <label className="block space-y-1">
               <span className="text-sm font-medium text-foreground">DOI</span>
               <input name="doi" className="field-input text-sm" placeholder="10.xxxx/..." spellCheck={false} />
             </label>
-            <label className="block space-y-1.5">
+            <label className="block space-y-1">
               <span className="text-sm font-medium text-foreground">Keywords</span>
               <input name="keywords" className="field-input text-sm" placeholder="genomics, climate, ..." spellCheck={false} />
             </label>
           </div>
 
-          <label className="mt-5 block space-y-1.5">
+          <label className="mt-4 block space-y-1">
             <span className="text-sm font-medium text-foreground">References</span>
             <textarea
               name="references"
-              className="field-textarea min-h-[90px] text-sm leading-relaxed"
+              className="field-textarea min-h-[70px] text-sm leading-relaxed"
               placeholder="One DOI or reference per line"
               spellCheck={false}
             />
           </label>
 
-          <label className="mt-5 block space-y-1.5">
+          <label className="mt-4 block space-y-1">
             <span className="text-sm font-medium text-foreground">Origin note</span>
             <textarea
               name="ideaNote"
-              className="field-textarea min-h-[90px] text-sm leading-relaxed"
+              className="field-textarea min-h-[70px] text-sm leading-relaxed"
               placeholder="What inspired this work?"
             />
           </label>
 
-          <label className="mt-5 block space-y-1.5">
+          <label className="mt-4 block space-y-1">
             <span className="text-sm font-medium text-foreground">BibTeX</span>
             <textarea
               name="bibSource"
-              className="field-textarea min-h-[120px] font-mono text-sm leading-relaxed"
+              className="field-textarea min-h-[90px] font-mono text-sm leading-relaxed"
               placeholder="@article{...}"
               spellCheck={false}
             />
@@ -169,7 +169,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
 
         <div className="pt-2">
           <button type="submit" className="btn-primary">
-            Publish paper
+            Publish
           </button>
         </div>
       </form>
