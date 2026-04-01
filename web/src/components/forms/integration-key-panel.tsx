@@ -12,30 +12,17 @@ type IntegrationKeySummary = {
 
 export function IntegrationKeyPanel({
   existingKeys,
-  publishEndpoint,
 }: {
   existingKeys: IntegrationKeySummary[];
-  publishEndpoint: string;
+  publishEndpoint?: string;
 }) {
   const [keys, setKeys] = useState(existingKeys);
-  const [name, setName] = useState("Sidekick iPhone");
+  const [name, setName] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [deletingKeyId, setDeletingKeyId] = useState<string | null>(null);
-  const [copied, setCopied] = useState<"endpoint" | "token" | null>(null);
-
-  async function copyValue(value: string, target: "endpoint" | "token") {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(target);
-      window.setTimeout(() => {
-        setCopied((current) => (current === target ? null : current));
-      }, 1400);
-    } catch {
-      setError("Clipboard not available.");
-    }
-  }
+  const [copied, setCopied] = useState(false);
 
   async function handleCreateKey(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,6 +52,7 @@ export function IntegrationKeyPanel({
 
       setToken(payload.token);
       setKeys((currentKeys) => [payload.key, ...currentKeys]);
+      setName("");
     } catch (caughtError) {
       setError(
         caughtError instanceof Error ? caughtError.message : "Failed to create key."
@@ -75,10 +63,8 @@ export function IntegrationKeyPanel({
   }
 
   async function handleDeleteKey(keyId: string) {
-    const confirmed = window.confirm("Revoke this Sidekick token?");
-    if (!confirmed) {
-      return;
-    }
+    const confirmed = window.confirm("Revoke this token?");
+    if (!confirmed) return;
 
     setDeletingKeyId(keyId);
     setError(null);
@@ -104,20 +90,19 @@ export function IntegrationKeyPanel({
     }
   }
 
-  return (
-    <div className="mt-6 space-y-6">
-      {/* Endpoint */}
-      <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 px-4 py-3">
-        <code className="text-sm text-foreground-soft break-all">{publishEndpoint}</code>
-        <button
-          type="button"
-          onClick={() => copyValue(publishEndpoint, "endpoint")}
-          className="shrink-0 text-sm text-accent hover:text-accent-hover font-medium"
-        >
-          {copied === "endpoint" ? "Copied" : "Copy"}
-        </button>
-      </div>
+  async function handleCopyToken() {
+    if (!token) return;
+    try {
+      await navigator.clipboard.writeText(token);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setError("Clipboard not available.");
+    }
+  }
 
+  return (
+    <div className="mt-4 space-y-4">
       {/* Create key */}
       <form onSubmit={handleCreateKey} className="flex gap-3">
         <input
@@ -132,7 +117,7 @@ export function IntegrationKeyPanel({
           disabled={pending || name.trim().length === 0}
           className="btn-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {pending ? "Creating..." : "Create token"}
+          {pending ? "Creating..." : "Create"}
         </button>
       </form>
 
@@ -140,21 +125,16 @@ export function IntegrationKeyPanel({
       {token && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
           <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-sm font-medium text-foreground">Token created</div>
-              <div className="mt-1 text-xs text-foreground-soft">
-                Copy it now. It will not be shown again.
-              </div>
-            </div>
+            <span className="text-sm text-foreground-soft">Copy now — shown only once.</span>
             <button
               type="button"
-              onClick={() => copyValue(token, "token")}
+              onClick={handleCopyToken}
               className="text-sm text-accent hover:text-accent-hover font-medium"
             >
-              {copied === "token" ? "Copied" : "Copy"}
+              {copied ? "Copied" : "Copy"}
             </button>
           </div>
-          <code className="mt-3 block rounded-lg bg-foreground px-4 py-3 text-sm text-white break-all">
+          <code className="mt-2 block rounded-lg bg-foreground px-4 py-2.5 text-sm text-white break-all">
             {token}
           </code>
         </div>
@@ -167,39 +147,25 @@ export function IntegrationKeyPanel({
       )}
 
       {/* Existing keys */}
-      {keys.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/60 px-4 py-3 text-sm text-muted">
-          No active tokens yet.
-        </div>
-      ) : (
-        <div className="space-y-2">
+      {keys.length > 0 && (
+        <div className="space-y-1.5">
           {keys.map((key) => (
             <div
               key={key.id}
-              className="flex items-center justify-between gap-4 rounded-xl border border-border/60 px-4 py-3"
+              className="flex items-center justify-between gap-4 rounded-xl border border-border/60 px-4 py-2.5"
             >
-              <div>
-                <div className="text-sm font-medium text-foreground">{key.name}</div>
-                <code className="text-xs text-muted">{key.tokenPrefix}...</code>
+              <div className="min-w-0">
+                <span className="text-sm text-foreground">{key.name}</span>
+                <span className="ml-2 text-xs text-muted">{key.tokenPrefix}...</span>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right text-xs text-muted">
-                  <div>Created {new Date(key.createdAt).toLocaleDateString()}</div>
-                  <div>
-                    {key.lastUsedAt
-                      ? `Used ${new Date(key.lastUsedAt).toLocaleDateString()}`
-                      : "Never used"}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteKey(key.id)}
-                  disabled={deletingKeyId === key.id}
-                  className="text-xs font-medium text-muted hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {deletingKeyId === key.id ? "Revoking..." : "Revoke"}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleDeleteKey(key.id)}
+                disabled={deletingKeyId === key.id}
+                className="shrink-0 text-xs text-muted hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deletingKeyId === key.id ? "..." : "Revoke"}
+              </button>
             </div>
           ))}
         </div>
