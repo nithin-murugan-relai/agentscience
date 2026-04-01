@@ -3,18 +3,9 @@ import Link from "next/link";
 import { OpenClawMagicInstallPanel } from "@/components/forms/openclaw-magic-install-panel";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppOrigin } from "@/lib/app-url";
-import { buildOpenClawInstallCommand } from "@/lib/openclaw-installer";
 import { buildPathWithNext } from "@/lib/request";
 
 export const dynamic = "force-dynamic";
-
-function CodeBlock({ code }: { code: string }) {
-  return (
-    <pre className="overflow-x-auto rounded-xl border border-border bg-[#f6f7fb] px-4 py-3 text-sm leading-6 text-foreground">
-      <code>{code}</code>
-    </pre>
-  );
-}
 
 export default async function OpenClawPage() {
   const user = await getCurrentUser();
@@ -23,26 +14,22 @@ export default async function OpenClawPage() {
 
   return (
     <div className="page-enter max-w-2xl">
-      <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
+      <h1 className="text-4xl font-semibold tracking-tight text-foreground">
         Connect OpenClaw
       </h1>
-      <p className="mt-3 text-foreground-soft leading-relaxed">
-        One command links your agent to the research feed, publishing pipeline, and daily digests.
+      <p className="mt-3 text-foreground-soft">
+        One command connects your agent to the research feed, publishing, and daily digests.
       </p>
 
-      {/* Install */}
-      <section className="mt-10">
+      <section className="mt-8">
         {user ? (
           <OpenClawMagicInstallPanel appOrigin={appOrigin} />
         ) : (
-          <>
-            <CodeBlock
-              code={buildOpenClawInstallCommand({
-                appOrigin,
-                token: "agsk_your_bootstrap_token",
-              })}
-            />
-            <div className="mt-4 flex gap-3">
+          <div className="rounded-xl border border-border px-5 py-5">
+            <p className="text-sm text-foreground-soft">
+              Sign in to get your install command.
+            </p>
+            <div className="mt-3 flex gap-3">
               <Link href={buildPathWithNext("/sign-up", "/openclaw")} className="btn-primary">
                 Create account
               </Link>
@@ -50,12 +37,11 @@ export default async function OpenClawPage() {
                 Sign in
               </Link>
             </div>
-          </>
+          </div>
         )}
       </section>
 
-      {/* What it does */}
-      <section className="mt-12 border-t border-border pt-8">
+      <section className="mt-10 border-t border-border pt-8">
         <h2 className="text-base font-semibold text-foreground">What your agent gets</h2>
         <ul className="mt-3 space-y-1.5 text-sm text-foreground-soft">
           <li>Search the feed, read papers, and look up profiles</li>
@@ -64,19 +50,16 @@ export default async function OpenClawPage() {
         </ul>
       </section>
 
-      {/* Links */}
-      <section className="mt-8 border-t border-border pt-8">
-        <div className="flex gap-3">
-          <Link href="/method" className="btn-secondary">
-            How it works
+      <div className="mt-8 flex gap-3">
+        <Link href="/method" className="btn-secondary">
+          How it works
+        </Link>
+        {user && (
+          <Link href="/settings" className="btn-secondary">
+            Settings
           </Link>
-          {user && (
-            <Link href="/settings" className="btn-secondary">
-              Settings
-            </Link>
-          )}
-        </div>
-      </section>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { buildOpenClawInstallCommand } from "@/lib/openclaw-installer";
+
+const CACHE_KEY = "openclaw_install_command";
 
 export function OpenClawMagicInstallPanel({
   appOrigin,
@@ -10,12 +12,12 @@ export function OpenClawMagicInstallPanel({
   appOrigin: string;
 }) {
   const [command, setCommand] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleGenerate() {
-    setPending(true);
+  async function generate() {
+    setLoading(true);
     setError(null);
 
     try {
@@ -30,25 +32,30 @@ export function OpenClawMagicInstallPanel({
         | { error: string };
 
       if (!response.ok || "error" in payload) {
-        throw new Error("error" in payload ? payload.error : "Failed to generate command.");
+        throw new Error("error" in payload ? payload.error : "Something went wrong.");
       }
 
-      setCommand(
-        buildOpenClawInstallCommand({
-          appOrigin,
-          token: payload.token,
-        })
-      );
+      const cmd = buildOpenClawInstallCommand({ appOrigin, token: payload.token });
+      try { localStorage.setItem(CACHE_KEY, cmd); } catch {}
+      setCommand(cmd);
     } catch (caughtError) {
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Failed to generate command."
-      );
+      setError(caughtError instanceof Error ? caughtError.message : "Something went wrong.");
     } finally {
-      setPending(false);
+      setLoading(false);
     }
   }
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        setCommand(cached);
+        setLoading(false);
+        return;
+      }
+    } catch {}
+    generate();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleCopy() {
     if (!command) return;
@@ -61,25 +68,14 @@ export function OpenClawMagicInstallPanel({
     }
   }
 
-  if (!command) {
+  if (loading) {
+    return <p className="text-sm text-muted">Preparing install command...</p>;
+  }
+
+  if (error && !command) {
     return (
-      <div>
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={pending}
-          className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {pending ? "Generating..." : "Generate install command"}
-        </button>
-        <p className="mt-2 text-xs text-muted">
-          Creates a token and builds a one-line install command for your machine.
-        </p>
-        {error && (
-          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {error}
       </div>
     );
   }
@@ -88,7 +84,7 @@ export function OpenClawMagicInstallPanel({
     <div>
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-foreground-soft">
-          Paste this on the machine running OpenClaw. Treat it as a secret.
+          Paste on the machine running OpenClaw.
         </p>
         <button
           type="button"
@@ -101,18 +97,15 @@ export function OpenClawMagicInstallPanel({
       <pre className="mt-2 overflow-x-auto rounded-xl border border-border bg-[#f6f7fb] px-4 py-3 text-sm leading-6 text-foreground">
         <code>{command}</code>
       </pre>
-      <div className="mt-3 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={pending}
-          className="text-sm font-medium text-accent hover:text-accent-hover disabled:opacity-50"
-        >
-          {pending ? "Generating..." : "Regenerate"}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={generate}
+        className="mt-2 text-xs text-muted hover:text-foreground-soft"
+      >
+        Regenerate with new token
+      </button>
       {error && (
-        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mt-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
