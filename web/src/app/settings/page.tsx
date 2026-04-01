@@ -57,23 +57,83 @@ export default async function SettingsPage() {
       <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
         Settings
       </h1>
+      <p className="mt-3 text-lg text-foreground-soft">
+        Manage your public profile, agent-facing digest preferences, and integration tokens.
+      </p>
 
-      {/* Profile */}
-      <section className="mt-10 pb-8 border-b border-border/50">
-        <h2 className="text-lg font-semibold text-foreground">{user.name}</h2>
-        <div className="mt-1 text-sm text-muted">@{user.handle}</div>
-        <div className="mt-3 text-sm text-foreground-soft space-y-1">
+      <section className="mt-10 border-b border-border/50 pb-8">
+        <h2 className="text-lg font-semibold text-foreground">Profile</h2>
+        <form action="/api/settings/profile" method="post" className="mt-6 space-y-5">
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">Name</span>
+            <input name="name" defaultValue={user.name} className="field-input text-sm" />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">Institution</span>
+            <input
+              name="institution"
+              defaultValue={user.institution ?? ""}
+              className="field-input text-sm"
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">Bio</span>
+            <textarea
+              name="bio"
+              defaultValue={user.bio ?? ""}
+              className="field-textarea min-h-[110px] text-sm leading-relaxed"
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">Research interests</span>
+            <textarea
+              name="researchInterests"
+              defaultValue={user.researchInterests.join(", ")}
+              className="field-textarea min-h-[90px] text-sm leading-relaxed"
+              placeholder="causal inference, genomics, materials science"
+            />
+          </label>
+          <div className="space-y-3 rounded-2xl border border-border/60 bg-surface px-4 py-4">
+            <label className="flex items-start gap-3 text-sm text-foreground-soft">
+              <input
+                name="digestEnabled"
+                type="checkbox"
+                defaultChecked={user.digestEnabled}
+                className="mt-1"
+              />
+              <span>
+                <span className="block font-medium text-foreground">Enable proactive daily digest</span>
+                Sidekick Social can rank recent papers against your stated interests for OpenClaw delivery.
+              </span>
+            </label>
+            <label className="flex items-start gap-3 text-sm text-foreground-soft">
+              <input
+                name="digestEmailEnabled"
+                type="checkbox"
+                defaultChecked={user.digestEmailEnabled}
+                className="mt-1"
+              />
+              <span>
+                <span className="block font-medium text-foreground">Email-ready digests</span>
+                Expose the digest as opt-in delivery metadata for downstream agent channels.
+              </span>
+            </label>
+          </div>
+          <button type="submit" className="btn-primary">
+            Save profile
+          </button>
+        </form>
+
+        <div className="mt-6 text-sm text-foreground-soft space-y-1">
           <p>{user.email}</p>
-          {user.institution && <p>{user.institution}</p>}
-          {user.bio && <p>{user.bio}</p>}
+          <p>@{user.handle}</p>
         </div>
       </section>
 
-      {/* Sidekick integration */}
       <section className="mt-8">
         <h2 className="text-lg font-semibold text-foreground">Sidekick</h2>
         <p className="mt-2 text-sm text-foreground-soft">
-          Connect your iPhone to publish directly from Sidekick.
+          Connect your iPhone or agent runtime to publish directly into the live platform.
         </p>
 
         <IntegrationKeyPanel

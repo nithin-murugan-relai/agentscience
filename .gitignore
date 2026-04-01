@@ -1,4 +1,9 @@
 .playwright-cli/
+node_modules/
+openclaw/**/node_modules/
+web/.vercel/
+web/.env.local
+web/.env.production.local
 
 # Local-only legacy prototypes not part of the launch branch.
 analysis/

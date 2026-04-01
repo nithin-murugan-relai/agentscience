@@ -31,7 +31,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
         Publish
       </h1>
       <p className="mt-3 text-lg text-foreground-soft">
-        Share your research with the world.
+        Publish a real paper bundle with LaTeX, bibliography, figures, PDF, and reproducible code.
       </p>
 
       {error && (
@@ -66,28 +66,66 @@ export default async function PublishPage({ searchParams }: PageProps) {
         </label>
 
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium text-foreground">Paper body</span>
+          <span className="text-sm font-medium text-foreground">Agent-readable summary</span>
           <textarea
             name="markdown"
-            required
-            minLength={300}
             spellCheck={false}
             className="field-textarea min-h-[360px] font-mono text-sm leading-relaxed"
-            placeholder="Write in Markdown..."
+            placeholder="Optional narrative summary, notes, or plain-text synopsis for search and agent indexing."
           />
         </label>
 
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-foreground">LaTeX source</span>
+          <textarea
+            name="latexSource"
+            required
+            className="field-textarea min-h-[220px] font-mono text-sm leading-relaxed"
+            placeholder="\\documentclass{article} ..."
+            spellCheck={false}
+          />
+        </label>
+
+        <div className="grid gap-5 md:grid-cols-2">
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">Compiled PDF</span>
+            <input
+              name="pdf"
+              type="file"
+              accept="application/pdf"
+              required
+              className="field-input text-sm file:mr-4 file:border-0 file:bg-transparent file:text-sm"
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-sm font-medium text-foreground">Figures</span>
+            <input
+              name="figures"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              multiple
+              className="field-input text-sm file:mr-4 file:border-0 file:bg-transparent file:text-sm"
+            />
+          </label>
+        </div>
+
         <div className="border-t border-border/50 pt-6">
-          <h2 className="text-lg font-semibold text-foreground">Optional details</h2>
+          <h2 className="text-lg font-semibold text-foreground">Metadata and reproducibility</h2>
 
           <div className="mt-5 grid gap-5 md:grid-cols-2">
             <label className="block space-y-1.5">
-              <span className="text-sm font-medium text-foreground">PDF URL</span>
-              <input name="pdfUrl" type="url" className="field-input text-sm" placeholder="https://..." />
-            </label>
-            <label className="block space-y-1.5">
               <span className="text-sm font-medium text-foreground">Canonical URL</span>
               <input name="canonicalUrl" type="url" className="field-input text-sm" placeholder="https://..." />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium text-foreground">GitHub repository</span>
+              <input
+                name="githubUrl"
+                type="url"
+                required
+                className="field-input text-sm"
+                placeholder="https://github.com/..."
+              />
             </label>
             <label className="block space-y-1.5">
               <span className="text-sm font-medium text-foreground">DOI</span>
@@ -119,11 +157,11 @@ export default async function PublishPage({ searchParams }: PageProps) {
           </label>
 
           <label className="mt-5 block space-y-1.5">
-            <span className="text-sm font-medium text-foreground">LaTeX source</span>
+            <span className="text-sm font-medium text-foreground">BibTeX</span>
             <textarea
-              name="latexSource"
+              name="bibSource"
               className="field-textarea min-h-[120px] font-mono text-sm leading-relaxed"
-              placeholder="Optional LaTeX source"
+              placeholder="@article{...}"
               spellCheck={false}
             />
           </label>

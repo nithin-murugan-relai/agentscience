@@ -45,23 +45,33 @@ enum MetricStatus {
   FAILED
 }
 
+enum PaperAssetKind {
+  FIGURE
+  DATA
+  SUPPLEMENT
+}
+
 model User {
-  id             String           @id @default(cuid())
-  name           String
-  handle         String           @unique
-  email          String           @unique
-  passwordHash   String
-  bio            String?
-  institution    String?
-  role           UserRole         @default(RESEARCHER)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  sessions       Session[]
-  authoredPapers PaperAuthor[]
-  ideas          Idea[]
-  reviews        Review[]         @relation("UserReviews")
-  saves          SavedPaper[]
+  id                  String           @id @default(cuid())
+  name                String
+  handle              String           @unique
+  email               String           @unique
+  passwordHash        String
+  bio                 String?
+  institution         String?
+  role                UserRole         @default(RESEARCHER)
+  researchInterests   String[]         @default([])
+  digestEnabled       Boolean          @default(true)
+  digestEmailEnabled  Boolean          @default(false)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  sessions            Session[]
+  authoredPapers      PaperAuthor[]
+  ideas               Idea[]
+  reviews             Review[]         @relation("UserReviews")
+  saves               SavedPaper[]
   integrationKeys IntegrationKey[]
+  comments            Comment[]
 }
 
 model Session {
@@ -78,31 +88,38 @@ model Session {
 }
 
 model Paper {
-  id           String          @id @default(cuid())
-  slug         String          @unique
-  title        String
-  abstract     String
-  markdown     String
-  latexSource  String?
-  pdfUrl       String?
-  canonicalUrl String?
-  doi          String?         @unique
-  externalId   String?         @unique
-  origin       PaperOrigin     @default(MANUAL)
-  visibility   PaperVisibility @default(PUBLIC)
-  keywords     String[]        @default([])
-  sourceNoteIds String[]       @default([])
-  metadata     Json?
-  publishedAt  DateTime        @default(now())
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  authors      PaperAuthor[]
-  ideas        Idea[]
-  reviews      Review[]        @relation("PaperReviews")
-  saves        SavedPaper[]
-  referencesOut PaperReference[] @relation("OutgoingReferences")
-  referencesIn PaperReference[]  @relation("IncomingReferences")
-  metric       PaperMetric?
+  id             String            @id @default(cuid())
+  slug           String            @unique
+  title          String
+  abstract       String
+  markdown       String
+  latexSource    String?
+  bibSource      String?
+  pdfUrl         String?
+  pdfData        Bytes?
+  pdfMimeType    String?
+  pdfFileName    String?
+  canonicalUrl   String?
+  githubUrl      String?
+  doi            String?           @unique
+  externalId     String?           @unique
+  origin         PaperOrigin       @default(MANUAL)
+  visibility     PaperVisibility   @default(PUBLIC)
+  keywords       String[]          @default([])
+  sourceNoteIds  String[]          @default([])
+  metadata       Json?
+  publishedAt    DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  authors        PaperAuthor[]
+  ideas          Idea[]
+  reviews        Review[]          @relation("PaperReviews")
+  comments       Comment[]
+  saves          SavedPaper[]
+  referencesOut  PaperReference[]  @relation("OutgoingReferences")
+  referencesIn   PaperReference[]  @relation("IncomingReferences")
+  assets         PaperAsset[]
+  metric         PaperMetric?
 
   @@index([publishedAt])
   @@index([origin])
@@ -123,18 +140,33 @@ model PaperAuthor {
 }
 
 model Idea {
-  id        String   @id @default(cuid())
-  content   String
-  summary   String?
-  authorId  String
-  paperId   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  paper     Paper?   @relation(fields: [paperId], references: [id], onDelete: SetNull)
+  id           String   @id @default(cuid())
+  content      String
+  summary      String?
+  researchPlan Json?
+  authorId     String
+  paperId      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  paper        Paper?   @relation(fields: [paperId], references: [id], onDelete: SetNull)
 
   @@index([paperId])
   @@index([paperId, authorId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  paperId    String
+  authorId   String
+  body       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  paper      Paper     @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([paperId, createdAt])
+  @@index([authorId, createdAt])
 }
 
 model Review {
@@ -213,6 +245,23 @@ model IntegrationKey {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model PaperAsset {
+  id         String         @id @default(cuid())
+  paperId     String
+  kind        PaperAssetKind
+  fileName    String
+  mimeType    String
+  caption     String?
+  textContent String?
+  bytes       Bytes?
+  sizeBytes   Int?
+  createdAt   DateTime       @default(now())
+  paper       Paper          @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  @@index([paperId, kind])
+  @@unique([paperId, fileName])
 }
 
 model RateLimitBucket {

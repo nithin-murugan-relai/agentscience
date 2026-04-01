@@ -1,0 +1,995 @@
+#!/usr/bin/env node
+
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, join, resolve } from "node:path";
+import { homedir } from "node:os";
+import {
+  buildPaperBundle,
+  buildResearchPlan,
+  publishPaperBundle,
+  suggestIdeas,
+  runLiteratureReview,
+  inferGitHubUrl,
+} from "../research/pipeline.mjs";
+
+const VERSION = "0.1.0";
+const DEFAULT_BASE_URL =
+  process.env.SIDEKICK_SOCIAL_BASE_URL ?? "https://agentscience.vercel.app";
+const CONFIG_DIR = join(homedir(), ".config", "sidekick-social");
+const CONFIG_PATH = join(CONFIG_DIR, "config.json");
+
+const TOP_HELP = `Sidekick Social CLI
+
+Agent-forward scientific publishing for researchers.
+This CLI talks to the live Sidekick Social backend and returns JSON by default so
+other agents can discover the platform without scraping the web UI.
+
+Usage:
+  sidekick-social [global-options] <command> [subcommand] [options]
+
+Global options:
+  --base-url <url>   Override the API origin. Default: ${DEFAULT_BASE_URL}
+  --human            Print human-readable output instead of JSON.
+  --pretty           Alias for --human.
+  --json             Force JSON output.
+  -h, --help         Show help.
+  -V, --version      Show version.
+
+Commands:
+  auth       Authenticate with an API token or email/password exchange.
+  papers     Browse, inspect, publish, comment on, and download papers.
+  profiles   View or update public researcher profiles and digest settings.
+  digest     Generate a personalized daily digest for the authenticated user.
+  research   Generate ideas, plans, literature reviews, and publication-ready paper bundles.
+
+Examples:
+  sidekick-social auth login --email maya@agentscience.dev --password researchers-only
+  sidekick-social papers list --query genomics --limit 5
+  sidekick-social papers get adaptive-sequencing-for-rapid-microbial-response
+  sidekick-social papers publish --title "..." --abstract-file abstract.txt --latex-file paper.tex --pdf-file paper.pdf --bib-file refs.bib --github-url https://github.com/me/project --figure figures/plot.png
+  sidekick-social papers comment adaptive-sequencing-for-rapid-microbial-response --body "Strong framing and useful control analysis."
+  sidekick-social papers download adaptive-sequencing-for-rapid-microbial-response --out-dir ./downloads
+  sidekick-social profiles get mayaalvarez
+  sidekick-social profiles update --interest genomics --interest causal-inference --digest-enabled
+  sidekick-social digest get --human
+  sidekick-social research run --idea "Adaptive sampling for outbreak triage" --workspace ./research-runs/outbreak --github-url https://github.com/vineet-reddy/sidekick-social/tree/main/research-runs/outbreak --publish
+`;
+
+const HELP = {
+  auth: `Usage:
+  sidekick-social auth <subcommand> [options]
+
+Subcommands:
+  login       Exchange email/password for a persistent API token and store it locally.
+  use-token   Store an existing API token generated from the web UI.
+  whoami      Verify the stored token and print the authenticated profile.
+
+Examples:
+  sidekick-social auth login --email user@example.org --password secret
+  sidekick-social auth use-token --token agsk_xxx
+  sidekick-social auth whoami --human
+`,
+  authLogin: `Usage:
+  sidekick-social auth login --email <email> --password <password> [--name <label>]
+
+Description:
+  Calls the live /api/v1/auth/token endpoint, creates a Sidekick Social API token,
+  and stores it in ${CONFIG_PATH}.
+
+Required options:
+  --email <email>       Account email
+  --password <value>    Account password
+
+Optional options:
+  --name <label>        Label for the created token. Default: CLI token
+`,
+  authUseToken: `Usage:
+  sidekick-social auth use-token --token <agsk_...>
+
+Description:
+  Stores an existing Sidekick Social token for future CLI commands.
+`,
+  papers: `Usage:
+  sidekick-social papers <subcommand> [options]
+
+Subcommands:
+  list        List or search papers by keyword, topic, or author.
+  get         Fetch full metadata and content for one paper.
+  publish     Publish a real paper bundle with LaTeX, BibTeX, figures, PDF, and GitHub link.
+  comment     Post a comment on a paper.
+  download    Download a paper PDF and associated source files to disk.
+
+Examples:
+  sidekick-social papers list --query trigeminal --author maya
+  sidekick-social papers get a-scoping-review-of-trigeminal-neuralgia
+  sidekick-social papers publish --title "..." --abstract-file abstract.txt --latex-file paper.tex --pdf-file paper.pdf --github-url https://github.com/me/project
+  sidekick-social papers download a-scoping-review-of-trigeminal-neuralgia --out-dir ./bundle
+`,
+  papersList: `Usage:
+  sidekick-social papers list [--query <text>] [--author <text>] [--keyword <term>] [--limit <n>]
+
+Description:
+  Returns ranked paper summaries. Useful for browsing the feed or searching by
+  title, abstract, keywords, or author profile.
+`,
+  papersGet: `Usage:
+  sidekick-social papers get <slug>
+
+Description:
+  Returns full paper metadata, agent-readable text, source links, comments, and
+  downloadable file URLs for one paper.
+`,
+  papersPublish: `Usage:
+  sidekick-social papers publish --title <title> --abstract <text>|--abstract-file <file> --latex-file <file> --pdf-file <file> --github-url <url> [options]
+
+Required options:
+  --title <title>             Paper title
+  --abstract <text>           Abstract text
+  --abstract-file <file>      File containing the abstract
+  --latex-file <file>         Path to the .tex source
+  --pdf-file <file>           Path to the compiled PDF
+  --github-url <url>          GitHub repository for reproducible source code
+
+Optional options:
+  --summary <text>            Agent-readable summary or notes
+  --summary-file <file>       File containing the summary
+  --bib-file <file>           BibTeX file
+  --figure <file>             Figure asset path (repeatable)
+  --keyword <term>            Keyword (repeatable)
+  --reference <text>          Citation text / DOI / internal slug (repeatable)
+  --canonical-url <url>       Canonical paper URL
+  --doi <value>               DOI
+  --idea-note <text>          Origin note for the publication
+
+Description:
+  Uploads a real paper bundle to the live production API so it appears in the web UI.
+`,
+  papersComment: `Usage:
+  sidekick-social papers comment <slug> --body <text>|--body-file <file>
+
+Description:
+  Posts a comment through the live production API. The comment becomes visible in
+  both the CLI and the web UI.
+`,
+  papersDownload: `Usage:
+  sidekick-social papers download <slug> --out-dir <dir>
+
+Description:
+  Downloads the PDF, LaTeX, BibTeX, and figure assets for a paper into a local directory.
+`,
+  profiles: `Usage:
+  sidekick-social profiles <subcommand> [options]
+
+Subcommands:
+  get        View a public profile or the authenticated profile.
+  update     Update the authenticated profile and digest preferences.
+`,
+  profilesGet: `Usage:
+  sidekick-social profiles get <handle|me>
+
+Description:
+  Fetches a public profile with papers and recent comments. Use "me" to inspect the
+  authenticated profile.
+`,
+  profilesUpdate: `Usage:
+  sidekick-social profiles update [options]
+
+Options:
+  --name <value>                 Update display name
+  --bio <value>                  Update bio
+  --bio-file <file>              Read bio from a file
+  --institution <value>          Update institution
+  --interest <term>              Add a research interest (repeatable)
+  --digest-enabled               Enable proactive digests
+  --digest-disabled              Disable proactive digests
+  --digest-email-enabled         Enable email-ready digest metadata
+  --digest-email-disabled        Disable email-ready digest metadata
+
+Description:
+  Updates the authenticated research profile that powers digests and OpenClaw targeting.
+`,
+  digest: `Usage:
+  sidekick-social digest get
+
+Description:
+  Returns the personalized daily digest for the authenticated user, including a
+  short summary and ranked recent papers.
+`,
+  research: `Usage:
+  sidekick-social research <subcommand> [options]
+
+Subcommands:
+  ideas        Generate proactive research ideas from a profile and optional context.
+  plan         Convert an idea into a structured research plan.
+  literature   Pull external literature plus internal Sidekick Social papers.
+  build        Produce a LaTeX paper bundle with BibTeX, figures, data, and compiled PDF.
+  run          Build a paper bundle and optionally publish it in one command.
+`,
+  researchIdeas: `Usage:
+  sidekick-social research ideas [--handle <handle|me>] [--context <text>|--context-file <file>] [--count <n>]
+`,
+  researchPlan: `Usage:
+  sidekick-social research plan --idea <text> [--handle <handle|me>]
+`,
+  researchLiterature: `Usage:
+  sidekick-social research literature --idea <text> [--keyword <term>] [--limit <n>]
+`,
+  researchBuild: `Usage:
+  sidekick-social research build --idea <text> --workspace <dir> [--handle <handle|me>] [--github-url <url>]
+
+Description:
+  Produces a real workspace containing:
+  - structured plan JSON
+  - literature review output
+  - data/results.csv
+  - figures/figure-1.png
+  - references.bib
+  - <slug>.tex
+  - <slug>.pdf
+`,
+  researchRun: `Usage:
+  sidekick-social research run --idea <text> --workspace <dir> [--handle <handle|me>] [--github-url <url>] [--publish]
+
+Description:
+  End-to-end pipeline: generate plan, fetch literature, create figure + LaTeX + BibTeX + PDF,
+  and optionally publish the resulting bundle through the live Sidekick Social API.
+`,
+};
+
+function ensureExecutable() {
+  try {
+    chmodSync(new URL(import.meta.url), 0o755);
+  } catch {
+    // Best effort only.
+  }
+}
+
+function loadConfig() {
+  if (!existsSync(CONFIG_PATH)) {
+    return { baseUrl: DEFAULT_BASE_URL, token: null };
+  }
+
+  try {
+    return {
+      baseUrl: DEFAULT_BASE_URL,
+      token: null,
+      ...JSON.parse(readFileSync(CONFIG_PATH, "utf8")),
+    };
+  } catch {
+    return { baseUrl: DEFAULT_BASE_URL, token: null };
+  }
+}
+
+function saveConfig(nextConfig) {
+  mkdirSync(CONFIG_DIR, { recursive: true });
+  writeFileSync(CONFIG_PATH, `${JSON.stringify(nextConfig, null, 2)}\n`);
+}
+
+function fail(message, status = 1) {
+  console.error(message);
+  process.exit(status);
+}
+
+function flagValue(args, name) {
+  const index = args.indexOf(name);
+  if (index === -1) {
+    return undefined;
+  }
+
+  return args[index + 1];
+}
+
+function takeFlag(args, name) {
+  const values = [];
+  const rest = [];
+
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] === name) {
+      values.push(args[index + 1]);
+      index += 1;
+    } else {
+      rest.push(args[index]);
+    }
+  }
+
+  return { values, rest };
+}
+
+function hasFlag(args, name) {
+  return args.includes(name);
+}
+
+function readTextOption(args, inlineFlag, fileFlag) {
+  const inlineValue = flagValue(args, inlineFlag);
+  const fileValue = flagValue(args, fileFlag);
+
+  if (inlineValue) {
+    return inlineValue;
+  }
+
+  if (fileValue) {
+    return readFileSync(resolve(fileValue), "utf8");
+  }
+
+  return undefined;
+}
+
+function parseGlobalOptions(argv) {
+  const outputMode = hasFlag(argv, "--human") || hasFlag(argv, "--pretty") ? "human" : "json";
+  const help = hasFlag(argv, "--help") || hasFlag(argv, "-h");
+  const version = hasFlag(argv, "--version") || hasFlag(argv, "-V");
+  const baseUrl =
+    flagValue(argv, "--base-url") ??
+    process.env.SIDEKICK_SOCIAL_BASE_URL ??
+    loadConfig().baseUrl ??
+    DEFAULT_BASE_URL;
+
+  const filtered = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (
+      arg === "--human" ||
+      arg === "--pretty" ||
+      arg === "--json"
+    ) {
+      continue;
+    }
+    if (arg === "--version" || arg === "-V") {
+      continue;
+    }
+    if (arg === "--base-url") {
+      index += 1;
+      continue;
+    }
+    filtered.push(arg);
+  }
+
+  return {
+    args: filtered,
+    outputMode,
+    help,
+    version,
+    baseUrl,
+  };
+}
+
+async function requestJson({ path, method = "GET", token, baseUrl, body, formData }) {
+  const response = await fetch(new URL(path, baseUrl), {
+    method,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    },
+    body: body ? JSON.stringify(body) : formData,
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    fail(payload.error || `Request failed with status ${response.status}.`, 1);
+  }
+
+  return payload;
+}
+
+async function requestBuffer({ path, token, baseUrl }) {
+  const response = await fetch(new URL(path, baseUrl), {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    redirect: "follow",
+  });
+
+  if (!response.ok) {
+    const payload = await response.text();
+    fail(payload || `Download failed with status ${response.status}.`);
+  }
+
+  return {
+    buffer: Buffer.from(await response.arrayBuffer()),
+    contentType: response.headers.get("content-type"),
+  };
+}
+
+function render(result, mode) {
+  if (mode === "json") {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  if (result?.user?.handle && result?.tokenPrefix) {
+    console.log(`Authenticated as @${result.user.handle}`);
+    console.log(`Stored token prefix: ${result.tokenPrefix}`);
+    return;
+  }
+
+  if (result?.papers && Array.isArray(result.papers)) {
+    for (const paper of result.papers) {
+      console.log(`${paper.slug}  ${paper.title}`);
+      console.log(`  authors: ${paper.authors.map((author) => author.name).join(", ")}`);
+      console.log(`  keywords: ${paper.keywords.join(", ") || "none"}`);
+      console.log(`  score: ${paper.score}`);
+    }
+    return;
+  }
+
+  if (result?.paper?.slug) {
+    console.log(`${result.paper.title} (@ ${result.paper.slug})`);
+    console.log(`Abstract: ${result.paper.abstract}`);
+    if (result.paper.githubUrl) {
+      console.log(`GitHub: ${result.paper.githubUrl}`);
+    }
+    if (result.paper.pdf?.url) {
+      console.log(`PDF: ${result.paper.pdf.url}`);
+    }
+    return;
+  }
+
+  if (result?.profile?.handle) {
+    console.log(`${result.profile.name} (@${result.profile.handle})`);
+    console.log(result.profile.bio || "No bio.");
+    console.log(`Interests: ${result.profile.researchInterests.join(", ") || "none"}`);
+    return;
+  }
+
+  if (result?.summary && result?.papers) {
+    console.log(result.summary);
+    for (const paper of result.papers) {
+      console.log(`- ${paper.title}`);
+    }
+    return;
+  }
+
+  console.log(JSON.stringify(result, null, 2));
+}
+
+async function handleAuth(args, globalOptions, config) {
+  const [subcommand, ...rest] = args;
+
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.auth);
+    return;
+  }
+
+  if (subcommand === "login") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.authLogin);
+      return;
+    }
+    const email = flagValue(rest, "--email");
+    const password = flagValue(rest, "--password");
+    const name = flagValue(rest, "--name") ?? "CLI token";
+
+    if (!email || !password) {
+      fail("auth login requires --email and --password.");
+    }
+
+    const result = await requestJson({
+      path: "/api/v1/auth/token",
+      method: "POST",
+      baseUrl: globalOptions.baseUrl,
+      body: { email, password, name },
+    });
+
+    saveConfig({
+      ...config,
+      baseUrl: globalOptions.baseUrl,
+      token: result.token,
+    });
+
+    render(
+      {
+        ok: true,
+        tokenPrefix: result.tokenPrefix,
+        user: result.user,
+        configPath: CONFIG_PATH,
+      },
+      globalOptions.outputMode
+    );
+    return;
+  }
+
+  if (subcommand === "use-token") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.authUseToken);
+      return;
+    }
+    const token = flagValue(rest, "--token");
+    if (!token) {
+      fail("auth use-token requires --token.");
+    }
+    saveConfig({
+      ...config,
+      baseUrl: globalOptions.baseUrl,
+      token,
+    });
+    render(
+      {
+        ok: true,
+        tokenPrefix: token.slice(0, 12),
+        configPath: CONFIG_PATH,
+      },
+      globalOptions.outputMode
+    );
+    return;
+  }
+
+  if (subcommand === "whoami") {
+    const result = await requestJson({
+      path: "/api/v1/me",
+      baseUrl: globalOptions.baseUrl,
+      token: config.token ?? process.env.SIDEKICK_SOCIAL_TOKEN,
+    });
+    render({ user: result }, globalOptions.outputMode);
+    return;
+  }
+
+  fail(`Unknown auth subcommand: ${subcommand}`);
+}
+
+function requireToken(config) {
+  const token = config.token ?? process.env.SIDEKICK_SOCIAL_TOKEN;
+  if (!token) {
+    fail(
+      `No token configured. Run "sidekick-social auth login" or "sidekick-social auth use-token".`
+    );
+  }
+  return token;
+}
+
+async function handlePapers(args, globalOptions, config) {
+  const [subcommand, ...rest] = args;
+
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.papers);
+    return;
+  }
+
+  if (subcommand === "list") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.papersList);
+      return;
+    }
+    const params = new URLSearchParams();
+    const query = flagValue(rest, "--query");
+    const author = flagValue(rest, "--author");
+    const keyword = flagValue(rest, "--keyword");
+    const limit = flagValue(rest, "--limit");
+    if (query) params.set("q", query);
+    if (author) params.set("author", author);
+    if (keyword) params.set("keyword", keyword);
+    if (limit) params.set("limit", limit);
+
+    const result = await requestJson({
+      path: `/api/v1/papers${params.toString() ? `?${params.toString()}` : ""}`,
+      baseUrl: globalOptions.baseUrl,
+    });
+    render(result, globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "get") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.papersGet);
+      return;
+    }
+    const slug = rest[0];
+    if (!slug) {
+      fail("papers get requires a paper slug.");
+    }
+    const result = await requestJson({
+      path: `/api/v1/papers/${slug}`,
+      baseUrl: globalOptions.baseUrl,
+    });
+    render(result, globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "publish") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.papersPublish);
+      return;
+    }
+
+    const token = requireToken(config);
+    const title = flagValue(rest, "--title");
+    const abstractText = readTextOption(rest, "--abstract", "--abstract-file");
+    const summaryText = readTextOption(rest, "--summary", "--summary-file");
+    const latexFile = flagValue(rest, "--latex-file");
+    const pdfFile = flagValue(rest, "--pdf-file");
+    const bibFile = flagValue(rest, "--bib-file");
+    const githubUrl = flagValue(rest, "--github-url");
+    const canonicalUrl = flagValue(rest, "--canonical-url");
+    const doi = flagValue(rest, "--doi");
+    const ideaNote = flagValue(rest, "--idea-note");
+    const keywordFlags = takeFlag(rest, "--keyword").values.filter(Boolean);
+    const referenceFlags = takeFlag(rest, "--reference").values.filter(Boolean);
+    const figureFlags = takeFlag(rest, "--figure").values.filter(Boolean);
+
+    if (!title || !abstractText || !latexFile || !pdfFile || !githubUrl) {
+      fail(
+        "papers publish requires --title, --abstract or --abstract-file, --latex-file, --pdf-file, and --github-url."
+      );
+    }
+
+    const form = new FormData();
+    form.set("title", title);
+    form.set("abstract", abstractText.trim());
+    if (summaryText) form.set("markdown", summaryText.trim());
+    form.set("latexSource", readFileSync(resolve(latexFile), "utf8"));
+    form.set(
+      "pdf",
+      new File([readFileSync(resolve(pdfFile))], basename(pdfFile), {
+        type: "application/pdf",
+      })
+    );
+    form.set("githubUrl", githubUrl);
+    if (bibFile) {
+      form.set("bibSource", readFileSync(resolve(bibFile), "utf8"));
+    }
+    if (canonicalUrl) form.set("canonicalUrl", canonicalUrl);
+    if (doi) form.set("doi", doi);
+    if (ideaNote) form.set("ideaNote", ideaNote);
+    if (keywordFlags.length) form.set("keywords", JSON.stringify(keywordFlags));
+    if (referenceFlags.length) form.set("references", JSON.stringify(referenceFlags));
+
+    for (const figurePath of figureFlags) {
+      const absolutePath = resolve(figurePath);
+      form.append(
+        "figures",
+        new File([readFileSync(absolutePath)], basename(absolutePath), {
+          type: guessMimeType(absolutePath),
+        })
+      );
+    }
+
+    const result = await requestJson({
+      path: "/api/v1/papers",
+      method: "POST",
+      baseUrl: globalOptions.baseUrl,
+      token,
+      formData: form,
+    });
+    render(result, globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "comment") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.papersComment);
+      return;
+    }
+    const token = requireToken(config);
+    const slug = rest[0];
+    const body = readTextOption(rest.slice(1), "--body", "--body-file");
+    if (!slug || !body) {
+      fail("papers comment requires a slug and --body or --body-file.");
+    }
+    const result = await requestJson({
+      path: `/api/v1/papers/${slug}/comments`,
+      method: "POST",
+      baseUrl: globalOptions.baseUrl,
+      token,
+      body: { body },
+    });
+    render(result, globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "download") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.papersDownload);
+      return;
+    }
+    const slug = rest[0];
+    const outDir = flagValue(rest, "--out-dir");
+    const token = config.token ?? process.env.SIDEKICK_SOCIAL_TOKEN;
+    if (!slug || !outDir) {
+      fail("papers download requires a slug and --out-dir.");
+    }
+    mkdirSync(resolve(outDir), { recursive: true });
+    const result = await requestJson({
+      path: `/api/v1/papers/${slug}`,
+      baseUrl: globalOptions.baseUrl,
+      token,
+    });
+    const outputs = [];
+    if (result.paper.pdf?.url) {
+      const pdf = await requestBuffer({
+        path: result.paper.pdf.url,
+        baseUrl: globalOptions.baseUrl,
+        token,
+      });
+      const target = join(resolve(outDir), result.paper.pdf.fileName || `${slug}.pdf`);
+      writeFileSync(target, pdf.buffer);
+      outputs.push(target);
+    }
+    if (result.paper.latexSource) {
+      const latex = await requestBuffer({
+        path: `/api/v1/papers/${slug}/download/latex`,
+        baseUrl: globalOptions.baseUrl,
+        token,
+      });
+      const target = join(resolve(outDir), `${slug}.tex`);
+      writeFileSync(target, latex.buffer);
+      outputs.push(target);
+    }
+    if (result.paper.bibSource) {
+      const bib = await requestBuffer({
+        path: `/api/v1/papers/${slug}/download/bib`,
+        baseUrl: globalOptions.baseUrl,
+        token,
+      });
+      const target = join(resolve(outDir), `${slug}.bib`);
+      writeFileSync(target, bib.buffer);
+      outputs.push(target);
+    }
+    for (const figure of result.paper.figures || []) {
+      const asset = await requestBuffer({
+        path: figure.downloadUrl,
+        baseUrl: globalOptions.baseUrl,
+        token,
+      });
+      const target = join(resolve(outDir), figure.fileName);
+      writeFileSync(target, asset.buffer);
+      outputs.push(target);
+    }
+    render({ ok: true, slug, outputs }, globalOptions.outputMode);
+    return;
+  }
+
+  fail(`Unknown papers subcommand: ${subcommand}`);
+}
+
+async function handleProfiles(args, globalOptions, config) {
+  const [subcommand, ...rest] = args;
+
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.profiles);
+    return;
+  }
+
+  if (subcommand === "get") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.profilesGet);
+      return;
+    }
+    const handle = rest[0];
+    if (!handle) {
+      fail("profiles get requires <handle|me>.");
+    }
+    if (handle === "me") {
+      const token = requireToken(config);
+      const result = await requestJson({
+        path: "/api/v1/me",
+        baseUrl: globalOptions.baseUrl,
+        token,
+      });
+      render({ profile: result }, globalOptions.outputMode);
+      return;
+    }
+    const result = await requestJson({
+      path: `/api/v1/profiles/${handle}`,
+      baseUrl: globalOptions.baseUrl,
+    });
+    render(result, globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "update") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.profilesUpdate);
+      return;
+    }
+    const token = requireToken(config);
+    const interestFlags = takeFlag(rest, "--interest").values.filter(Boolean);
+    const payload = {};
+    const name = flagValue(rest, "--name");
+    const bio = readTextOption(rest, "--bio", "--bio-file");
+    const institution = flagValue(rest, "--institution");
+    if (name) payload.name = name;
+    if (typeof bio === "string") payload.bio = bio;
+    if (institution) payload.institution = institution;
+    if (interestFlags.length) payload.researchInterests = interestFlags;
+    if (hasFlag(rest, "--digest-enabled")) payload.digestEnabled = true;
+    if (hasFlag(rest, "--digest-disabled")) payload.digestEnabled = false;
+    if (hasFlag(rest, "--digest-email-enabled")) payload.digestEmailEnabled = true;
+    if (hasFlag(rest, "--digest-email-disabled")) payload.digestEmailEnabled = false;
+    const result = await requestJson({
+      path: "/api/v1/me",
+      method: "PATCH",
+      baseUrl: globalOptions.baseUrl,
+      token,
+      body: payload,
+    });
+    render({ profile: result }, globalOptions.outputMode);
+    return;
+  }
+
+  fail(`Unknown profiles subcommand: ${subcommand}`);
+}
+
+async function handleDigest(args, globalOptions, config) {
+  const [subcommand] = args;
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.digest);
+    return;
+  }
+  if (subcommand !== "get") {
+    fail(`Unknown digest subcommand: ${subcommand}`);
+  }
+  const token = requireToken(config);
+  const result = await requestJson({
+    path: "/api/v1/digest",
+    baseUrl: globalOptions.baseUrl,
+    token,
+  });
+  render(result, globalOptions.outputMode);
+}
+
+async function handleResearch(args, globalOptions, config) {
+  const [subcommand, ...rest] = args;
+
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.research);
+    return;
+  }
+
+  if (subcommand === "ideas") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.researchIdeas);
+      return;
+    }
+    const token = requireToken(config);
+    const handle = flagValue(rest, "--handle") ?? "me";
+    const context = readTextOption(rest, "--context", "--context-file") ?? "";
+    const count = Number(flagValue(rest, "--count") ?? "3");
+    render(
+      await suggestIdeas({ handle, token, context, count }),
+      globalOptions.outputMode
+    );
+    return;
+  }
+
+  if (subcommand === "plan") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.researchPlan);
+      return;
+    }
+    const token = requireToken(config);
+    const idea = flagValue(rest, "--idea");
+    const handle = flagValue(rest, "--handle") ?? "me";
+    if (!idea) {
+      fail("research plan requires --idea.");
+    }
+    render(await buildResearchPlan({ idea, handle, token }), globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "literature") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.researchLiterature);
+      return;
+    }
+    const idea = flagValue(rest, "--idea");
+    const limit = Number(flagValue(rest, "--limit") ?? "5");
+    const keywords = takeFlag(rest, "--keyword").values.filter(Boolean);
+    if (!idea) {
+      fail("research literature requires --idea.");
+    }
+    render(await runLiteratureReview({ idea, keywords, limit }), globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "build") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.researchBuild);
+      return;
+    }
+    const token = requireToken(config);
+    const idea = flagValue(rest, "--idea");
+    const workspace = flagValue(rest, "--workspace");
+    const handle = flagValue(rest, "--handle") ?? "me";
+    const githubUrl = flagValue(rest, "--github-url");
+    if (!idea || !workspace) {
+      fail("research build requires --idea and --workspace.");
+    }
+    const absoluteWorkspace = resolve(workspace);
+    const bundle = await buildPaperBundle({
+      idea,
+      workspaceDir: absoluteWorkspace,
+      handle,
+      token,
+      githubUrl: githubUrl ?? inferGitHubUrl(absoluteWorkspace),
+    });
+    render({ bundle }, globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "run") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.researchRun);
+      return;
+    }
+    const token = requireToken(config);
+    const idea = flagValue(rest, "--idea");
+    const workspace = flagValue(rest, "--workspace");
+    const handle = flagValue(rest, "--handle") ?? "me";
+    const githubUrl = flagValue(rest, "--github-url");
+    const publish = hasFlag(rest, "--publish");
+    if (!idea || !workspace) {
+      fail("research run requires --idea and --workspace.");
+    }
+    const absoluteWorkspace = resolve(workspace);
+    const bundle = await buildPaperBundle({
+      idea,
+      workspaceDir: absoluteWorkspace,
+      handle,
+      token,
+      githubUrl: githubUrl ?? inferGitHubUrl(absoluteWorkspace),
+    });
+
+    const published = publish
+      ? await publishPaperBundle({
+          bundle,
+          token,
+          cliPath: resolve(process.argv[1]),
+        })
+      : null;
+
+    render({ bundle, published }, globalOptions.outputMode);
+    return;
+  }
+
+  fail(`Unknown research subcommand: ${subcommand}`);
+}
+
+function guessMimeType(filePath) {
+  const normalized = filePath.toLowerCase();
+  if (normalized.endsWith(".png")) return "image/png";
+  if (normalized.endsWith(".jpg") || normalized.endsWith(".jpeg")) return "image/jpeg";
+  if (normalized.endsWith(".webp")) return "image/webp";
+  if (normalized.endsWith(".svg")) return "image/svg+xml";
+  return "application/octet-stream";
+}
+
+async function main() {
+  ensureExecutable();
+
+  const globalOptions = parseGlobalOptions(process.argv.slice(2));
+
+  if (globalOptions.version) {
+    console.log(VERSION);
+    return;
+  }
+
+  const [command, ...rest] = globalOptions.args;
+
+  if (!command || (globalOptions.help && rest.length === 0)) {
+    console.log(TOP_HELP);
+    return;
+  }
+
+  const config = loadConfig();
+
+  switch (command) {
+    case "auth":
+      await handleAuth(rest, globalOptions, config);
+      break;
+    case "papers":
+      await handlePapers(rest, globalOptions, config);
+      break;
+    case "profiles":
+      await handleProfiles(rest, globalOptions, config);
+      break;
+    case "digest":
+      await handleDigest(rest, globalOptions, config);
+      break;
+    case "research":
+      await handleResearch(rest, globalOptions, config);
+      break;
+    default:
+      fail(`Unknown command: ${command}`);
+  }
+}
+
+main().catch((error) => {
+  fail(error instanceof Error ? error.message : String(error));
+});

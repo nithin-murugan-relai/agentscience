@@ -3,11 +3,20 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { getUniqueConstraintTargets, isUserFacingError } from "@/lib/errors";
-import { createManualPaper, getRankedPapers } from "@/lib/papers";
+import { getRankedPapers } from "@/lib/papers";
+import { createBundledPaper } from "@/lib/platform";
 import { buildPathWithNext, validateBrowserOrigin } from "@/lib/request";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { toSearchParams } from "@/lib/utils";
+import { parseList, toSearchParams } from "@/lib/utils";
 import { paperFormSchema } from "@/lib/validation";
+
+async function toUploadDescriptor(file: File) {
+  return {
+    fileName: file.name,
+    mimeType: file.type || "application/octet-stream",
+    bytes: Buffer.from(await file.arrayBuffer()),
+  };
+}
 
 export async function GET() {
   const papers = await getRankedPapers();
@@ -61,8 +70,10 @@ export async function POST(request: Request) {
     abstract: formData.get("abstract"),
     markdown: formData.get("markdown"),
     latexSource: formData.get("latexSource"),
+    bibSource: formData.get("bibSource"),
     pdfUrl: formData.get("pdfUrl"),
     canonicalUrl: formData.get("canonicalUrl"),
+    githubUrl: formData.get("githubUrl"),
     doi: formData.get("doi"),
     keywords: formData.get("keywords"),
     references: formData.get("references"),
@@ -81,10 +92,30 @@ export async function POST(request: Request) {
     );
   }
 
+  const pdfFile = formData.get("pdf");
+  const figures = await Promise.all(
+    formData
+      .getAll("figures")
+      .filter((entry): entry is File => entry instanceof File && entry.size > 0)
+      .map((entry) => toUploadDescriptor(entry))
+  );
+
   let paper;
 
   try {
-    paper = await createManualPaper(user.id, payload.data);
+    paper = await createBundledPaper(user.id, {
+      ...payload.data,
+      references: payload.data.references,
+      pdf:
+        pdfFile instanceof File && pdfFile.size > 0
+          ? await toUploadDescriptor(pdfFile)
+          : null,
+      figures,
+      keywords:
+        payload.data.keywords.length > 0
+          ? payload.data.keywords
+          : parseList(String(formData.get("keywords") ?? "")),
+    });
   } catch (error) {
     if (isUserFacingError(error)) {
       return NextResponse.redirect(

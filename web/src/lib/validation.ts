@@ -39,10 +39,12 @@ export const signInSchema = z.object({
 export const paperFormSchema = z.object({
   title: z.string().trim().min(12).max(180),
   abstract: z.string().trim().min(80).max(4000),
-  markdown: z.string().trim().min(300),
+  markdown: z.string().trim().max(12000).optional().or(z.literal("").transform(() => undefined)),
   latexSource: optionalText,
+  bibSource: optionalText,
   pdfUrl: optionalUrl,
   canonicalUrl: optionalUrl,
+  githubUrl: optionalUrl,
   doi: optionalText,
   keywords: z
     .string()
@@ -72,8 +74,36 @@ export const ideaFormSchema = z.object({
   paperSlug: optionalText,
 });
 
+export const researchPlanSchema = z.object({
+  title: z.string().trim().min(8).max(240),
+  hypothesis: z.string().trim().min(20).max(2000),
+  methodology: z.array(z.string().trim().min(6).max(400)).min(2).max(8),
+  experiments: z.array(z.string().trim().min(6).max(400)).min(1).max(8),
+  deliverables: z.array(z.string().trim().min(6).max(240)).min(1).max(8),
+  keywords: z.array(z.string().trim().min(2).max(40)).max(16).default([]),
+});
+
 export const integrationKeySchema = z.object({
   name: z.string().trim().min(2).max(48),
+});
+
+export const apiTokenSignInSchema = z.object({
+  email: z.string().trim().email().transform((value) => value.toLowerCase()),
+  password: z.string().min(1),
+  name: z.string().trim().min(2).max(48).default("CLI token"),
+});
+
+export const profileUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(80).optional(),
+  bio: z.string().trim().max(220).optional().or(z.literal("").transform(() => "")),
+  institution: z.string().trim().max(120).optional().or(z.literal("").transform(() => "")),
+  researchInterests: z.array(z.string().trim().min(2).max(60)).max(20).default([]),
+  digestEnabled: z.boolean().optional(),
+  digestEmailEnabled: z.boolean().optional(),
+});
+
+export const commentSchema = z.object({
+  body: z.string().trim().min(2).max(2000),
 });
 
 export const sidekickAuthorSchema = z.object({
@@ -90,8 +120,10 @@ export const sidekickPublishSchema = z.object({
   abstract: z.string().trim().min(80).max(4000),
   markdown: z.string().trim().min(300),
   latexSource: optionalText,
+  bibSource: optionalText,
   pdfUrl: optionalUrl,
   canonicalUrl: optionalUrl,
+  githubUrl: optionalUrl,
   doi: optionalText,
   keywords: z.array(z.string().trim().min(2).max(40)).max(20).default([]),
   sourceNoteIds: z.array(z.string().trim().min(1).max(120)).max(32).default([]),
@@ -124,6 +156,10 @@ export type SignInInput = z.infer<typeof signInSchema>;
 export type PaperFormInput = z.infer<typeof paperFormSchema>;
 export type ReviewFormInput = z.infer<typeof reviewFormSchema>;
 export type IdeaFormInput = z.infer<typeof ideaFormSchema>;
+export type ResearchPlanInput = z.infer<typeof researchPlanSchema>;
 export type IntegrationKeyInput = z.infer<typeof integrationKeySchema>;
+export type ApiTokenSignInInput = z.infer<typeof apiTokenSignInSchema>;
+export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
+export type CommentInput = z.infer<typeof commentSchema>;
 export type SidekickPublishInput = z.infer<typeof sidekickPublishSchema>;
 export type PaperAiAssessment = z.infer<typeof paperAiAssessmentSchema>;

@@ -32,6 +32,10 @@ export const publicUserSelect = {
   handle: true,
   institution: true,
   role: true,
+  bio: true,
+  researchInterests: true,
+  digestEnabled: true,
+  digestEmailEnabled: true,
 } satisfies Prisma.UserSelect;
 
 export const paperFullInclude = {
@@ -65,10 +69,30 @@ export const paperFullInclude = {
       createdAt: "desc",
     },
   },
+  comments: {
+    include: {
+      author: {
+        select: publicUserSelect,
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  },
   saves: {
     select: {
       userId: true,
     },
+  },
+  assets: {
+    orderBy: [
+      {
+        kind: "asc",
+      },
+      {
+        fileName: "asc",
+      },
+    ],
   },
   referencesOut: {
     select: {
@@ -644,10 +668,13 @@ export async function getIntegrationKeys(userId: string) {
 
 export async function createManualPaper(userId: string, input: PaperFormInput) {
   const slug = await ensureUniqueSlug(slugify(input.title));
+  const markdown =
+    input.markdown?.trim() ||
+    [input.abstract.trim(), input.latexSource?.trim()].filter(Boolean).join("\n\n");
   const keywords =
     input.keywords.length > 0
       ? uniqueStrings(input.keywords.map((keyword) => keyword.toLowerCase()))
-      : extractKeywords(input.title, input.abstract, input.markdown);
+      : extractKeywords(input.title, input.abstract, markdown, input.latexSource, input.bibSource);
   const referenceRecords = await resolveReferenceRecords(
     uniqueStrings(input.references).map((reference) => normalizeTextReference(reference))
   );
@@ -658,10 +685,12 @@ export async function createManualPaper(userId: string, input: PaperFormInput) {
         slug,
         title: input.title,
         abstract: input.abstract,
-        markdown: input.markdown,
+        markdown,
         latexSource: input.latexSource,
+        bibSource: input.bibSource,
         pdfUrl: input.pdfUrl,
         canonicalUrl: input.canonicalUrl,
+        githubUrl: input.githubUrl,
         doi: input.doi?.toLowerCase(),
         keywords,
         origin: PaperOrigin.MANUAL,
@@ -971,8 +1000,10 @@ export async function upsertSidekickPaper(input: SidekickPublishInput) {
       abstract: input.abstract,
       markdown: input.markdown,
       latexSource: input.latexSource,
+      bibSource: input.bibSource,
       pdfUrl: input.pdfUrl,
       canonicalUrl: input.canonicalUrl,
+      githubUrl: input.githubUrl,
       doi: input.doi?.toLowerCase(),
       origin: PaperOrigin.SIDEKICK,
       keywords,
