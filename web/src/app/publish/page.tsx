@@ -30,17 +30,14 @@ export default async function PublishPage({ searchParams }: PageProps) {
       <h1 className="text-4xl font-semibold tracking-tight text-foreground">
         Publish
       </h1>
-      <p className="mt-3 text-foreground-soft">
-        LaTeX, bibliography, figures, PDF, and reproducible code.
-      </p>
 
       {error && (
-        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      <form action="/api/papers" method="post" className="mt-8 space-y-5">
+      <form action="/api/papers" method="post" className="mt-8 space-y-4">
         <label className="block space-y-1">
           <span className="text-sm font-medium text-foreground">Title</span>
           <input
@@ -60,7 +57,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
             required
             minLength={80}
             maxLength={4000}
-            className="field-textarea min-h-[120px] text-sm leading-relaxed"
+            className="field-textarea min-h-[100px] text-sm leading-relaxed"
             placeholder="A brief summary of your work"
           />
         </label>
@@ -70,7 +67,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
           <textarea
             name="markdown"
             spellCheck={false}
-            className="field-textarea min-h-[280px] font-mono text-sm leading-relaxed"
+            className="field-textarea min-h-[200px] font-mono text-sm leading-relaxed"
             placeholder="Optional plain-text synopsis for search and agent indexing."
           />
         </label>
@@ -80,7 +77,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
           <textarea
             name="latexSource"
             required
-            className="field-textarea min-h-[180px] font-mono text-sm leading-relaxed"
+            className="field-textarea min-h-[140px] font-mono text-sm leading-relaxed"
             placeholder="\\documentclass{article} ..."
             spellCheck={false}
           />
@@ -109,14 +106,8 @@ export default async function PublishPage({ searchParams }: PageProps) {
           </label>
         </div>
 
-        <div className="border-t border-border pt-5">
-          <h2 className="text-base font-semibold text-foreground">Metadata</h2>
-
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">Canonical URL</span>
-              <input name="canonicalUrl" type="url" className="field-input text-sm" placeholder="https://..." />
-            </label>
+        <div className="border-t border-border pt-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <label className="block space-y-1">
               <span className="text-sm font-medium text-foreground">GitHub repository</span>
               <input
@@ -126,6 +117,10 @@ export default async function PublishPage({ searchParams }: PageProps) {
                 className="field-input text-sm"
                 placeholder="https://github.com/..."
               />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-foreground">Canonical URL</span>
+              <input name="canonicalUrl" type="url" className="field-input text-sm" placeholder="https://..." />
             </label>
             <label className="block space-y-1">
               <span className="text-sm font-medium text-foreground">DOI</span>
@@ -141,7 +136,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
             <span className="text-sm font-medium text-foreground">References</span>
             <textarea
               name="references"
-              className="field-textarea min-h-[70px] text-sm leading-relaxed"
+              className="field-textarea min-h-[60px] text-sm leading-relaxed"
               placeholder="One DOI or reference per line"
               spellCheck={false}
             />
@@ -149,9 +144,9 @@ export default async function PublishPage({ searchParams }: PageProps) {
 
           <label className="mt-4 block space-y-1">
             <span className="text-sm font-medium text-foreground">Origin note</span>
-            <textarea
+            <input
               name="ideaNote"
-              className="field-textarea min-h-[70px] text-sm leading-relaxed"
+              className="field-input text-sm"
               placeholder="What inspired this work?"
             />
           </label>
@@ -160,7 +155,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
             <span className="text-sm font-medium text-foreground">BibTeX</span>
             <textarea
               name="bibSource"
-              className="field-textarea min-h-[90px] font-mono text-sm leading-relaxed"
+              className="field-textarea min-h-[80px] font-mono text-sm leading-relaxed"
               placeholder="@article{...}"
               spellCheck={false}
             />
