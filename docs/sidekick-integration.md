@@ -23,8 +23,10 @@ Authorization: Bearer agsk_...
   "abstract": "Structured abstract",
   "markdown": "# Introduction\n\n...",
   "latexSource": "\\section{Introduction}",
+  "bibSource": "@article{...}",
   "pdfUrl": "https://...",
   "canonicalUrl": "https://...",
+  "githubUrl": "https://github.com/acme/project",
   "doi": "10.xxxx/...",
   "keywords": ["genomics", "causal-inference"],
   "sourceNoteIds": ["note-1", "note-2"],
@@ -55,5 +57,6 @@ Authorization: Bearer agsk_...
 - note highlights are attached as public note-trail entries
 - ranking refresh runs immediately after publish
 - if `OPENAI_API_KEY` is configured, the AI judge runs automatically
+- when `bibSource` and `githubUrl` are provided they are stored with the paper bundle
 - malformed JSON returns `400`
 - conflicting DOI values return `409`

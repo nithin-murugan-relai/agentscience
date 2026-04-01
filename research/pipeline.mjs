@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -23,6 +23,17 @@ function ensureDir(path) {
 
 function shellQuote(value) {
   return `'${String(value).replace(/'/g, `'\"'\"'`)}'`;
+}
+
+function buildOpenClawShellCommand(prompt) {
+  const explicitBinary = process.env.OPENCLAW_BIN;
+  const resolver = explicitBinary
+    ? `OPENCLAW_BIN=${shellQuote(explicitBinary)}; `
+    : 'OPENCLAW_BIN="$(command -v openclaw 2>/dev/null || ls -1d "$HOME"/.nvm/versions/node/*/bin/openclaw 2>/dev/null | tail -n 1)"; ';
+  const args = `agent --to ${shellQuote(OPENCLAW_SESSION_TARGET)} --message ${shellQuote(
+    prompt
+  )} --thinking off --json`;
+  return `${resolver}[ -n "$OPENCLAW_BIN" ] || { echo "openclaw: command not found" >&2; exit 127; }; OPENCLAW_NODE="$(dirname "$OPENCLAW_BIN")/node"; OPENCLAW_SCRIPT="$(readlink -f "$OPENCLAW_BIN")"; if [ -x "$OPENCLAW_NODE" ]; then "$OPENCLAW_NODE" "$OPENCLAW_SCRIPT" ${args}; else "$OPENCLAW_BIN" ${args}; fi`;
 }
 
 function slugify(value) {
@@ -68,15 +79,18 @@ export function inferGitHubUrl(workspaceDir) {
 }
 
 function extractOpenClawText(rawOutput) {
-  const parsed = JSON.parse(rawOutput);
+  const trimmed = rawOutput.trim();
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error(`OpenClaw did not return a JSON payload.\n${rawOutput}`);
+  }
+  const parsed = JSON.parse(trimmed.slice(start, end + 1));
   return parsed.result?.payloads?.map((payload) => payload.text).join("\n").trim() ?? "";
 }
 
 export function callOpenClawJson(prompt) {
-  const rawOutput = runCommand("bash", [
-    "-ilc",
-    `openclaw agent --to ${OPENCLAW_SESSION_TARGET} --message ${shellQuote(prompt)} --thinking off --json`,
-  ]);
+  const rawOutput = runCommand("bash", ["-lc", buildOpenClawShellCommand(prompt)]);
   const text = extractOpenClawText(rawOutput);
   return JSON.parse(text);
 }
@@ -204,6 +218,14 @@ function composeLatex({ title, abstract, plan, literature, figureFile, narrative
       title: work.title,
     }))
     .slice(0, 3);
+  const introductionText = bibliographyKeys.length
+    ? `${narrativeSections.introduction} Foundational references for this bundle include \\citep{${bibliographyKeys.join(
+        ","
+      )}}.`
+    : narrativeSections.introduction;
+  const discussionText = bibliographyKeys.length
+    ? `${narrativeSections.discussion} The generated reference section links the claims in this draft back to the cited literature and can be expanded during expert revision.`
+    : narrativeSections.discussion;
 
   return `\\documentclass[11pt]{article}
 \\usepackage[margin=1in]{geometry}
@@ -220,7 +242,7 @@ function composeLatex({ title, abstract, plan, literature, figureFile, narrative
 ${abstract}
 \\end{abstract}
 \\section{Introduction}
-${narrativeSections.introduction}
+${introductionText}
 
 \\section{Methodology}
 ${narrativeSections.methodology}
@@ -235,7 +257,7 @@ ${narrativeSections.results}
 \\end{figure}
 
 \\section{Discussion}
-${narrativeSections.discussion}
+${discussionText}
 
 \\section{Conclusion}
 ${narrativeSections.conclusion}

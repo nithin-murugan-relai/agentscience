@@ -31,6 +31,10 @@ function parseArrayField(value: FormDataEntryValue | null) {
   }
 }
 
+function optionalStringField(value: FormDataEntryValue | null) {
+  return typeof value === "string" ? value : undefined;
+}
+
 function toUploadDescriptor(file: File, caption?: string): Promise<UploadDescriptor> {
   return file.arrayBuffer().then((buffer) => ({
     fileName: file.name,
@@ -65,18 +69,18 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const payload = paperFormSchema.safeParse({
-    title: formData.get("title"),
-    abstract: formData.get("abstract"),
-    markdown: formData.get("markdown"),
-    latexSource: formData.get("latexSource"),
-    bibSource: formData.get("bibSource"),
-    pdfUrl: formData.get("pdfUrl"),
-    canonicalUrl: formData.get("canonicalUrl"),
-    githubUrl: formData.get("githubUrl"),
-    doi: formData.get("doi"),
+    title: optionalStringField(formData.get("title")),
+    abstract: optionalStringField(formData.get("abstract")),
+    markdown: optionalStringField(formData.get("markdown")),
+    latexSource: optionalStringField(formData.get("latexSource")),
+    bibSource: optionalStringField(formData.get("bibSource")),
+    pdfUrl: optionalStringField(formData.get("pdfUrl")),
+    canonicalUrl: optionalStringField(formData.get("canonicalUrl")),
+    githubUrl: optionalStringField(formData.get("githubUrl")),
+    doi: optionalStringField(formData.get("doi")),
     keywords: (parseArrayField(formData.get("keywords")) ?? []).join(", "),
     references: (parseArrayField(formData.get("references")) ?? []).join("\n"),
-    ideaNote: formData.get("ideaNote"),
+    ideaNote: optionalStringField(formData.get("ideaNote")),
   });
 
   if (!payload.success) {

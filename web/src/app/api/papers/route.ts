@@ -18,6 +18,10 @@ async function toUploadDescriptor(file: File) {
   };
 }
 
+function optionalStringField(value: FormDataEntryValue | null) {
+  return typeof value === "string" ? value : undefined;
+}
+
 export async function GET() {
   const papers = await getRankedPapers();
   return NextResponse.json(papers);
@@ -66,18 +70,18 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const payload = paperFormSchema.safeParse({
-    title: formData.get("title"),
-    abstract: formData.get("abstract"),
-    markdown: formData.get("markdown"),
-    latexSource: formData.get("latexSource"),
-    bibSource: formData.get("bibSource"),
-    pdfUrl: formData.get("pdfUrl"),
-    canonicalUrl: formData.get("canonicalUrl"),
-    githubUrl: formData.get("githubUrl"),
-    doi: formData.get("doi"),
-    keywords: formData.get("keywords"),
-    references: formData.get("references"),
-    ideaNote: formData.get("ideaNote"),
+    title: optionalStringField(formData.get("title")),
+    abstract: optionalStringField(formData.get("abstract")),
+    markdown: optionalStringField(formData.get("markdown")),
+    latexSource: optionalStringField(formData.get("latexSource")),
+    bibSource: optionalStringField(formData.get("bibSource")),
+    pdfUrl: optionalStringField(formData.get("pdfUrl")),
+    canonicalUrl: optionalStringField(formData.get("canonicalUrl")),
+    githubUrl: optionalStringField(formData.get("githubUrl")),
+    doi: optionalStringField(formData.get("doi")),
+    keywords: optionalStringField(formData.get("keywords")),
+    references: optionalStringField(formData.get("references")),
+    ideaNote: optionalStringField(formData.get("ideaNote")),
   });
 
   if (!payload.success) {

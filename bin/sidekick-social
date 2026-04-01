@@ -400,6 +400,14 @@ function render(result, mode) {
     return;
   }
 
+  if (result?.summary && result?.papers) {
+    console.log(result.summary);
+    for (const paper of result.papers) {
+      console.log(`- ${paper.title}`);
+    }
+    return;
+  }
+
   if (result?.papers && Array.isArray(result.papers)) {
     for (const paper of result.papers) {
       console.log(`${paper.slug}  ${paper.title}`);
@@ -426,14 +434,6 @@ function render(result, mode) {
     console.log(`${result.profile.name} (@${result.profile.handle})`);
     console.log(result.profile.bio || "No bio.");
     console.log(`Interests: ${result.profile.researchInterests.join(", ") || "none"}`);
-    return;
-  }
-
-  if (result?.summary && result?.papers) {
-    console.log(result.summary);
-    for (const paper of result.papers) {
-      console.log(`- ${paper.title}`);
-    }
     return;
   }
 
