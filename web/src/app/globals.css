@@ -223,6 +223,25 @@ select {
   font-size: 0.875em;
 }
 
+/* Disclosure */
+
+details summary::-webkit-details-marker,
+details summary::marker {
+  display: none;
+}
+
+details summary::before {
+  content: "+";
+  display: inline-block;
+  width: 1em;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+details[open] summary::before {
+  content: "\2212";
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

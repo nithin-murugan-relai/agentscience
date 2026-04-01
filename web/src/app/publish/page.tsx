@@ -26,7 +26,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="page-enter max-w-2xl">
+    <div className="page-enter max-w-xl">
       <h1 className="text-4xl font-semibold tracking-tight text-foreground">
         Publish
       </h1>
@@ -46,7 +46,6 @@ export default async function PublishPage({ searchParams }: PageProps) {
             minLength={12}
             maxLength={180}
             className="field-input text-sm"
-            placeholder="Your paper title"
           />
         </label>
 
@@ -58,17 +57,28 @@ export default async function PublishPage({ searchParams }: PageProps) {
             minLength={80}
             maxLength={4000}
             className="field-textarea min-h-[100px] text-sm leading-relaxed"
-            placeholder="A brief summary of your work"
           />
         </label>
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-foreground">Agent-readable summary</span>
-          <textarea
-            name="markdown"
-            spellCheck={false}
-            className="field-textarea min-h-[200px] font-mono text-sm leading-relaxed"
-            placeholder="Optional plain-text synopsis for search and agent indexing."
+          <span className="text-sm font-medium text-foreground">PDF</span>
+          <input
+            name="pdf"
+            type="file"
+            accept="application/pdf"
+            required
+            className="field-input text-sm file:mr-4 file:border-0 file:bg-transparent file:text-sm"
+          />
+        </label>
+
+        <label className="block space-y-1">
+          <span className="text-sm font-medium text-foreground">GitHub repository</span>
+          <input
+            name="githubUrl"
+            type="url"
+            required
+            className="field-input text-sm"
+            placeholder="https://github.com/..."
           />
         </label>
 
@@ -77,90 +87,79 @@ export default async function PublishPage({ searchParams }: PageProps) {
           <textarea
             name="latexSource"
             required
-            className="field-textarea min-h-[140px] font-mono text-sm leading-relaxed"
-            placeholder="\\documentclass{article} ..."
+            className="field-textarea min-h-[120px] font-mono text-sm leading-relaxed"
             spellCheck={false}
           />
         </label>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="block space-y-1">
-            <span className="text-sm font-medium text-foreground">Compiled PDF</span>
-            <input
-              name="pdf"
-              type="file"
-              accept="application/pdf"
-              required
-              className="field-input text-sm file:mr-4 file:border-0 file:bg-transparent file:text-sm"
-            />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-sm font-medium text-foreground">Figures</span>
-            <input
-              name="figures"
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              multiple
-              className="field-input text-sm file:mr-4 file:border-0 file:bg-transparent file:text-sm"
-            />
-          </label>
-        </div>
-
-        <div className="border-t border-border pt-4">
-          <div className="grid gap-4 md:grid-cols-2">
+        <details className="group border-t border-border pt-4">
+          <summary className="cursor-pointer text-sm text-muted hover:text-foreground-soft select-none">
+            More fields
+          </summary>
+          <div className="mt-4 space-y-4">
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">GitHub repository</span>
-              <input
-                name="githubUrl"
-                type="url"
-                required
-                className="field-input text-sm"
-                placeholder="https://github.com/..."
+              <span className="text-sm font-medium text-foreground">Agent-readable summary</span>
+              <textarea
+                name="markdown"
+                spellCheck={false}
+                className="field-textarea min-h-[120px] font-mono text-sm leading-relaxed"
+                placeholder="Plain-text synopsis for search and agent indexing"
               />
             </label>
+
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">Canonical URL</span>
-              <input name="canonicalUrl" type="url" className="field-input text-sm" placeholder="https://..." />
+              <span className="text-sm font-medium text-foreground">Figures</span>
+              <input
+                name="figures"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                multiple
+                className="field-input text-sm file:mr-4 file:border-0 file:bg-transparent file:text-sm"
+              />
             </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">DOI</span>
-              <input name="doi" className="field-input text-sm" placeholder="10.xxxx/..." spellCheck={false} />
-            </label>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-foreground">Canonical URL</span>
+                <input name="canonicalUrl" type="url" className="field-input text-sm" placeholder="https://..." />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-sm font-medium text-foreground">DOI</span>
+                <input name="doi" className="field-input text-sm" placeholder="10.xxxx/..." spellCheck={false} />
+              </label>
+            </div>
+
             <label className="block space-y-1">
               <span className="text-sm font-medium text-foreground">Keywords</span>
               <input name="keywords" className="field-input text-sm" placeholder="genomics, climate, ..." spellCheck={false} />
             </label>
+
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-foreground">References</span>
+              <textarea
+                name="references"
+                className="field-textarea min-h-[60px] text-sm leading-relaxed"
+                placeholder="One DOI or reference per line"
+                spellCheck={false}
+              />
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-foreground">Origin note</span>
+              <input name="ideaNote" className="field-input text-sm" placeholder="What inspired this work?" />
+            </label>
+
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-foreground">BibTeX</span>
+              <textarea
+                name="bibSource"
+                className="field-textarea min-h-[80px] font-mono text-sm leading-relaxed"
+                placeholder="@article{...}"
+                spellCheck={false}
+              />
+            </label>
           </div>
-
-          <label className="mt-4 block space-y-1">
-            <span className="text-sm font-medium text-foreground">References</span>
-            <textarea
-              name="references"
-              className="field-textarea min-h-[60px] text-sm leading-relaxed"
-              placeholder="One DOI or reference per line"
-              spellCheck={false}
-            />
-          </label>
-
-          <label className="mt-4 block space-y-1">
-            <span className="text-sm font-medium text-foreground">Origin note</span>
-            <input
-              name="ideaNote"
-              className="field-input text-sm"
-              placeholder="What inspired this work?"
-            />
-          </label>
-
-          <label className="mt-4 block space-y-1">
-            <span className="text-sm font-medium text-foreground">BibTeX</span>
-            <textarea
-              name="bibSource"
-              className="field-textarea min-h-[80px] font-mono text-sm leading-relaxed"
-              placeholder="@article{...}"
-              spellCheck={false}
-            />
-          </label>
-        </div>
+        </details>
 
         <div className="pt-2">
           <button type="submit" className="btn-primary">
