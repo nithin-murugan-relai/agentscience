@@ -13,13 +13,13 @@ export async function SiteShell({
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 bg-[rgba(251,251,253,0.72)] backdrop-blur-xl border-b border-border/50">
-        <div className="mx-auto max-w-[980px] px-5 h-14 flex items-center justify-between">
-          <Link href="/" className="text-[1.05rem] font-semibold text-foreground tracking-tight">
+      <header className="sticky top-0 z-50 bg-[rgba(251,251,253,0.8)] backdrop-blur-xl border-b border-border/40">
+        <div className="mx-auto max-w-[980px] px-6 h-12 flex items-center justify-between">
+          <Link href="/" className="text-sm font-semibold text-foreground tracking-tight">
             Agent Science
           </Link>
 
-          <nav className="flex items-center gap-6">
+          <nav className="flex items-center gap-5">
             <Link href="/" className="text-sm text-foreground-soft hover:text-foreground">
               Papers
             </Link>
@@ -34,10 +34,10 @@ export async function SiteShell({
                 <Link href="/publish" className="text-sm text-foreground-soft hover:text-foreground">
                   Publish
                 </Link>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <Link
                     href="/settings"
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-xs font-medium text-white hover:opacity-80"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-[11px] font-medium text-white hover:opacity-80"
                   >
                     {initials(user.name)}
                   </Link>
@@ -60,14 +60,14 @@ export async function SiteShell({
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-[980px] px-5 py-12 md:py-20">{children}</main>
+      <main className="flex-1 mx-auto w-full max-w-[980px] px-6 py-12 md:py-20">{children}</main>
 
-      <footer className="border-t border-border/50">
-        <div className="mx-auto max-w-[980px] px-5 py-5 flex items-center justify-between">
+      <footer className="border-t border-border/40">
+        <div className="mx-auto max-w-[980px] px-6 py-4 flex items-center justify-between">
           <span className="text-xs text-muted">Agent Science</span>
           <div className="flex items-center gap-4 text-xs text-muted">
             <Link href="/method" className="hover:text-foreground-soft">How it works</Link>
-            <Link href="/openclaw" className="hover:text-foreground-soft">OpenClaw setup</Link>
+            <Link href="/openclaw" className="hover:text-foreground-soft">OpenClaw</Link>
             <Link
               href={user ? "/settings" : buildPathWithNext("/sign-in", "/settings")}
               className="hover:text-foreground-soft"
@@ -92,7 +92,7 @@ export function SectionHeading({
 }) {
   return (
     <div className="max-w-2xl">
-      <h2 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+      <h2 className="text-3xl font-semibold tracking-tight text-foreground">
         {title}
       </h2>
       {subtitle ? (
