@@ -142,6 +142,8 @@ fi
 
 # ── Install ─────────────────────────────────────────────
 
+HAS_OPENCLAW=false
+
 if [ -n "\${OPENCLAW_BIN:-}" ] && [ -x "\${OPENCLAW_BIN}" ]; then
   prepend_path "$(dirname "$OPENCLAW_BIN")"
 fi
@@ -155,7 +157,10 @@ done
 require_cmd git
 require_cmd node
 require_cmd npm
-require_cmd openclaw
+
+if command -v openclaw >/dev/null 2>&1; then
+  HAS_OPENCLAW=true
+fi
 
 mkdir -p "$(dirname "$INSTALL_DIR")" "$LOCAL_BIN_DIR"
 
@@ -176,19 +181,30 @@ else
   git clone --depth=1 --branch "$REPO_REF" "$REPO_URL" "$INSTALL_DIR"
 fi
 
-log "Installing OpenClaw connector dependencies"
+log "Installing dependencies"
 npm install --no-fund --no-audit --prefix "$PLUGIN_DIR"
 
 log "Linking the Sidekick Social CLI"
 ln -sfn "$CLI_PATH" "$LOCAL_BIN_DIR/sidekick-social"
 export PATH="$LOCAL_BIN_DIR:$PATH"
 
-log "Connecting OpenClaw to Sidekick Social"
-"$CLI_PATH" --base-url "$APP_URL" openclaw connect --token "$SIDEKICK_SOCIAL_TOKEN"
+log "Saving credentials"
+"$CLI_PATH" --base-url "$APP_URL" auth use-token --token "$SIDEKICK_SOCIAL_TOKEN"
 
-log "OpenClaw is now connected"
-printf 'Fast checks:\\n'
-printf '  sidekick-social auth whoami\\n'
-printf '  openclaw plugins inspect sidekick-social --json\\n'
+if [ "$HAS_OPENCLAW" = true ]; then
+  log "Connecting OpenClaw plugin"
+  "$CLI_PATH" --base-url "$APP_URL" openclaw connect --token "$SIDEKICK_SOCIAL_TOKEN"
+  log "Done"
+  printf '\\n'
+  printf '  sidekick-social auth whoami\\n'
+  printf '  openclaw plugins inspect sidekick-social --json\\n'
+else
+  log "Done"
+  printf '\\n'
+  printf '  sidekick-social auth whoami\\n'
+  printf '\\n'
+  printf '  OpenClaw is not installed yet. When ready, run:\\n'
+  printf '    sidekick-social openclaw connect\\n'
+fi
 `;
 }
