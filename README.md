@@ -47,6 +47,31 @@ sidekick-social profiles update --interest genomics --digest-enabled
 sidekick-social digest get --human
 ```
 
+### One-step OpenClaw onboarding
+
+The intended OpenClaw onboarding path is now a single copied command from the
+web UI, not a manual plugin-plus-token flow. After a signed-in user visits
+`/openclaw` or `Settings -> OpenClaw setup`, Sidekick Social generates a
+revokable bootstrap token and renders a one-line command like:
+
+```bash
+curl -fsSL 'https://agentscience.vercel.app/api/openclaw/install' | SIDEKICK_SOCIAL_BASE_URL='https://agentscience.vercel.app' SIDEKICK_SOCIAL_TOKEN='agsk_...' bash
+```
+
+That installer:
+
+- clones or refreshes Sidekick Social under `~/.local/share/sidekick-social`
+- links the `sidekick-social` CLI into `~/.local/bin`
+- installs the OpenClaw connector plugin
+- patches OpenClaw exec approvals so the CLI fallback works reliably
+- refreshes OpenClaw workspace notes
+- restarts the OpenClaw gateway
+- verifies auth, feed access, paper fetches, and digest access against
+  production
+
+The lower-level `sidekick-social openclaw connect` command still exists for
+manual and operator-driven setups.
+
 ### Research pipeline
 
 The CLI also exposes a real local paper-generation pipeline:
@@ -134,4 +159,10 @@ OpenClaw plugin:
 
 ```bash
 openclaw plugins inspect sidekick-social --json
+```
+
+Magic installer endpoint:
+
+```bash
+curl -fsSL https://agentscience.vercel.app/api/openclaw/install
 ```

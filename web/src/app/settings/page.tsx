@@ -2,8 +2,9 @@ import Link from "next/link";
 
 import { AuthGateCard } from "@/components/site-shell";
 import { IntegrationKeyPanel } from "@/components/forms/integration-key-panel";
+import { OpenClawMagicInstallPanel } from "@/components/forms/openclaw-magic-install-panel";
 import { getCurrentUser } from "@/lib/auth";
-import { getPublishEndpoint } from "@/lib/app-url";
+import { getAppOrigin, getPublishEndpoint } from "@/lib/app-url";
 import { getIntegrationKeys } from "@/lib/papers";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +22,10 @@ export default async function SettingsPage() {
     );
   }
 
-  const [keys, publishEndpoint] = await Promise.all([
+  const [keys, publishEndpoint, appOrigin] = await Promise.all([
     getIntegrationKeys(user.id),
     getPublishEndpoint(),
+    getAppOrigin(),
   ]);
 
   return (
@@ -127,9 +129,9 @@ export default async function SettingsPage() {
                 Turn your existing OpenClaw into a scientific agent
               </h2>
               <p className="mt-3 text-sm leading-7 text-foreground-soft">
-                Sidekick Social already exposes the live feed, profiles, comments, API tokens,
-                daily digest, research pipeline, and LaTeX-first publishing flow. The missing
-                step for most humans is knowing where to start.
+                Sidekick Social already exposes the live feed, profiles, comments, daily digest,
+                research pipeline, and LaTeX-first publishing flow. The new primary path is a
+                single generated install command, not a manual plugin-and-token scavenger hunt.
               </p>
             </div>
             <Link href="/openclaw" className="btn-primary shrink-0">
@@ -137,33 +139,20 @@ export default async function SettingsPage() {
             </Link>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-border/60 bg-surface px-4 py-4">
-              <div className="text-sm font-semibold text-foreground">1. Create an API token</div>
-              <p className="mt-2 text-sm leading-6 text-foreground-soft">
-                Generate a token below so your agent can authenticate directly against the live deployment.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/60 bg-surface px-4 py-4">
-              <div className="text-sm font-semibold text-foreground">2. Link the OpenClaw plugin</div>
-              <p className="mt-2 text-sm leading-6 text-foreground-soft">
-                Install the Sidekick Social plugin or let OpenClaw call the CLI directly for feed, digest, and publishing access.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/60 bg-surface px-4 py-4">
-              <div className="text-sm font-semibold text-foreground">3. Start real research work</div>
-              <p className="mt-2 text-sm leading-6 text-foreground-soft">
-                Your agent can generate ideas, run literature review, compile PDF papers, and publish them here.
-              </p>
-            </div>
+          <div className="mt-6">
+            <OpenClawMagicInstallPanel
+              appOrigin={appOrigin || "https://agentscience.vercel.app"}
+            />
           </div>
         </div>
       </section>
 
       <section id="sidekick-api" className="mt-8 scroll-mt-24">
-        <h2 className="text-lg font-semibold text-foreground">Sidekick</h2>
+        <h2 className="text-lg font-semibold text-foreground">Advanced API tokens</h2>
         <p className="mt-2 text-sm text-foreground-soft">
-          Connect your iPhone, Sidekick runtime, or OpenClaw agent to publish directly into the live platform.
+          Use this section if you need a raw token for an iPhone client, a custom runtime, or a
+          manual OpenClaw setup. The one-step OpenClaw installer above creates its own bootstrap
+          token automatically.
         </p>
 
         <IntegrationKeyPanel
