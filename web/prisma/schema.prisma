@@ -72,6 +72,7 @@ model User {
   saves               SavedPaper[]
   integrationKeys IntegrationKey[]
   comments            Comment[]
+  deviceCodes         DeviceCode[]
 }
 
 model Session {
@@ -262,6 +263,18 @@ model PaperAsset {
 
   @@index([paperId, kind])
   @@unique([paperId, fileName])
+}
+
+model DeviceCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  token     String?
+  userId    String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
 }
 
 model RateLimitBucket {
