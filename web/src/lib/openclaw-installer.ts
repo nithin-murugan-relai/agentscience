@@ -1,6 +1,4 @@
 const DEFAULT_APP_ORIGIN = "https://agentscience.vercel.app";
-const DEFAULT_REPO_URL = "https://github.com/vineet-reddy/sidekick-social.git";
-const DEFAULT_REPO_REF = "main";
 
 function normalizeOrigin(appOrigin: string) {
   return appOrigin.replace(/\/$/, "") || DEFAULT_APP_ORIGIN;
@@ -26,7 +24,6 @@ export function buildOpenClawInstallCommand({
     )} SIDEKICK_SOCIAL_TOKEN=${quoteShell(token)} bash`;
   }
 
-  // No token — the script will handle auth via device flow
   return `curl -fsSL ${quoteShell(installerUrl)} | SIDEKICK_SOCIAL_BASE_URL=${quoteShell(
     origin
   )} bash`;
@@ -39,12 +36,6 @@ export function buildOpenClawInstallScript(appOrigin: string) {
 set -euo pipefail
 
 APP_URL="\${SIDEKICK_SOCIAL_BASE_URL:-${origin}}"
-REPO_URL="\${SIDEKICK_SOCIAL_REPO_URL:-${DEFAULT_REPO_URL}}"
-REPO_REF="\${SIDEKICK_SOCIAL_REPO_REF:-${DEFAULT_REPO_REF}}"
-INSTALL_DIR="\${SIDEKICK_SOCIAL_INSTALL_DIR:-$HOME/.local/share/sidekick-social}"
-CLI_PATH="$INSTALL_DIR/bin/sidekick-social"
-PLUGIN_DIR="$INSTALL_DIR/openclaw/sidekick-social-plugin"
-LOCAL_BIN_DIR="$HOME/.local/bin"
 
 log() {
   printf '==> %s\\n' "$1"
@@ -55,13 +46,6 @@ require_cmd() {
     printf 'Missing required command: %s\\n' "$1" >&2
     exit 1
   }
-}
-
-prepend_path() {
-  case ":$PATH:" in
-    *":$1:"*) ;;
-    *) PATH="$1:$PATH" ;;
-  esac
 }
 
 open_browser() {
@@ -140,71 +124,40 @@ if [ -z "\${SIDEKICK_SOCIAL_TOKEN:-}" ]; then
   fi
 fi
 
-# ── Install ─────────────────────────────────────────────
+# ── Install CLI ─────────────────────────────────────────
 
-HAS_OPENCLAW=false
-
-if [ -n "\${OPENCLAW_BIN:-}" ] && [ -x "\${OPENCLAW_BIN}" ]; then
-  prepend_path "$(dirname "$OPENCLAW_BIN")"
-fi
-
-for candidate in "$HOME"/.nvm/versions/node/*/bin; do
-  if [ -d "$candidate" ]; then
-    prepend_path "$candidate"
-  fi
-done
-
-require_cmd git
 require_cmd node
 require_cmd npm
 
-if command -v openclaw >/dev/null 2>&1; then
-  HAS_OPENCLAW=true
-fi
-
-mkdir -p "$(dirname "$INSTALL_DIR")" "$LOCAL_BIN_DIR"
-
-if [ -d "$INSTALL_DIR/.git" ]; then
-  log "Updating Sidekick Social checkout"
-  if [ -n "$(git -C "$INSTALL_DIR" status --porcelain 2>/dev/null)" ]; then
-    printf 'Installer-managed checkout at %s has local changes; reusing it without pulling.\\n' "$INSTALL_DIR" >&2
-  else
-    git -C "$INSTALL_DIR" fetch --depth=1 origin "$REPO_REF"
-    git -C "$INSTALL_DIR" checkout "$REPO_REF"
-    git -C "$INSTALL_DIR" pull --ff-only origin "$REPO_REF"
-  fi
-elif [ -e "$INSTALL_DIR" ]; then
-  printf 'Install directory exists but is not a git checkout: %s\\n' "$INSTALL_DIR" >&2
-  exit 1
+if command -v agentscience >/dev/null 2>&1; then
+  log "Updating agentscience CLI"
+  npm install -g agentscience@latest --no-fund --no-audit 2>/dev/null || \\
+    npm install -g agentscience@latest --no-fund --no-audit
 else
-  log "Cloning Sidekick Social"
-  git clone --depth=1 --branch "$REPO_REF" "$REPO_URL" "$INSTALL_DIR"
+  log "Installing agentscience CLI"
+  npm install -g agentscience --no-fund --no-audit 2>/dev/null || \\
+    npm install -g agentscience --no-fund --no-audit
 fi
 
-log "Installing dependencies"
-npm install --no-fund --no-audit --prefix "$PLUGIN_DIR"
-
-log "Linking the Sidekick Social CLI"
-ln -sfn "$CLI_PATH" "$LOCAL_BIN_DIR/sidekick-social"
-export PATH="$LOCAL_BIN_DIR:$PATH"
+# ── Connect ─────────────────────────────────────────────
 
 log "Saving credentials"
-"$CLI_PATH" --base-url "$APP_URL" auth use-token --token "$SIDEKICK_SOCIAL_TOKEN"
+agentscience --base-url "$APP_URL" auth use-token --token "$SIDEKICK_SOCIAL_TOKEN"
 
-if [ "$HAS_OPENCLAW" = true ]; then
+if command -v openclaw >/dev/null 2>&1; then
   log "Connecting OpenClaw plugin"
-  "$CLI_PATH" --base-url "$APP_URL" openclaw connect --token "$SIDEKICK_SOCIAL_TOKEN"
+  agentscience --base-url "$APP_URL" openclaw connect --token "$SIDEKICK_SOCIAL_TOKEN"
   log "Done"
   printf '\\n'
-  printf '  sidekick-social auth whoami\\n'
+  printf '  agentscience auth whoami\\n'
   printf '  openclaw plugins inspect sidekick-social --json\\n'
 else
   log "Done"
   printf '\\n'
-  printf '  sidekick-social auth whoami\\n'
+  printf '  agentscience auth whoami\\n'
   printf '\\n'
   printf '  OpenClaw is not installed yet. When ready, run:\\n'
-  printf '    sidekick-social openclaw connect\\n'
+  printf '    agentscience openclaw connect\\n'
 fi
 `;
 }
