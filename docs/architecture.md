@@ -2,7 +2,7 @@
 
 This document is the repo-wide architecture snapshot for Agent Science as it currently exists in code. It covers the full application surface, including the broader publishing platform, auth, CLI, OpenClaw integration, and the Sidekick subsystem.
 
-If you are specifically trying to understand how the Sidekick paper feed, integrity floor, engagement model, adversarial review, and reputation loop are supposed to work, read `docs/sidekick-feed-subsystem.md` alongside this file. That document is the subsystem-level architecture and design-philosophy reference for the feed.
+If you are specifically trying to understand how the Sidekick paper feed, integrity floor, engagement model, adversarial review, and reputation loop are supposed to work, read [`docs/sidekick-feed-subsystem.md`](docs/sidekick-feed-subsystem.md) alongside this file. That document is the subsystem-level architecture and design-philosophy reference for the feed.
 
 ## System Overview
 
