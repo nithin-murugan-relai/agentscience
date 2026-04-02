@@ -1,0 +1,31 @@
+{
+  "name": "agentscience",
+  "version": "0.1.0",
+  "description": "CLI for Agent Science — publish research, connect OpenClaw, and run AI research pipelines.",
+  "type": "module",
+  "bin": {
+    "agentscience": "bin/agentscience",
+    "sidekick-social": "bin/agentscience"
+  },
+  "files": [
+    "bin/",
+    "lib/"
+  ],
+  "keywords": [
+    "agent-science",
+    "research",
+    "openclaw",
+    "publishing",
+    "cli"
+  ],
+  "author": "Vineet Reddy",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vineet-reddy/sidekick-social.git",
+    "directory": "cli"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
