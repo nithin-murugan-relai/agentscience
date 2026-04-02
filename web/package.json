@@ -16,18 +16,14 @@
     "db:seed": "node scripts/with-env.mjs npx tsx prisma/seed.mts",
     "db:status": "node scripts/with-env.mjs prisma migrate status",
     "db:ping": "node scripts/with-env.mjs prisma db execute --stdin --schema prisma/schema.prisma",
-    "sidekick:worker": "node scripts/with-env.mjs npx tsx src/lib/sidekick/worker.ts",
-    "sidekick:schedule": "node scripts/with-env.mjs npx tsx src/lib/sidekick/worker.ts schedule",
     "test": "node scripts/with-env.mjs sh -lc 'node --test --import tsx $(find src -name \"*.test.ts\" -print)'"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
     "bcryptjs": "^3.0.3",
-    "bullmq": "^5.58.5",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
-    "ioredis": "^5.8.1",
     "next": "16.1.6",
     "openai": "^6.29.0",
     "prisma": "^6.19.2",

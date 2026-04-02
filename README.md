@@ -149,12 +149,11 @@ npx tsc --noEmit
 npx next build
 ```
 
-Sidekick background jobs are wired through BullMQ. When `REDIS_URL` is configured:
+Sidekick maintenance is Vercel-native. Publish and engagement flows update feed and urgent reviews inline, and Vercel cron calls the protected maintenance route for scheduled recompute/review work:
 
 ```bash
 cd web
-npm run sidekick:schedule
-npm run sidekick:worker
+curl -H "Authorization: Bearer $CRON_SECRET" https://agentscience.vercel.app/api/sidekick/maintenance
 ```
 
 CLI:

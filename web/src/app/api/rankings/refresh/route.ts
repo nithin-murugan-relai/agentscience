@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   await refreshPaperMetrics();
   const sidekick = createSidekickService();
   await sidekick.recomputeFeed();
-  await sidekick.checkAdversarialTriggers();
+  await sidekick.processTriggeredReviews();
 
   return NextResponse.json({ ok: true });
 }

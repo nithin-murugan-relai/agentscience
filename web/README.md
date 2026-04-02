@@ -30,7 +30,7 @@ Optional:
 - `OPENAI_SIDEKICK_NANO_MODEL`
 - `OPENAI_SIDEKICK_REVIEW_MODEL`
 - `CROSSREF_MAILTO`
-- `REDIS_URL` (required to run BullMQ Sidekick workers/schedulers)
+- `CRON_SECRET` (recommended in Vercel so scheduled maintenance can call the protected route)
 
 ## Commands
 
@@ -39,12 +39,20 @@ npm run dev
 npm run db:status
 npm run db:migrate
 npm run db:seed
-npm run sidekick:schedule
-npm run sidekick:worker
 npm run lint
 npm test
 npm run build
 ```
+
+## Sidekick Maintenance
+
+Sidekick no longer depends on a separate Redis/BullMQ worker. Runtime behavior is:
+
+- integrity checks and feed writes happen inline on publish
+- build, challenge, and contradicted reproduction events can trigger immediate review inline
+- a protected Vercel cron route at `/api/sidekick/maintenance` recomputes feed scores and processes top-50 maintenance reviews
+
+Set `CRON_SECRET` in Vercel so cron requests can authenticate with the route.
 
 ## Product areas
 

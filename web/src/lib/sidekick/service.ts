@@ -1,7 +1,6 @@
 import { UserFacingError } from "@/lib/errors";
 import { validateReferencesBatch, fetchReferenceAbstractSamples } from "@/lib/sidekick/external";
 import { getSidekickConfig } from "@/lib/sidekick/config";
-import { getSidekickJobQueue, type SidekickJobQueue } from "@/lib/sidekick/jobs";
 import {
   runAdversarialReview,
   scoreClaimSpecificity,
@@ -36,7 +35,6 @@ import type {
 
 interface SidekickServiceDeps {
   repository?: SidekickRepository;
-  jobQueue?: SidekickJobQueue;
   referenceValidator?: typeof validateReferencesBatch;
   claimSpecificityScorer?: typeof scoreClaimSpecificity;
   substantivenessScorer?: typeof scoreSubstantiveness;
@@ -46,7 +44,6 @@ interface SidekickServiceDeps {
 
 export class SidekickService {
   private repository: SidekickRepository;
-  private jobQueue: SidekickJobQueue;
   private referenceValidator: typeof validateReferencesBatch;
   private claimSpecificityScorer: typeof scoreClaimSpecificity;
   private substantivenessScorer: typeof scoreSubstantiveness;
@@ -55,7 +52,6 @@ export class SidekickService {
 
   constructor(deps: SidekickServiceDeps = {}) {
     this.repository = deps.repository ?? new PrismaSidekickRepository();
-    this.jobQueue = deps.jobQueue ?? getSidekickJobQueue();
     this.referenceValidator = deps.referenceValidator ?? validateReferencesBatch;
     this.claimSpecificityScorer = deps.claimSpecificityScorer ?? scoreClaimSpecificity;
     this.substantivenessScorer = deps.substantivenessScorer ?? scoreSubstantiveness;
@@ -211,7 +207,7 @@ Respond with a score 1-5 and one sentence explanation. JSON only: {"score": int,
       ]);
       await this.refreshReputation(target.paper.agentId);
       await this.recomputeFeed();
-      await this.enqueueTriggerIfNeeded(target.paper.id);
+      await this.runImmediateTriggerIfNeeded(target.paper.id);
     }
 
     return { engagement, accepted: weight > 0 };
@@ -303,9 +299,9 @@ Return JSON only: {"score": int, "reason": string}`
       await this.refreshReputation(actor.id);
       await this.recomputeFeed();
       if (normalizedResult === "CONTRADICTED") {
-        await this.jobQueue.enqueueAdversarialReview(target.paper.id, "FAILED_REPRODUCTION");
+        await this.runAdversarialReview(target.paper.id, "FAILED_REPRODUCTION");
       }
-      await this.enqueueTriggerIfNeeded(target.paper.id);
+      await this.runImmediateTriggerIfNeeded(target.paper.id);
     }
 
     return { engagement, accepted: weight > 0 };
@@ -361,7 +357,7 @@ Return JSON only: {"score": int, "reason": string}`
       ]);
       await this.refreshReputation(actor.id);
       await this.recomputeFeed();
-      await this.enqueueTriggerIfNeeded(target.paper.id);
+      await this.runImmediateTriggerIfNeeded(target.paper.id);
     }
 
     return { engagement, accepted: weight > 0 };
@@ -385,10 +381,20 @@ Return JSON only: {"score": int, "reason": string}`
       }
 
       queued.push({ paperId: bundle.paper.id, reason: triggerReason });
-      await this.jobQueue.enqueueAdversarialReview(bundle.paper.id, triggerReason);
     }
 
     return queued;
+  }
+
+  async processTriggeredReviews(now = new Date(), limit = 25) {
+    const queued = await this.checkAdversarialTriggers(now);
+    const processed = [];
+    for (const entry of queued.slice(0, Math.max(0, limit))) {
+      const review = await this.runAdversarialReview(entry.paperId, entry.reason, now);
+      processed.push({ paperId: entry.paperId, reason: entry.reason, reviewId: review.id });
+    }
+
+    return processed;
   }
 
   async runAdversarialReview(paperId: string, reason?: SidekickReviewTrigger, now = new Date()) {
@@ -471,7 +477,6 @@ Return JSON only: {"score": int, "reason": string}`
   }
 
   private async refreshReputation(agentId: string) {
-    await this.jobQueue.enqueueRecomputeReputation(agentId);
     return this.recomputeAgentReputation(agentId);
   }
 
@@ -491,7 +496,8 @@ Return JSON only: {"score": int, "reason": string}`
   private async determineTriggerReason(
     paperId: string,
     now: Date,
-    rankedPapers?: Array<{ paper: SidekickPaperRecord; engagements: SidekickEngagementRecord[] }>
+    rankedPapers?: Array<{ paper: SidekickPaperRecord; engagements: SidekickEngagementRecord[] }>,
+    options?: { includeTopFifty?: boolean }
   ) {
     const bundle = await this.requirePaper(paperId);
     if (bundle.adversarialReview) {
@@ -525,17 +531,19 @@ Return JSON only: {"score": int, "reason": string}`
       return "ENGAGEMENT_THRESHOLD" as const;
     }
 
-    if (topFiftyIds.has(paperId)) {
+    if (options?.includeTopFifty !== false && topFiftyIds.has(paperId)) {
       return "TOP_50" as const;
     }
 
     return null;
   }
 
-  private async enqueueTriggerIfNeeded(paperId: string) {
-    const reason = await this.determineTriggerReason(paperId, new Date());
+  private async runImmediateTriggerIfNeeded(paperId: string, now = new Date()) {
+    const reason = await this.determineTriggerReason(paperId, now, undefined, {
+      includeTopFifty: false,
+    });
     if (reason) {
-      await this.jobQueue.enqueueAdversarialReview(paperId, reason);
+      await this.runAdversarialReview(paperId, reason, now);
     }
   }
 

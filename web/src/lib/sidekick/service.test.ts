@@ -21,19 +21,6 @@ import type {
 } from "@/lib/sidekick/types";
 import type { SidekickReferenceInput } from "@/lib/sidekick/validation";
 
-class RecordingJobQueue {
-  reviews: Array<{ paperId: string; triggerReason: SidekickReviewTrigger }> = [];
-  reputations: string[] = [];
-
-  async enqueueAdversarialReview(paperId: string, triggerReason: SidekickReviewTrigger) {
-    this.reviews.push({ paperId, triggerReason });
-  }
-
-  async enqueueRecomputeReputation(agentId: string) {
-    this.reputations.push(agentId);
-  }
-}
-
 class InMemorySidekickRepository implements SidekickRepository {
   agents = new Map<string, SidekickAgentRecord>();
   papers = new Map<string, SidekickPaperRecord>();
@@ -378,10 +365,8 @@ class InMemorySidekickRepository implements SidekickRepository {
 
 function createServiceHarness() {
   const repository = new InMemorySidekickRepository();
-  const queue = new RecordingJobQueue();
   const service = new SidekickService({
     repository,
-    jobQueue: queue,
     referenceValidator: async (references) => {
       const validated = references.map(
         (reference) =>
@@ -435,7 +420,7 @@ function createServiceHarness() {
       references.slice(0, 3).map((reference) => `Title: ${reference.title}\nAbstract: Sample abstract.`),
   });
 
-  return { repository, queue, service };
+  return { repository, service };
 }
 
 function createReference(title: string) {
@@ -703,7 +688,7 @@ test("VERIFY Layer 3: duplicate engagement is rejected", async () => {
 });
 
 test("VERIFY Layer 3: contradicted reproduction triggers adversarial review", async () => {
-  const { repository, queue, service } = createServiceHarness();
+  const { repository, service } = createServiceHarness();
   repository.seedAgent({ id: "agent-a", name: "Agent A" });
   repository.seedAgent({ id: "agent-b", name: "Agent B" });
   repository.seedPaper({
@@ -727,10 +712,10 @@ test("VERIFY Layer 3: contradicted reproduction triggers adversarial review", as
     evidence: "Detailed evidence showing the claimed effect disappears on the held-out cohort.",
   });
 
-  assert.deepEqual(queue.reviews, [
-    { paperId: "target", triggerReason: "FAILED_REPRODUCTION" },
-    { paperId: "target", triggerReason: "FAILED_REPRODUCTION" },
-  ]);
+  const review = [...repository.reviews.values()][0];
+  assert.ok(review);
+  assert.equal(review.paperId, "target");
+  assert.equal(review.triggerReason, "FAILED_REPRODUCTION");
 });
 
 test("VERIFY Layer 3: vague challenge (substantiveness < 3) does not count", async () => {
@@ -763,7 +748,7 @@ test("VERIFY Layer 3: vague challenge (substantiveness < 3) does not count", asy
 });
 
 test("VERIFY Layer 4: paper in top 50 triggers review", async () => {
-  const { repository, queue, service } = createServiceHarness();
+  const { repository, service } = createServiceHarness();
   repository.seedAgent({ id: "agent-a", name: "Agent A" });
   repository.seedPaper({
     id: "top-paper",
@@ -782,7 +767,14 @@ test("VERIFY Layer 4: paper in top 50 triggers review", async () => {
   const queued = await service.checkAdversarialTriggers(new Date("2026-04-02T06:00:00.000Z"));
 
   assert.deepEqual(queued, [{ paperId: "top-paper", reason: "TOP_50" }]);
-  assert.deepEqual(queue.reviews, [{ paperId: "top-paper", triggerReason: "TOP_50" }]);
+  const processed = await service.processTriggeredReviews(new Date("2026-04-02T06:00:00.000Z"));
+  assert.deepEqual(processed, [
+    {
+      paperId: "top-paper",
+      reason: "TOP_50",
+      reviewId: [...repository.reviews.values()][0]?.id,
+    },
+  ]);
 });
 
 test("VERIFY Layer 4: survival_score < 0.4 results in 0.1x multiplier and reputation -10", async () => {
@@ -921,7 +913,7 @@ test("INTEGRATION: quality paper enters feed, gets built on, rises, survives adv
 });
 
 test("INTEGRATION: gaming attempt triggers spike review and paper is demoted", async () => {
-  const { repository, queue, service } = createServiceHarness();
+  const { repository, service } = createServiceHarness();
   repository.seedAgent({ id: "target-agent", name: "Target Agent" });
   repository.seedPaper({
     id: "gaming-target",
@@ -959,13 +951,14 @@ test("INTEGRATION: gaming attempt triggers spike review and paper is demoted", a
     });
   }
 
-  const reasons = queue.reviews.map((entry) => entry.triggerReason);
-  assert.ok(reasons.includes("ENGAGEMENT_SPIKE") || reasons.includes("ENGAGEMENT_THRESHOLD"));
-
-  const before = repository.papers.get("gaming-target")!.feedScore;
-  await service.runAdversarialReview("gaming-target", "ENGAGEMENT_SPIKE");
-  const after = repository.papers.get("gaming-target")!.feedScore;
-  assert.ok(after < before);
+  const review = [...repository.reviews.values()][0];
+  assert.ok(review);
+  assert.ok(
+    review.triggerReason === "ENGAGEMENT_SPIKE" ||
+      review.triggerReason === "ENGAGEMENT_THRESHOLD"
+  );
+  const paper = repository.papers.get("gaming-target")!;
+  assert.ok((paper.adversarialSurvival ?? 1) < 0.4);
 });
 
 test("INTEGRATION: reputation arc declines after good papers then bad ones", async () => {
@@ -997,7 +990,7 @@ test("INTEGRATION: reputation arc declines after good papers then bad ones", asy
 });
 
 test("INTEGRATION: confirmed and contradicted reproductions trigger review and update reputation", async () => {
-  const { repository, queue, service } = createServiceHarness();
+  const { repository, service } = createServiceHarness();
   repository.seedAgent({ id: "target-agent", name: "Target Agent" });
   repository.seedAgent({ id: "confirm-agent", name: "Confirm Agent" });
   repository.seedAgent({ id: "contradict-agent", name: "Contradict Agent" });
@@ -1018,7 +1011,7 @@ test("INTEGRATION: confirmed and contradicted reproductions trigger review and u
     evidence: "Detailed evidence showing the effect disappears in the held-out cohort.",
   });
 
-  assert.ok(queue.reviews.some((entry) => entry.paperId === paper.paper.id));
+  assert.ok([...repository.reviews.values()].some((entry) => entry.paperId === paper.paper.id));
   assert.ok((repository.agents.get("target-agent")?.reputationScore ?? 0) > 0);
   assert.ok((repository.agents.get("confirm-agent")?.reputationScore ?? 0) > 0);
   assert.ok((repository.agents.get("contradict-agent")?.reputationScore ?? 0) > 0);
