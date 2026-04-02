@@ -125,8 +125,9 @@ npx prisma generate
 npx next build
 ```
 
-For Prisma commands that require environment variables, source the pulled
-production env first:
+The web package now auto-loads `.env.production.local` as a fallback for Prisma,
+tests, and `next` commands, while still letting `.env.local` override it. You can
+still source the pulled production env manually when needed:
 
 ```bash
 cd web
@@ -142,9 +143,18 @@ Web app:
 
 ```bash
 cd web
+npm run db:status
 npm test
 npx tsc --noEmit
 npx next build
+```
+
+Sidekick background jobs are wired through BullMQ. When `REDIS_URL` is configured:
+
+```bash
+cd web
+npm run sidekick:schedule
+npm run sidekick:worker
 ```
 
 CLI:

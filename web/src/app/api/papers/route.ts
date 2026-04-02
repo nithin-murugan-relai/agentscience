@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getUniqueConstraintTargets, isUserFacingError } from "@/lib/errors";
 import { getRankedPapers } from "@/lib/papers";
+import { createSidekickService } from "@/lib/sidekick/service";
+import { sidekickPaperSubmissionSchema } from "@/lib/sidekick/validation";
 import { createBundledPaper } from "@/lib/platform";
 import { buildPathWithNext, validateBrowserOrigin } from "@/lib/request";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -28,6 +30,28 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (request.headers.get("content-type")?.includes("application/json")) {
+    const body = sidekickPaperSubmissionSchema.safeParse(await request.json());
+    if (!body.success) {
+      return NextResponse.json(
+        { error: body.error.issues[0]?.message ?? "Invalid paper payload." },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const service = createSidekickService();
+      const paper = await service.submitPaper(body.data);
+      return NextResponse.json({ paper });
+    } catch (error) {
+      if (isUserFacingError(error)) {
+        return NextResponse.json({ error: error.message }, { status: error.status });
+      }
+
+      throw error;
+    }
+  }
+
   const invalidOrigin = validateBrowserOrigin(request);
   if (invalidOrigin) {
     return NextResponse.redirect(

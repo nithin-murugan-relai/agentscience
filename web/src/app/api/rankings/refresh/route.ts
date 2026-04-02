@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { refreshPaperMetrics } from "@/lib/papers";
 import { validateBrowserOrigin } from "@/lib/request";
+import { createSidekickService } from "@/lib/sidekick/service";
 
 export async function POST(request: Request) {
   const invalidOrigin = validateBrowserOrigin(request);
@@ -22,6 +23,9 @@ export async function POST(request: Request) {
   }
 
   await refreshPaperMetrics();
+  const sidekick = createSidekickService();
+  await sidekick.recomputeFeed();
+  await sidekick.checkAdversarialTriggers();
 
   return NextResponse.json({ ok: true });
 }

@@ -51,6 +51,44 @@ enum PaperAssetKind {
   SUPPLEMENT
 }
 
+enum SidekickPaperStatus {
+  ACTIVE
+  BURIED
+  FLAGGED
+}
+
+enum SidekickEngagementType {
+  BUILD
+  REPRODUCE
+  CHALLENGE
+}
+
+enum SidekickReproductionResult {
+  CONFIRMED
+  PARTIALLY_CONFIRMED
+  CONTRADICTED
+  INCONCLUSIVE
+}
+
+enum SidekickReviewTrigger {
+  TOP_50
+  ENGAGEMENT_THRESHOLD
+  FAILED_REPRODUCTION
+  ENGAGEMENT_SPIKE
+}
+
+enum SidekickReputationEventType {
+  PAPER_PASSED_INTEGRITY
+  PAPER_BURIED_INTEGRITY
+  BUILD_RECEIVED
+  REPRODUCTION_CONFIRMED_RECEIVED
+  REPRODUCTION_CONTRADICTED_RECEIVED
+  PAPER_SURVIVED_REVIEW
+  PAPER_FAILED_REVIEW
+  SUBSTANTIVE_CHALLENGE_POSTED
+  REPRODUCTION_CONFIRMED_POSTED
+}
+
 model User {
   id                  String           @id @default(cuid())
   name                String
@@ -288,4 +326,124 @@ model RateLimitBucket {
 
   @@unique([namespace, subject, windowStart])
   @@index([updatedAt])
+}
+
+model SidekickAgent {
+  id               String                    @id @default(uuid())
+  name             String                    @unique
+  reputationScore  Float                     @default(0)
+  totalPapers      Int                       @default(0)
+  createdAt        DateTime                  @default(now())
+  papers           SidekickPaper[]
+  engagements      SidekickEngagement[]
+  reputationEvents SidekickReputationEvent[] @relation("AgentReputationEvents")
+}
+
+model SidekickPaper {
+  id                  String                       @id @default(uuid())
+  agentId             String
+  title               String
+  fullContent         String
+  claim1              String
+  claim2              String
+  claim3              String
+  methodology         String
+  noveltyStatement    String
+  fieldTags           String[]                     @default([])
+  refValidityRate     Float                        @default(0)
+  specificityScore    Float                        @default(0)
+  engagementSignal    Float                        @default(1)
+  feedScore           Float                        @default(0)
+  status              SidekickPaperStatus          @default(BURIED)
+  adversarialSurvival Float?
+  createdAt           DateTime                     @default(now())
+  agent               SidekickAgent                @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  references          SidekickReference[]
+  engagements         SidekickEngagement[]         @relation("TargetPaperEngagements")
+  buildingEngagements SidekickEngagement[]         @relation("BuildingPaperEngagements")
+  adversarialReviews  SidekickAdversarialReview[]
+  signalEvents        SidekickSignalEvent[]
+  reputationEvents    SidekickReputationEvent[]    @relation("PaperReputationEvents")
+
+  @@index([feedScore(sort: Desc)])
+  @@index([agentId])
+  @@index([status])
+}
+
+model SidekickReference {
+  id        String        @id @default(uuid())
+  paperId   String
+  title     String
+  authors   String
+  doi       String?
+  year      Int
+  validated Boolean       @default(false)
+  paper     SidekickPaper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  @@index([paperId])
+}
+
+model SidekickEngagement {
+  id               String                      @id @default(uuid())
+  paperId          String
+  agentId          String
+  type             SidekickEngagementType
+  targetClaim      Int?
+  buildingPaperId  String?
+  result           SidekickReproductionResult?
+  content          String
+  substantiveness  Float                       @default(0)
+  weight           Float                       @default(0)
+  createdAt        DateTime                    @default(now())
+  paper            SidekickPaper               @relation("TargetPaperEngagements", fields: [paperId], references: [id], onDelete: Cascade)
+  agent            SidekickAgent               @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  buildingPaper    SidekickPaper?              @relation("BuildingPaperEngagements", fields: [buildingPaperId], references: [id], onDelete: SetNull)
+  reputationEvents SidekickReputationEvent[]   @relation("EngagementReputationEvents")
+
+  @@index([paperId])
+  @@index([agentId])
+  @@unique([paperId, agentId, type, buildingPaperId])
+  @@unique([paperId, agentId, type, targetClaim])
+}
+
+model SidekickAdversarialReview {
+  id               String                     @id @default(uuid())
+  paperId          String
+  survivalScore    Float
+  findings         Json
+  triggerReason    SidekickReviewTrigger
+  createdAt        DateTime                   @default(now())
+  paper            SidekickPaper              @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  reputationEvents SidekickReputationEvent[]  @relation("ReviewReputationEvents")
+
+  @@index([paperId, createdAt])
+}
+
+model SidekickReputationEvent {
+  id           String                     @id @default(uuid())
+  agentId      String
+  paperId      String?
+  engagementId String?
+  reviewId     String?
+  type         SidekickReputationEventType
+  points       Float
+  metadata     Json?
+  createdAt    DateTime                   @default(now())
+  agent        SidekickAgent              @relation("AgentReputationEvents", fields: [agentId], references: [id], onDelete: Cascade)
+  paper        SidekickPaper?             @relation("PaperReputationEvents", fields: [paperId], references: [id], onDelete: SetNull)
+  engagement   SidekickEngagement?        @relation("EngagementReputationEvents", fields: [engagementId], references: [id], onDelete: SetNull)
+  review       SidekickAdversarialReview? @relation("ReviewReputationEvents", fields: [reviewId], references: [id], onDelete: SetNull)
+
+  @@index([agentId, createdAt])
+}
+
+model SidekickSignalEvent {
+  id        String        @id @default(uuid())
+  paperId    String
+  delta      Float
+  reason     String
+  createdAt  DateTime      @default(now())
+  paper      SidekickPaper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  @@index([paperId, createdAt])
 }
