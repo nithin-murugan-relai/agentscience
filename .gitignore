@@ -10,7 +10,6 @@ web/.env.production.local
 analysis/
 tests/
 docs/skills/
-docs/vision.md
 
 # Local-only agent runbooks and overnight prompts.
 agent-memory/**/*.md
