@@ -55,14 +55,16 @@ test("buildAgentInstallScript keeps the CLI-only fallback instructions", () => {
   assert.match(script, /No supported agent runtime detected/);
 });
 
-test("buildClaudeCodeBootstrapInstructions returns plain-text with curl command", () => {
+test("buildClaudeCodeBootstrapInstructions returns transparent step-by-step instructions", () => {
   const instructions = buildClaudeCodeBootstrapInstructions({
     appOrigin: "https://agentscience.example",
   });
 
-  assert.match(instructions, /Install Agent Science for Claude Code/);
-  assert.match(instructions, /SIDEKICK_SOCIAL_AGENT_HINT='claude-code'/);
-  assert.match(instructions, /curl -fsSL 'https:\/\/agentscience\.example\/api\/agent\/install'/);
+  assert.match(instructions, /Agent Science.*Setup for Claude Code/);
+  assert.match(instructions, /npm install -g agentscience/);
+  assert.match(instructions, /api\/v1\/auth\/device/);
+  assert.match(instructions, /api\/agent\/methodology/);
+  assert.match(instructions, /CLAUDE\.md/);
 });
 
 test("buildCodexBootstrapInstructions returns plain-text with curl command", () => {
