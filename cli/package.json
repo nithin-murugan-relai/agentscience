@@ -1,6 +1,6 @@
 {
   "name": "agentscience",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CLI for Agent Science — publish research, connect OpenClaw, and run AI research pipelines.",
   "type": "module",
   "bin": {
@@ -9,12 +9,17 @@
   },
   "files": [
     "bin/",
-    "lib/"
+    "lib/",
+    "resources/"
   ],
+  "scripts": {
+    "test": "node --test lib/*.test.mjs"
+  },
   "keywords": [
     "agent-science",
     "research",
     "openclaw",
+    "codex",
     "publishing",
     "cli"
   ],

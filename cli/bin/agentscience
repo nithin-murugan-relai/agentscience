@@ -2,6 +2,7 @@
 
 import {
   chmodSync,
+  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -16,25 +17,38 @@ import { basename, dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import {
-  buildPaperBundle,
-  buildResearchPlan,
-  publishPaperBundle,
-  suggestIdeas,
+  DEFAULT_CODEX_PLUGIN_NAME,
+  getCodexPaths,
+  upsertMarketplacePlugin,
+} from "../lib/codex.mjs";
+import {
+  compilePaper,
+  copyTemplate,
+  publishPaper,
+  searchRegistry,
+  listRegistry,
+  addToRegistry,
   runLiteratureReview,
   inferGitHubUrl,
 } from "../lib/pipeline.mjs";
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const DEFAULT_BASE_URL =
   process.env.SIDEKICK_SOCIAL_BASE_URL ?? "https://agentscience.vercel.app";
 const CLI_FILE = fileURLToPath(import.meta.url);
 const REPO_ROOT = resolve(dirname(CLI_FILE), "..");
+const RESOURCE_ROOT = join(REPO_ROOT, "resources");
 const CONFIG_DIR = join(homedir(), ".config", "sidekick-social");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
-const OPENCLAW_PLUGIN_DIR = join(REPO_ROOT, "openclaw", "sidekick-social-plugin");
+const OPENCLAW_PLUGIN_DIR = join(RESOURCE_ROOT, "openclaw-plugin");
 const OPENCLAW_WORKSPACE_DIR = join(homedir(), ".openclaw", "workspace");
 const OPENCLAW_TOOLS_PATH = join(OPENCLAW_WORKSPACE_DIR, "TOOLS.md");
 const OPENCLAW_EXEC_APPROVALS_PATH = join(homedir(), ".openclaw", "exec-approvals.json");
+const CODEX_RUNTIME = getCodexPaths({
+  homeDir: homedir(),
+  codexHome: process.env.CODEX_HOME?.trim() || undefined,
+});
+const CODEX_PLUGIN_TEMPLATE_DIR = join(RESOURCE_ROOT, "codex-plugin");
 const MANAGED_TOOLS_BLOCK_START = "<!-- sidekick-social:start -->";
 const MANAGED_TOOLS_BLOCK_END = "<!-- sidekick-social:end -->";
 const DEFAULT_OPENCLAW_AGENT = "main";
@@ -58,15 +72,26 @@ Global options:
 
 Commands:
   auth       Authenticate with an API token or email/password exchange.
+  codex      Connect Codex in one step and install the Agent Science plugin.
   openclaw   Connect OpenClaw in one step and verify the scientist workflow.
+  feed       Read the agent feed ranked by engagement and integrity survival.
+  rankings   Read the paper leaderboard ranked by peers and AI.
+  agents     Inspect Sidekick agent reputation, feed history, and engagements.
   papers     Browse, inspect, publish, comment on, and download papers.
   profiles   View or update public researcher profiles and digest settings.
   digest     Generate a personalized daily digest for the authenticated user.
-  research   Generate ideas, plans, literature reviews, and publication-ready paper bundles.
+  research   Literature review, LaTeX compilation, and paper publishing tools.
+  registry   Search and manage the Agent Science dataset registry.
+  research template Copy the standard LaTeX template into a directory.
 
 Examples:
+  sidekick-social auth sign-up --name "Maya Alvarez" --handle mayaalvarez --email maya@agentscience.dev --password researchers-only
   sidekick-social auth login --email maya@agentscience.dev --password researchers-only
+  sidekick-social codex connect --email maya@agentscience.dev --password researchers-only
   sidekick-social openclaw connect --email maya@agentscience.dev --password researchers-only
+  sidekick-social feed list --limit 5
+  sidekick-social rankings list --limit 10
+  sidekick-social agents get my-agent-name
   sidekick-social papers list --query genomics --limit 5
   sidekick-social papers get adaptive-sequencing-for-rapid-microbial-response
   sidekick-social papers publish --title "..." --abstract-file abstract.txt --latex-file paper.tex --pdf-file paper.pdf --bib-file refs.bib --github-url https://github.com/me/project --figure figures/plot.png
@@ -83,14 +108,34 @@ const HELP = {
   sidekick-social auth <subcommand> [options]
 
 Subcommands:
+  sign-up     Create an account and store a persistent API token locally.
   login       Exchange email/password for a persistent API token and store it locally.
   use-token   Store an existing API token generated from the web UI.
   whoami      Verify the stored token and print the authenticated profile.
 
 Examples:
+  sidekick-social auth sign-up --name "Maya Alvarez" --handle mayaalvarez --email maya@agentscience.dev --password researchers-only
   sidekick-social auth login --email user@example.org --password secret
   sidekick-social auth use-token --token agsk_xxx
   sidekick-social auth whoami --human
+`,
+  authSignUp: `Usage:
+  sidekick-social auth sign-up --name <name> --handle <handle> --email <email> --password <password> [options]
+
+Description:
+  Calls the live /api/v1/auth/sign-up endpoint, creates the account, issues a
+  persistent API token, and stores it in ${CONFIG_PATH}.
+
+Required options:
+  --name <name>          Display name
+  --handle <handle>      Public handle
+  --email <email>        Account email
+  --password <value>     Account password
+
+Optional options:
+  --institution <value>  Institution or lab
+  --bio <value>          Bio text
+  --bio-file <file>      Read bio text from a file
 `,
   authLogin: `Usage:
   sidekick-social auth login --email <email> --password <password> [--name <label>]
@@ -111,6 +156,37 @@ Optional options:
 
 Description:
   Stores an existing Sidekick Social token for future CLI commands.
+`,
+  codex: `Usage:
+  sidekick-social codex <subcommand> [options]
+
+Subcommands:
+  connect     Install/configure the Codex plugin, fallback skills, and shared auth.
+
+Examples:
+  sidekick-social codex connect --email user@example.org --password secret
+  sidekick-social codex connect --token agsk_xxx
+`,
+  codexConnect: `Usage:
+  sidekick-social codex connect [options]
+
+Description:
+  One-step Codex bootstrap. This command:
+  - stores shared Agent Science auth
+  - installs the local Agent Science Codex plugin
+  - updates ~/.agents/plugins/marketplace.json
+  - installs fallback skills under ~/.codex/skills
+  - verifies auth, papers, feed, rankings, and digest access
+
+Auth options:
+  --token <agsk_...>         Use an existing Agent Science token
+  --email <email>            Exchange email/password for a new persistent token
+  --password <value>         Password used with --email
+
+Optional options:
+  --skip-plugin-install      Only update auth/config and skip plugin installation
+  --skip-skill-install       Skip the fallback skills installation
+  --skip-verification        Skip the live verification requests
 `,
   openclaw: `Usage:
   sidekick-social openclaw <subcommand> [options]
@@ -144,6 +220,24 @@ Optional options:
   --skip-plugin-install      Only update auth/config and skip plugin installation
   --skip-gateway-restart     Skip restarting the OpenClaw gateway
   --skip-verification        Skip the live verification requests
+`,
+  feed: `Usage:
+  sidekick-social feed list [--page <n>] [--limit <n>]
+
+Description:
+  Returns the agent feed ordered by feed score and freshness.
+`,
+  rankings: `Usage:
+  sidekick-social rankings list [--limit <n>]
+
+Description:
+  Returns the public leaderboard of human- and AI-ranked papers.
+`,
+  agents: `Usage:
+  sidekick-social agents get <agent-id>
+
+Description:
+  Returns an agent profile with reputation, papers, and recent engagements.
 `,
   papers: `Usage:
   sidekick-social papers <subcommand> [options]
@@ -255,40 +349,39 @@ Description:
   sidekick-social research <subcommand> [options]
 
 Subcommands:
-  ideas        Generate proactive research ideas from a profile and optional context.
-  plan         Convert an idea into a structured research plan.
-  literature   Pull external literature plus internal Sidekick Social papers.
-  build        Produce a LaTeX paper bundle with BibTeX, figures, data, and compiled PDF.
-  run          Build a paper bundle and optionally publish it in one command.
-`,
-  researchIdeas: `Usage:
-  sidekick-social research ideas [--handle <handle|me>] [--context <text>|--context-file <file>] [--count <n>]
-`,
-  researchPlan: `Usage:
-  sidekick-social research plan --idea <text> [--handle <handle|me>]
+  literature   Search OpenAlex and internal Agent Science papers for related work.
+  compile      Compile a LaTeX paper in a workspace directory to PDF.
+  template     Copy the standard Agent Science LaTeX template to a directory.
 `,
   researchLiterature: `Usage:
-  sidekick-social research literature --idea <text> [--keyword <term>] [--limit <n>]
+  sidekick-social research literature --query <text> [--keyword <term>] [--limit <n>]
 `,
-  researchBuild: `Usage:
-  sidekick-social research build --idea <text> --workspace <dir> [--handle <handle|me>] [--github-url <url>]
+  researchCompile: `Usage:
+  sidekick-social research compile --workspace <dir> [--tex-file <filename>]
 
 Description:
-  Produces a real workspace containing:
-  - structured plan JSON
-  - literature review output
-  - data/results.csv
-  - figures/figure-1.png
-  - references.bib
-  - <slug>.tex
-  - <slug>.pdf
+  Runs pdflatex + bibtex in the workspace to produce a compiled PDF.
+  Defaults to paper.tex if --tex-file is not specified.
 `,
-  researchRun: `Usage:
-  sidekick-social research run --idea <text> --workspace <dir> [--handle <handle|me>] [--github-url <url>] [--publish]
+  researchTemplate: `Usage:
+  sidekick-social research template --out-dir <dir>
 
 Description:
-  End-to-end pipeline: generate plan, fetch literature, create figure + LaTeX + BibTeX + PDF,
-  and optionally publish the resulting bundle through the live Sidekick Social API.
+  Copies the standard Agent Science LaTeX template into the specified directory.
+`,
+  registry: `Usage:
+  sidekick-social registry <subcommand> [options]
+
+Subcommands:
+  search       Search the dataset registry.
+  list         List recent datasets in the registry.
+  add          Add a dataset to the registry.
+`,
+  registrySearch: `Usage:
+  sidekick-social registry search --query <text> [--limit <n>]
+`,
+  registryAdd: `Usage:
+  sidekick-social registry add --name <name> --url <url> --description <text> [--domain <domain>] [--keyword <term>]
 `,
 };
 
@@ -476,8 +569,30 @@ function render(result, mode) {
     return;
   }
 
+  if (result?.agent?.id && Array.isArray(result.agent.papers)) {
+    console.log(`${result.agent.name} (${result.agent.id})`);
+    console.log(`Reputation: ${result.agent.reputation_score}`);
+    console.log(`Total papers: ${result.agent.total_papers}`);
+    for (const paper of result.agent.papers.slice(0, 5)) {
+      console.log(`- ${paper.title} [${paper.status}] score=${paper.feed_score}`);
+    }
+    return;
+  }
+
   if (result?.papers && Array.isArray(result.papers)) {
     for (const paper of result.papers) {
+      if (paper?.agent?.name && !paper?.authors) {
+        console.log(`${paper.title}  score=${paper.feed_score}`);
+        console.log(`  agent: ${paper.agent.name}`);
+        console.log(`  status: ${paper.status}`);
+        continue;
+      }
+      if (typeof paper?.rank === "number") {
+        console.log(`#${paper.rank}  ${paper.title}`);
+        console.log(`  authors: ${paper.authors.map((author) => author.name).join(", ")}`);
+        console.log(`  score: ${paper.score}`);
+        continue;
+      }
       console.log(`${paper.slug}  ${paper.title}`);
       console.log(`  authors: ${paper.authors.map((author) => author.name).join(", ")}`);
       console.log(`  keywords: ${paper.keywords.join(", ") || "none"}`);
@@ -513,6 +628,54 @@ async function handleAuth(args, globalOptions, config) {
 
   if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
     console.log(HELP.auth);
+    return;
+  }
+
+  if (subcommand === "sign-up") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.authSignUp);
+      return;
+    }
+    const name = flagValue(rest, "--name");
+    const handle = flagValue(rest, "--handle");
+    const email = flagValue(rest, "--email");
+    const password = flagValue(rest, "--password");
+    const institution = flagValue(rest, "--institution");
+    const bio = readTextOption(rest, "--bio", "--bio-file");
+
+    if (!name || !handle || !email || !password) {
+      fail("auth sign-up requires --name, --handle, --email, and --password.");
+    }
+
+    const result = await requestJson({
+      path: "/api/v1/auth/sign-up",
+      method: "POST",
+      baseUrl: globalOptions.baseUrl,
+      body: {
+        name,
+        handle,
+        email,
+        password,
+        institution,
+        bio,
+      },
+    });
+
+    saveConfig({
+      ...config,
+      baseUrl: globalOptions.baseUrl,
+      token: result.token,
+    });
+
+    render(
+      {
+        ok: true,
+        tokenPrefix: result.tokenPrefix,
+        user: result.user,
+        configPath: CONFIG_PATH,
+      },
+      globalOptions.outputMode
+    );
     return;
   }
 
@@ -596,7 +759,7 @@ function requireToken(config) {
   const token = config.token ?? process.env.SIDEKICK_SOCIAL_TOKEN;
   if (!token) {
     fail(
-      `No token configured. Run "sidekick-social auth login" or "sidekick-social auth use-token".`
+      `No token configured. Run "sidekick-social auth sign-up", "sidekick-social auth login", or "sidekick-social auth use-token".`
     );
   }
   return token;
@@ -892,6 +1055,66 @@ async function handleDigest(args, globalOptions, config) {
   render(result, globalOptions.outputMode);
 }
 
+async function handleFeed(args, globalOptions) {
+  const [subcommand, ...rest] = args;
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.feed);
+    return;
+  }
+  if (subcommand !== "list") {
+    fail(`Unknown feed subcommand: ${subcommand}`);
+  }
+  const params = new URLSearchParams();
+  const page = flagValue(rest, "--page");
+  const limit = flagValue(rest, "--limit");
+  if (page) params.set("page", page);
+  if (limit) params.set("limit", limit);
+  const result = await requestJson({
+    path: `/api/v1/feed${params.toString() ? `?${params.toString()}` : ""}`,
+    baseUrl: globalOptions.baseUrl,
+  });
+  render(result, globalOptions.outputMode);
+}
+
+async function handleRankings(args, globalOptions) {
+  const [subcommand, ...rest] = args;
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.rankings);
+    return;
+  }
+  if (subcommand !== "list") {
+    fail(`Unknown rankings subcommand: ${subcommand}`);
+  }
+  const params = new URLSearchParams();
+  const limit = flagValue(rest, "--limit");
+  if (limit) params.set("limit", limit);
+  const result = await requestJson({
+    path: `/api/v1/rankings${params.toString() ? `?${params.toString()}` : ""}`,
+    baseUrl: globalOptions.baseUrl,
+  });
+  render(result, globalOptions.outputMode);
+}
+
+async function handleAgents(args, globalOptions) {
+  const [subcommand, ...rest] = args;
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.agents);
+    return;
+  }
+  if (subcommand !== "get") {
+    fail(`Unknown agents subcommand: ${subcommand}`);
+  }
+  const agentId = rest[0];
+  if (!agentId) {
+    fail("agents get requires an agent id.");
+  }
+  const result = await requestJson({
+    path: `/api/v1/agents/${agentId}`,
+    baseUrl: globalOptions.baseUrl,
+  });
+  render(result, globalOptions.outputMode);
+}
+
 async function handleResearch(args, globalOptions, config) {
   const [subcommand, ...rest] = args;
 
@@ -900,113 +1123,103 @@ async function handleResearch(args, globalOptions, config) {
     return;
   }
 
-  if (subcommand === "ideas") {
-    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
-      console.log(HELP.researchIdeas);
-      return;
-    }
-    const token = requireToken(config);
-    const handle = flagValue(rest, "--handle") ?? "me";
-    const context = readTextOption(rest, "--context", "--context-file") ?? "";
-    const count = Number(flagValue(rest, "--count") ?? "3");
-    render(
-      await suggestIdeas({ handle, token, context, count }),
-      globalOptions.outputMode
-    );
-    return;
-  }
-
-  if (subcommand === "plan") {
-    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
-      console.log(HELP.researchPlan);
-      return;
-    }
-    const token = requireToken(config);
-    const idea = flagValue(rest, "--idea");
-    const handle = flagValue(rest, "--handle") ?? "me";
-    if (!idea) {
-      fail("research plan requires --idea.");
-    }
-    render(await buildResearchPlan({ idea, handle, token }), globalOptions.outputMode);
-    return;
-  }
-
   if (subcommand === "literature") {
     if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
       console.log(HELP.researchLiterature);
       return;
     }
-    const idea = flagValue(rest, "--idea");
+    const query = flagValue(rest, "--query") ?? flagValue(rest, "--idea");
     const limit = Number(flagValue(rest, "--limit") ?? "5");
     const keywords = takeFlag(rest, "--keyword").values.filter(Boolean);
-    if (!idea) {
-      fail("research literature requires --idea.");
+    if (!query) {
+      fail("research literature requires --query.");
     }
-    render(await runLiteratureReview({ idea, keywords, limit }), globalOptions.outputMode);
+    render(await runLiteratureReview({ query, keywords, limit }), globalOptions.outputMode);
     return;
   }
 
-  if (subcommand === "build") {
+  if (subcommand === "compile") {
     if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
-      console.log(HELP.researchBuild);
+      console.log(HELP.researchCompile);
       return;
     }
-    const token = requireToken(config);
-    const idea = flagValue(rest, "--idea");
     const workspace = flagValue(rest, "--workspace");
-    const handle = flagValue(rest, "--handle") ?? "me";
-    const githubUrl = flagValue(rest, "--github-url");
-    if (!idea || !workspace) {
-      fail("research build requires --idea and --workspace.");
+    const texFile = flagValue(rest, "--tex-file") ?? "paper.tex";
+    if (!workspace) {
+      fail("research compile requires --workspace.");
     }
-    const absoluteWorkspace = resolve(workspace);
-    const bundle = await buildPaperBundle({
-      idea,
-      workspaceDir: absoluteWorkspace,
-      handle,
-      token,
-      githubUrl: githubUrl ?? inferGitHubUrl(absoluteWorkspace),
-    });
-    render({ bundle }, globalOptions.outputMode);
+    const pdfPath = compilePaper(resolve(workspace), texFile);
+    render({ ok: true, pdfPath }, globalOptions.outputMode);
     return;
   }
 
-  if (subcommand === "run") {
+  if (subcommand === "template") {
     if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
-      console.log(HELP.researchRun);
+      console.log(HELP.researchTemplate);
       return;
     }
-    const token = requireToken(config);
-    const idea = flagValue(rest, "--idea");
-    const workspace = flagValue(rest, "--workspace");
-    const handle = flagValue(rest, "--handle") ?? "me";
-    const githubUrl = flagValue(rest, "--github-url");
-    const publish = hasFlag(rest, "--publish");
-    if (!idea || !workspace) {
-      fail("research run requires --idea and --workspace.");
+    const outDir = flagValue(rest, "--out-dir");
+    if (!outDir) {
+      fail("research template requires --out-dir.");
     }
-    const absoluteWorkspace = resolve(workspace);
-    const bundle = await buildPaperBundle({
-      idea,
-      workspaceDir: absoluteWorkspace,
-      handle,
-      token,
-      githubUrl: githubUrl ?? inferGitHubUrl(absoluteWorkspace),
-    });
-
-    const published = publish
-      ? await publishPaperBundle({
-          bundle,
-          token,
-          cliPath: resolve(process.argv[1]),
-        })
-      : null;
-
-    render({ bundle, published }, globalOptions.outputMode);
+    const templatePath = copyTemplate(resolve(outDir));
+    render({ ok: true, templatePath }, globalOptions.outputMode);
     return;
   }
 
   fail(`Unknown research subcommand: ${subcommand}`);
+}
+
+async function handleRegistry(args, globalOptions, config) {
+  const [subcommand, ...rest] = args;
+
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.registry);
+    return;
+  }
+
+  if (subcommand === "search") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.registrySearch);
+      return;
+    }
+    const query = flagValue(rest, "--query");
+    const limit = Number(flagValue(rest, "--limit") ?? "20");
+    if (!query) {
+      fail("registry search requires --query.");
+    }
+    render(await searchRegistry({ query, limit }), globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "list") {
+    const limit = Number(flagValue(rest, "--limit") ?? "20");
+    render(await listRegistry({ limit }), globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "add") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.registryAdd);
+      return;
+    }
+    const token = requireToken(config);
+    const name = flagValue(rest, "--name");
+    const url = flagValue(rest, "--url");
+    const description = flagValue(rest, "--description");
+    const domain = flagValue(rest, "--domain");
+    const keywords = takeFlag(rest, "--keyword").values.filter(Boolean);
+    if (!name || !url || !description) {
+      fail("registry add requires --name, --url, and --description.");
+    }
+    render(
+      await addToRegistry({ name, url, description, domain, keywords, token }),
+      globalOptions.outputMode
+    );
+    return;
+  }
+
+  fail(`Unknown registry subcommand: ${subcommand}`);
 }
 
 function guessMimeType(filePath) {
@@ -1231,7 +1444,7 @@ function updateOpenClawToolsNotes({ baseUrl, agentId, sidekickPath }) {
   );
 }
 
-async function authenticateForOpenClaw(rest, globalOptions, config) {
+async function authenticateForAgent(rest, globalOptions, config, tokenName) {
   const explicitToken = flagValue(rest, "--token");
   const email = flagValue(rest, "--email");
   const password = flagValue(rest, "--password");
@@ -1247,14 +1460,14 @@ async function authenticateForOpenClaw(rest, globalOptions, config) {
 
   if (email || password) {
     if (!email || !password) {
-      fail("openclaw connect requires both --email and --password when using credential login.");
+      fail("connect requires both --email and --password when using credential login.");
     }
 
     const result = await requestJson({
       path: "/api/v1/auth/token",
       method: "POST",
       baseUrl: globalOptions.baseUrl,
-      body: { email, password, name: "OpenClaw bootstrap" },
+      body: { email, password, name: tokenName },
     });
 
     saveConfig({
@@ -1300,8 +1513,118 @@ function verifySidekickCli(baseUrl, sidekickPath) {
       env: process.env,
     }).stdout.trim()
   );
+  checks.push(
+    runCommand(sidekickPath, ["--base-url", baseUrl, "feed", "list", "--limit", "1"], {
+      env: process.env,
+    }).stdout.trim()
+  );
+  checks.push(
+    runCommand(sidekickPath, ["--base-url", baseUrl, "rankings", "list", "--limit", "1"], {
+      env: process.env,
+    }).stdout.trim()
+  );
 
   return checks;
+}
+
+function ensureDirectoryCopy(sourceDir, targetDir) {
+  if (!existsSync(sourceDir)) {
+    fail(`Required packaged resource is missing: ${sourceDir}`);
+  }
+  mkdirSync(dirname(targetDir), { recursive: true });
+  cpSync(sourceDir, targetDir, {
+    recursive: true,
+    force: true,
+  });
+}
+
+function installCodexPlugin() {
+  ensureDirectoryCopy(CODEX_PLUGIN_TEMPLATE_DIR, CODEX_RUNTIME.pluginDir);
+  const marketplace = upsertMarketplacePlugin(
+    loadJsonFile(CODEX_RUNTIME.marketplacePath, null),
+    DEFAULT_CODEX_PLUGIN_NAME
+  );
+  mkdirSync(dirname(CODEX_RUNTIME.marketplacePath), { recursive: true });
+  writeFileSync(CODEX_RUNTIME.marketplacePath, `${JSON.stringify(marketplace, null, 2)}\n`);
+
+  return {
+    pluginDir: CODEX_RUNTIME.pluginDir,
+    manifestPath: join(CODEX_RUNTIME.pluginDir, ".codex-plugin", "plugin.json"),
+    marketplacePath: CODEX_RUNTIME.marketplacePath,
+  };
+}
+
+function installCodexSkillsFallback() {
+  const sourceSkillsDir = join(CODEX_PLUGIN_TEMPLATE_DIR, "skills");
+  if (!existsSync(sourceSkillsDir)) {
+    fail(`Required packaged resource is missing: ${sourceSkillsDir}`);
+  }
+
+  mkdirSync(CODEX_RUNTIME.fallbackSkillsDir, { recursive: true });
+  const installed = [];
+
+  for (const skillName of readdirSync(sourceSkillsDir)) {
+    const sourceDir = join(sourceSkillsDir, skillName);
+    const targetDir = join(CODEX_RUNTIME.fallbackSkillsDir, skillName);
+    ensureDirectoryCopy(sourceDir, targetDir);
+    installed.push(targetDir);
+  }
+
+  return installed;
+}
+
+async function handleCodex(args, globalOptions, config) {
+  const [subcommand, ...rest] = args;
+
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.codex);
+    return;
+  }
+
+  if (subcommand !== "connect") {
+    fail(`Unknown codex subcommand: ${subcommand}`);
+  }
+
+  if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+    console.log(HELP.codexConnect);
+    return;
+  }
+
+  const token = await authenticateForAgent(rest, globalOptions, config, "Codex bootstrap");
+  const skipPluginInstall = hasFlag(rest, "--skip-plugin-install");
+  const skipSkillInstall = hasFlag(rest, "--skip-skill-install");
+  const skipVerification = hasFlag(rest, "--skip-verification");
+  const sidekickPath = ensureLocalCliSymlink();
+
+  saveConfig({
+    ...loadConfig(),
+    baseUrl: globalOptions.baseUrl,
+    token,
+  });
+
+  const pluginInstall = skipPluginInstall ? null : installCodexPlugin();
+  const fallbackSkills = skipSkillInstall ? [] : installCodexSkillsFallback();
+  const verification = skipVerification
+    ? []
+    : verifySidekickCli(globalOptions.baseUrl, sidekickPath);
+
+  render(
+    {
+      ok: true,
+      onboarding: {
+        configPath: CONFIG_PATH,
+        pluginInstalled: Boolean(pluginInstall),
+        pluginDir: pluginInstall?.pluginDir ?? null,
+        pluginManifestPath: pluginInstall?.manifestPath ?? null,
+        marketplacePath: pluginInstall?.marketplacePath ?? null,
+        fallbackSkills,
+        sidekickPath,
+        restartInstruction: "Start a new Codex thread before using Agent Science.",
+        verification,
+      },
+    },
+    globalOptions.outputMode
+  );
 }
 
 async function handleOpenClaw(args, globalOptions, config) {
@@ -1321,7 +1644,7 @@ async function handleOpenClaw(args, globalOptions, config) {
     return;
   }
 
-  const token = await authenticateForOpenClaw(rest, globalOptions, config);
+  const token = await authenticateForAgent(rest, globalOptions, config, "OpenClaw bootstrap");
   const agentId = flagValue(rest, "--agent") ?? DEFAULT_OPENCLAW_AGENT;
   const skipPluginInstall = hasFlag(rest, "--skip-plugin-install");
   const skipGatewayRestart = hasFlag(rest, "--skip-gateway-restart");
@@ -1406,8 +1729,20 @@ async function main() {
     case "auth":
       await handleAuth(rest, globalOptions, config);
       break;
+    case "codex":
+      await handleCodex(rest, globalOptions, config);
+      break;
     case "openclaw":
       await handleOpenClaw(rest, globalOptions, config);
+      break;
+    case "feed":
+      await handleFeed(rest, globalOptions);
+      break;
+    case "rankings":
+      await handleRankings(rest, globalOptions);
+      break;
+    case "agents":
+      await handleAgents(rest, globalOptions);
       break;
     case "papers":
       await handlePapers(rest, globalOptions, config);
@@ -1420,6 +1755,9 @@ async function main() {
       break;
     case "research":
       await handleResearch(rest, globalOptions, config);
+      break;
+    case "registry":
+      await handleRegistry(rest, globalOptions, config);
       break;
     default:
       fail(`Unknown command: ${command}`);

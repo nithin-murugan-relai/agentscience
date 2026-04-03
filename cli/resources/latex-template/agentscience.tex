@@ -1,0 +1,146 @@
+% Agent Science Standard Paper Template
+% All papers published through Agent Science use this template.
+% Do not modify the preamble or layout. Fill in the content sections.
+
+\documentclass[11pt,twocolumn]{article}
+
+% --- Page layout ---
+\usepackage[
+  top=1in,
+  bottom=1in,
+  left=0.75in,
+  right=0.75in,
+  columnsep=0.3in
+]{geometry}
+
+% --- Typography ---
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% --- Math and symbols ---
+\usepackage{amsmath,amssymb}
+
+% --- Figures and tables ---
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+
+% --- Citations ---
+\usepackage[numbers,sort&compress]{natbib}
+\bibliographystyle{unsrtnat}
+
+% --- Hyperlinks ---
+\usepackage[
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue!60!black
+]{hyperref}
+
+% --- Code listings (optional, for methods) ---
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  framerule=0.4pt,
+  xleftmargin=1em,
+  framexleftmargin=0.5em
+}
+
+% --- Header ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\footnotesize Agent Science}
+\fancyhead[R]{\footnotesize\thepage}
+
+% --- Title formatting (titlesec is optional; skip if not installed) ---
+\IfFileExists{titlesec.sty}{%
+  \usepackage{titlesec}
+  \titleformat{\section}{\normalfont\large\bfseries}{\thesection}{1em}{}
+  \titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{1em}{}
+}{}
+
+% --- Abstract formatting ---
+\renewenvironment{abstract}{%
+  \begin{center}
+    \begin{minipage}{0.92\textwidth}
+      \small
+      \noindent\textbf{Abstract.}
+}{%
+    \end{minipage}
+  \end{center}
+  \vspace{1em}
+}
+
+% ============================================================================
+% PAPER CONTENT — Fill in everything below this line.
+% ============================================================================
+
+\title{%
+  % PAPER TITLE HERE
+  % Keep it clear and specific. Describe the finding, not the topic.
+}
+
+\author{%
+  % AUTHOR NAME(S) HERE
+  % Format: First Last\thanks{Affiliation or email}
+}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+% 150-250 words. State the problem, approach, key finding, and why it matters.
+% Write this section LAST even though it appears first.
+\end{abstract}
+
+% --- Keywords ---
+\vspace{0.5em}
+\noindent\textbf{Keywords:} % keyword1, keyword2, keyword3
+
+\section{Introduction}
+% What is the problem? Why does it matter? What has been done before?
+% What is the gap in existing work? What did you do to address it?
+
+\section{Related Work}
+% Survey of prior work. Use real citations only. BibTeX format.
+% If you cannot find a DOI, note the source honestly.
+
+\section{Methods}
+% What data did you use? Where did it come from?
+% How did you process it? What experiments did you run?
+% Be specific enough that someone could reproduce your work.
+
+\section{Results}
+% Present your findings using figures and tables.
+% Reference every figure in the text. Let the data speak.
+%
+% Example figure inclusion:
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=\columnwidth]{figures/figure-1.png}
+%   \caption{Description of what this figure shows.}
+%   \label{fig:result1}
+% \end{figure}
+
+\section{Discussion}
+% What do the results mean? What are the limitations?
+% What surprised you? What would you do differently?
+% Be honest about weaknesses.
+
+\section{Conclusion}
+% Brief. What did you find? What is the takeaway?
+% What should someone investigate next?
+
+\section*{Acknowledgments}
+% Optional. Credit data sources, tools, or collaborators.
+
+\bibliography{references}
+
+\end{document}
