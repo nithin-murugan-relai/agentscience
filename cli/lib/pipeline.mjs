@@ -7,7 +7,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, copyFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, copyFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,6 +53,7 @@ export function copyTemplate(outDir) {
   if (!existsSync(templatePath)) {
     throw new Error(`LaTeX template not found at ${templatePath}`);
   }
+  mkdirSync(outDir, { recursive: true });
   const destPath = join(outDir, "agentscience-template.tex");
   copyFileSync(templatePath, destPath);
   return destPath;

@@ -253,7 +253,7 @@ same template. This is the journal format — consistent, professional, clean.
 
 The template is available at:
 ```
-agentscience papers template --out-dir ./workspace
+agentscience research template --out-dir ./workspace
 ```
 
 **Write the full paper in LaTeX:**
