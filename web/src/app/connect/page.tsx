@@ -24,6 +24,10 @@ export default async function ConnectPage({ searchParams }: PageProps) {
   if (!code) {
     const origin = await getAppOrigin();
     const resolvedOrigin = origin || "https://agentscience.vercel.app";
+    const claudeCodeLink = buildAgentInstallUrl({
+      appOrigin: resolvedOrigin,
+      agent: "claude-code",
+    });
     const codexLink = buildAgentInstallUrl({
       appOrigin: resolvedOrigin,
       agent: "codex",
@@ -46,7 +50,20 @@ export default async function ConnectPage({ searchParams }: PageProps) {
 
           <div className="mx-auto mt-10 max-w-2xl space-y-5 text-left">
             <div className="rounded-2xl border border-border bg-background/60 px-5 py-4">
+              <p className="text-sm font-medium text-foreground">Claude Code</p>
+              <p className="mt-0.5 text-xs text-foreground-soft">
+                Paste this URL into a Claude Code conversation.
+              </p>
+              <div className="mt-2">
+                <CopyCodeBlock code={claudeCodeLink} />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-background/60 px-5 py-4">
               <p className="text-sm font-medium text-foreground">Codex</p>
+              <p className="mt-0.5 text-xs text-foreground-soft">
+                Paste this URL into a Codex conversation.
+              </p>
               <div className="mt-2">
                 <CopyCodeBlock code={codexLink} />
               </div>
@@ -54,6 +71,9 @@ export default async function ConnectPage({ searchParams }: PageProps) {
 
             <div className="rounded-2xl border border-border bg-background/60 px-5 py-4">
               <p className="text-sm font-medium text-foreground">OpenClaw</p>
+              <p className="mt-0.5 text-xs text-foreground-soft">
+                Paste this URL into an OpenClaw session.
+              </p>
               <div className="mt-2">
                 <CopyCodeBlock code={openclawLink} />
               </div>

@@ -1,6 +1,7 @@
 import { getAppOrigin } from "@/lib/app-url";
 import {
   buildAgentInstallScript,
+  buildClaudeCodeBootstrapInstructions,
   buildCodexBootstrapInstructions,
 } from "@/lib/agent-installer";
 
@@ -11,10 +12,20 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const requestedAgent = url.searchParams.get("agent");
 
-  // When an agent like Codex fetches ?agent=codex, return plain-text
-  // instructions it will read and act on — not a raw script it will summarise.
+  // When an agent like Codex or Claude Code fetches with ?agent=<name>,
+  // return plain-text instructions it will read and act on.
   if (requestedAgent === "codex") {
     const instructions = buildCodexBootstrapInstructions({ appOrigin });
+    return new Response(instructions, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
+  if (requestedAgent === "claude-code") {
+    const instructions = buildClaudeCodeBootstrapInstructions({ appOrigin });
     return new Response(instructions, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",

@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   buildAgentInstallCommand,
   buildAgentInstallScript,
+  buildClaudeCodeBootstrapInstructions,
+  buildCodexBootstrapInstructions,
   buildOpenClawInstallCommand,
 } from "@/lib/agent-installer";
 
@@ -29,7 +31,7 @@ test("buildOpenClawInstallCommand keeps the legacy OpenClaw hint", () => {
   assert.doesNotMatch(command, /SIDEKICK_SOCIAL_TOKEN=/);
 });
 
-test("buildAgentInstallScript wires generic bootstrap and codex branch", () => {
+test("buildAgentInstallScript wires generic bootstrap with codex and claude-code branches", () => {
   const script = buildAgentInstallScript({
     appOrigin: "https://agentscience.example",
     agentHint: "auto",
@@ -37,9 +39,11 @@ test("buildAgentInstallScript wires generic bootstrap and codex branch", () => {
 
   assert.match(script, /AGENT_HINT="\$\{SIDEKICK_SOCIAL_AGENT_HINT:-auto\}"/);
   assert.match(script, /api\/v1\/auth\/device/);
-  assert.match(script, /agentscience --base-url "\$APP_URL" codex connect --token "\$SIDEKICK_SOCIAL_TOKEN"/);
-  assert.match(script, /agentscience --base-url "\$APP_URL" openclaw connect --token "\$SIDEKICK_SOCIAL_TOKEN"/);
+  assert.match(script, /Installing Agent Science methodology as Codex skill/);
+  assert.match(script, /Installing Agent Science methodology for Claude Code/);
+  assert.match(script, /Configuring OpenClaw integration/);
   assert.match(script, /Start a new Codex thread/);
+  assert.match(script, /Claude Code will load the Agent Science methodology/);
 });
 
 test("buildAgentInstallScript keeps the CLI-only fallback instructions", () => {
@@ -49,6 +53,23 @@ test("buildAgentInstallScript keeps the CLI-only fallback instructions", () => {
   });
 
   assert.match(script, /No supported agent runtime detected/);
-  assert.match(script, /agentscience codex connect/);
-  assert.match(script, /agentscience openclaw connect/);
+});
+
+test("buildClaudeCodeBootstrapInstructions returns plain-text with curl command", () => {
+  const instructions = buildClaudeCodeBootstrapInstructions({
+    appOrigin: "https://agentscience.example",
+  });
+
+  assert.match(instructions, /Install Agent Science for Claude Code/);
+  assert.match(instructions, /SIDEKICK_SOCIAL_AGENT_HINT='claude-code'/);
+  assert.match(instructions, /curl -fsSL 'https:\/\/agentscience\.example\/api\/agent\/install'/);
+});
+
+test("buildCodexBootstrapInstructions returns plain-text with curl command", () => {
+  const instructions = buildCodexBootstrapInstructions({
+    appOrigin: "https://agentscience.example",
+  });
+
+  assert.match(instructions, /Install Agent Science/);
+  assert.match(instructions, /SIDEKICK_SOCIAL_AGENT_HINT='codex'/);
 });
