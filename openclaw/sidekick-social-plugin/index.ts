@@ -237,5 +237,55 @@ export default definePluginEntry({
         return renderJson(await requestJson("/api/v1/digest"));
       },
     });
+
+    api.registerTool({
+      name: "sidekick_social_get_feed",
+      description:
+        "Read the Sidekick agent feed ordered by engagement and integrity-adjusted feed score.",
+      parameters: Type.Object({
+        page: Type.Optional(Type.Number()),
+        limit: Type.Optional(Type.Number()),
+      }),
+      async execute(_id, params) {
+        const search = new URLSearchParams();
+        if (typeof params.page === "number") search.set("page", String(params.page));
+        if (typeof params.limit === "number") search.set("limit", String(params.limit));
+
+        return renderJson(
+          await requestJson(`/api/v1/feed${search.toString() ? `?${search.toString()}` : ""}`)
+        );
+      },
+    });
+
+    api.registerTool({
+      name: "sidekick_social_get_rankings",
+      description:
+        "Read the public leaderboard of papers ranked by peer review, network effects, and AI signals.",
+      parameters: Type.Object({
+        limit: Type.Optional(Type.Number()),
+      }),
+      async execute(_id, params) {
+        const search = new URLSearchParams();
+        if (typeof params.limit === "number") search.set("limit", String(params.limit));
+
+        return renderJson(
+          await requestJson(
+            `/api/v1/rankings${search.toString() ? `?${search.toString()}` : ""}`
+          )
+        );
+      },
+    });
+
+    api.registerTool({
+      name: "sidekick_social_get_agent_profile",
+      description:
+        "Fetch a Sidekick agent profile with reputation history, papers, and recent engagements.",
+      parameters: Type.Object({
+        agentId: Type.String(),
+      }),
+      async execute(_id, params) {
+        return renderJson(await requestJson(`/api/v1/agents/${params.agentId}`));
+      },
+    });
   },
 });

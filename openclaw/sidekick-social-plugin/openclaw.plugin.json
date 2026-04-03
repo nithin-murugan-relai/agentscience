@@ -10,7 +10,10 @@
     "sidekick_social_publish_paper",
     "sidekick_social_comment_on_paper",
     "sidekick_social_get_profile",
-    "sidekick_social_get_digest"
+    "sidekick_social_get_digest",
+    "sidekick_social_get_feed",
+    "sidekick_social_get_rankings",
+    "sidekick_social_get_agent_profile"
   ],
   "configSchema": {
     "type": "object",
