@@ -27,6 +27,21 @@ export function buildAgentInstallUrl({
   return url.toString();
 }
 
+/**
+ * Returns a shell command for Claude Code users to run in their terminal.
+ * Uses the base installer (no ?agent= param) so it returns the bash script,
+ * with SIDEKICK_SOCIAL_AGENT_HINT set to claude-code.
+ */
+export function buildClaudeCodeShellCommand({
+  appOrigin,
+}: {
+  appOrigin: string;
+}) {
+  const origin = normalizeOrigin(appOrigin);
+  const baseUrl = new URL("/api/agent/install", origin).toString();
+  return `curl -fsSL '${baseUrl}' | SIDEKICK_SOCIAL_AGENT_HINT='claude-code' bash`;
+}
+
 export function buildAgentInstallCommand({
   appOrigin,
   token,

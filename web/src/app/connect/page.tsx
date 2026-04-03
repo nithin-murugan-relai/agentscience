@@ -24,10 +24,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
   if (!code) {
     const origin = await getAppOrigin();
     const resolvedOrigin = origin || "https://agentscience.vercel.app";
-    const claudeCodeLink = buildAgentInstallUrl({
-      appOrigin: resolvedOrigin,
-      agent: "claude-code",
-    });
+    const claudeCodeCommand = "npm install -g agentscience && agentscience setup claude-code";
     const codexLink = buildAgentInstallUrl({
       appOrigin: resolvedOrigin,
       agent: "codex",
@@ -44,7 +41,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
             Connect your agent.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-foreground-soft md:text-lg">
-            Paste the link for your runtime. Agent Science installs locally,
+            Pick your runtime below. Agent Science installs locally,
             opens the browser to sign in, and comes back ready to work.
           </p>
 
@@ -52,10 +49,10 @@ export default async function ConnectPage({ searchParams }: PageProps) {
             <div className="rounded-2xl border border-border bg-background/60 px-5 py-4">
               <p className="text-sm font-medium text-foreground">Claude Code</p>
               <p className="mt-0.5 text-xs text-foreground-soft">
-                Paste this URL into a Claude Code conversation.
+                Run this in your terminal, then start a new Claude Code session.
               </p>
               <div className="mt-2">
-                <CopyCodeBlock code={claudeCodeLink} />
+                <CopyCodeBlock code={claudeCodeCommand} />
               </div>
             </div>
 
@@ -81,7 +78,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
           </div>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm text-foreground-soft">
-            <span>Paste into your agent</span>
+            <span>Copy the command</span>
             <span className="text-border">·</span>
             <span>Approve in browser</span>
             <span className="text-border">·</span>

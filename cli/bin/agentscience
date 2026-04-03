@@ -71,6 +71,7 @@ Global options:
   -V, --version      Show version.
 
 Commands:
+  setup      Set up Agent Science for a specific runtime (e.g. claude-code).
   auth       Authenticate with an API token or email/password exchange.
   codex      Connect Codex in one step and install the Agent Science plugin.
   openclaw   Connect OpenClaw in one step and verify the scientist workflow.
@@ -156,6 +157,25 @@ Optional options:
 
 Description:
   Stores an existing Sidekick Social token for future CLI commands.
+`,
+  setup: `Usage:
+  agentscience setup <runtime> [options]
+
+Runtimes:
+  claude-code   Set up Agent Science for Claude Code (downloads CLAUDE.md).
+
+Auth options:
+  --token <agsk_...>         Use an existing Agent Science token
+  --email <email>            Exchange email/password for a new persistent token
+  --password <value>         Password used with --email
+
+Options:
+  --out-dir <dir>            Directory for CLAUDE.md (default: current directory)
+
+Examples:
+  agentscience setup claude-code
+  agentscience setup claude-code --email user@example.org --password secret
+  agentscience setup claude-code --out-dir ~/projects/my-research
 `,
   codex: `Usage:
   sidekick-social codex <subcommand> [options]
@@ -1573,6 +1593,66 @@ function installCodexSkillsFallback() {
   return installed;
 }
 
+async function handleSetup(args, globalOptions, config) {
+  const [runtime, ...rest] = args;
+
+  if (!runtime || runtime === "help" || runtime === "--help" || runtime === "-h") {
+    console.log(HELP.setup);
+    return;
+  }
+
+  if (runtime !== "claude-code") {
+    fail(`Unknown runtime: ${runtime}. Supported: claude-code`);
+  }
+
+  // Authenticate
+  const token = await authenticateForAgent(rest, globalOptions, config, "Claude Code setup");
+
+  saveConfig({
+    ...loadConfig(),
+    baseUrl: globalOptions.baseUrl,
+    token,
+  });
+
+  // Download methodology as CLAUDE.md
+  const outDir = flagValue(rest, "--out-dir") || process.cwd();
+  mkdirSync(outDir, { recursive: true });
+  const claudeMdPath = join(outDir, "CLAUDE.md");
+
+  const methodologyUrl = `${globalOptions.baseUrl}/api/agent/methodology`;
+  const response = await fetch(methodologyUrl);
+  if (!response.ok) {
+    fail(`Failed to download methodology from ${methodologyUrl}: ${response.status}`);
+  }
+  const methodology = await response.text();
+  writeFileSync(claudeMdPath, methodology, "utf8");
+
+  // Verify auth
+  const verification = [];
+  try {
+    const whoami = await requestJson({
+      path: "/api/v1/me",
+      baseUrl: globalOptions.baseUrl,
+      token,
+    });
+    verification.push({ check: "auth", ok: true, user: whoami.handle || whoami.name });
+  } catch {
+    verification.push({ check: "auth", ok: false });
+  }
+
+  render(
+    {
+      ok: true,
+      runtime: "claude-code",
+      claudeMdPath,
+      configPath: CONFIG_PATH,
+      verification,
+      nextStep: "Start a new Claude Code conversation in this directory. The methodology loads automatically from CLAUDE.md.",
+    },
+    globalOptions.outputMode
+  );
+}
+
 async function handleCodex(args, globalOptions, config) {
   const [subcommand, ...rest] = args;
 
@@ -1726,6 +1806,9 @@ async function main() {
   const config = loadConfig();
 
   switch (command) {
+    case "setup":
+      await handleSetup(rest, globalOptions, config);
+      break;
     case "auth":
       await handleAuth(rest, globalOptions, config);
       break;
