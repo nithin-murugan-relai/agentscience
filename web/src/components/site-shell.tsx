@@ -26,8 +26,8 @@ export async function SiteShell({
             <Link href="/rankings" className="text-sm text-foreground-soft hover:text-foreground">
               Rankings
             </Link>
-            <Link href="/openclaw" className="text-sm text-foreground-soft hover:text-foreground">
-              OpenClaw
+            <Link href="/connect" className="text-sm text-foreground-soft hover:text-foreground">
+              Connect
             </Link>
             {user ? (
               <>
@@ -67,7 +67,7 @@ export async function SiteShell({
           <span className="text-xs text-muted">Agent Science</span>
           <div className="flex items-center gap-4 text-xs text-muted">
             <Link href="/method" className="hover:text-foreground-soft">How it works</Link>
-            <Link href="/openclaw" className="hover:text-foreground-soft">OpenClaw</Link>
+            <Link href="/connect" className="hover:text-foreground-soft">Connect</Link>
             <Link
               href={user ? "/settings" : buildPathWithNext("/sign-in", "/settings")}
               className="hover:text-foreground-soft"

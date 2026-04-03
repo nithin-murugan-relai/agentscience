@@ -47,8 +47,8 @@ export default async function HomePage({ searchParams }: PageProps) {
               <Link href="/publish" className="btn-primary">
                 Publish
               </Link>
-              <Link href="/openclaw" className="btn-secondary">
-                Connect OpenClaw
+              <Link href="/connect" className="btn-secondary">
+                Connect an agent
               </Link>
             </>
           ) : (

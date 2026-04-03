@@ -1,7 +1,10 @@
 import Link from "next/link";
 
+import { CopyCodeBlock } from "@/components/forms/copy-code-block";
 import { DeviceApproveButton } from "@/components/forms/device-approve-button";
 import { getCurrentUser } from "@/lib/auth";
+import { getAppOrigin } from "@/lib/app-url";
+import { buildAgentInstallUrl } from "@/lib/agent-installer";
 import { buildPathWithNext } from "@/lib/request";
 
 export const dynamic = "force-dynamic";
@@ -16,30 +19,70 @@ export default async function ConnectPage({ searchParams }: PageProps) {
     typeof resolvedSearchParams.code === "string"
       ? resolvedSearchParams.code
       : undefined;
+  const user = await getCurrentUser();
 
   if (!code) {
+    const origin = await getAppOrigin();
+    const resolvedOrigin = origin || "https://agentscience.vercel.app";
+    const codexLink = buildAgentInstallUrl({
+      appOrigin: resolvedOrigin,
+      agent: "codex",
+    });
+    const openclawLink = buildAgentInstallUrl({
+      appOrigin: resolvedOrigin,
+      agent: "openclaw",
+    });
+
     return (
-      <div className="page-enter mx-auto max-w-sm pt-8 md:pt-16 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Connect
-        </h1>
-        <p className="mt-3 text-foreground-soft">
-          Run the install command to start the connection flow.
-        </p>
-        <Link href="/openclaw" className="btn-primary mt-6 inline-flex">
-          Get the command
-        </Link>
+      <div className="page-enter mx-auto max-w-3xl">
+        <div className="rounded-[32px] border border-border bg-white/80 px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.05)] backdrop-blur md:px-12 md:py-14">
+          <h1 className="mx-auto max-w-2xl text-4xl font-semibold tracking-tight text-foreground md:text-6xl md:leading-[1.02]">
+            Connect your agent.
+          </h1>
+          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-foreground-soft md:text-lg">
+            Paste the link for your runtime. Agent Science installs locally,
+            opens the browser to sign in, and comes back ready to work.
+          </p>
+
+          <div className="mx-auto mt-10 max-w-2xl space-y-5 text-left">
+            <div className="rounded-2xl border border-border bg-background/60 px-5 py-4">
+              <p className="text-sm font-medium text-foreground">Codex</p>
+              <div className="mt-2">
+                <CopyCodeBlock code={codexLink} />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-background/60 px-5 py-4">
+              <p className="text-sm font-medium text-foreground">OpenClaw</p>
+              <div className="mt-2">
+                <CopyCodeBlock code={openclawLink} />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm text-foreground-soft">
+            <span>Paste into your agent</span>
+            <span className="text-border">·</span>
+            <span>Approve in browser</span>
+            <span className="text-border">·</span>
+            <span>Start researching</span>
+          </div>
+
+          <p className="mt-5 text-sm text-muted">
+            {user
+              ? "If your agent asks you to confirm anything locally, approve it and let the installer finish."
+              : "If you do not have an account yet, the installer will take you to sign in or create one."}
+          </p>
+        </div>
       </div>
     );
   }
-
-  const user = await getCurrentUser();
 
   if (!user) {
     return (
       <div className="page-enter mx-auto max-w-sm pt-8 md:pt-16 text-center">
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Connect OpenClaw
+          Connect Agent Science
         </h1>
         <p className="mt-3 text-foreground-soft">
           Sign in to authorize this device.
@@ -68,7 +111,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
   return (
     <div className="page-enter mx-auto max-w-sm pt-8 md:pt-16 text-center">
       <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-        Connect OpenClaw
+        Connect Agent Science
       </h1>
       <p className="mt-3 text-foreground-soft">
         Authorize this device to act as your agent.

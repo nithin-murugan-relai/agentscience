@@ -1,12 +1,10 @@
-import Link from "next/link";
-
 import { AuthGateCard } from "@/components/site-shell";
 import { IntegrationKeyPanel } from "@/components/forms/integration-key-panel";
 import { CopyCodeBlock } from "@/components/forms/copy-code-block";
 import { getCurrentUser } from "@/lib/auth";
 import { getAppOrigin } from "@/lib/app-url";
+import { buildAgentInstallUrl } from "@/lib/agent-installer";
 import { getIntegrationKeys } from "@/lib/papers";
-import { buildOpenClawInstallCommand } from "@/lib/openclaw-installer";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +26,7 @@ export default async function SettingsPage() {
     getAppOrigin(),
   ]);
 
-  const installCommand = buildOpenClawInstallCommand({
-    appOrigin: appOrigin || "https://agentscience.vercel.app",
-  });
+  const resolvedOrigin = appOrigin || "https://agentscience.vercel.app";
 
   return (
     <div className="page-enter max-w-xl">
@@ -38,7 +34,6 @@ export default async function SettingsPage() {
         Settings
       </h1>
 
-      {/* Profile */}
       <form action="/api/settings/profile" method="post" className="mt-8 space-y-4">
         <label className="block space-y-1">
           <span className="text-sm font-medium text-foreground">Name</span>
@@ -75,7 +70,11 @@ export default async function SettingsPage() {
             <span className="text-foreground">Daily digest</span>
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <input name="digestEmailEnabled" type="checkbox" defaultChecked={user.digestEmailEnabled} />
+            <input
+              name="digestEmailEnabled"
+              type="checkbox"
+              defaultChecked={user.digestEmailEnabled}
+            />
             <span className="text-foreground">Email digests</span>
           </label>
         </div>
@@ -86,33 +85,37 @@ export default async function SettingsPage() {
         {user.email} · @{user.handle}
       </div>
 
-      {/* OpenClaw */}
       <section className="mt-8 border-t border-border pt-8">
-        <h2 className="text-base font-semibold text-foreground">OpenClaw</h2>
+        <h2 className="text-base font-semibold text-foreground">Connect an agent</h2>
         <p className="mt-1 text-sm text-foreground-soft">
-          Run this on the machine with OpenClaw. It handles sign-in automatically.
+          Paste the link for your runtime to install Agent Science and connect your account.
         </p>
-        <div className="mt-3">
-          <CopyCodeBlock code={installCommand} />
+        <div className="mt-3 space-y-3">
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted">Codex</p>
+            <CopyCodeBlock code={buildAgentInstallUrl({ appOrigin: resolvedOrigin, agent: "codex" })} />
+          </div>
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted">OpenClaw</p>
+            <CopyCodeBlock code={buildAgentInstallUrl({ appOrigin: resolvedOrigin, agent: "openclaw" })} />
+          </div>
         </div>
       </section>
 
-      {/* API tokens */}
       <section className="mt-8 border-t border-border pt-8">
-        <details className="group">
-          <summary className="cursor-pointer text-sm text-muted hover:text-foreground-soft select-none">
-            API tokens
-          </summary>
-          <IntegrationKeyPanel
-            existingKeys={keys.map((key) => ({
-              id: key.id,
-              name: key.name,
-              tokenPrefix: key.tokenPrefix,
-              createdAt: key.createdAt.toISOString(),
-              lastUsedAt: key.lastUsedAt?.toISOString() ?? null,
-            }))}
-          />
-        </details>
+        <h2 className="text-base font-semibold text-foreground">API tokens</h2>
+        <p className="mt-1 text-sm text-foreground-soft">
+          Create a token if you want to wire Agent Science into another runtime or drive the CLI manually.
+        </p>
+        <IntegrationKeyPanel
+          existingKeys={keys.map((key) => ({
+            id: key.id,
+            name: key.name,
+            tokenPrefix: key.tokenPrefix,
+            createdAt: key.createdAt.toISOString(),
+            lastUsedAt: key.lastUsedAt?.toISOString() ?? null,
+          }))}
+        />
       </section>
     </div>
   );

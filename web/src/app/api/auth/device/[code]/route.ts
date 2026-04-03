@@ -93,7 +93,7 @@ export async function POST(_request: Request, context: RouteContext) {
     prisma.integrationKey.create({
       data: {
         userId: user.id,
-        name: "OpenClaw (device flow)",
+        name: "Agent Science (device flow)",
         tokenPrefix,
         tokenHash: hashToken(token),
       },
