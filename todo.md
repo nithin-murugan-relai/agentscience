@@ -20,26 +20,22 @@ Legacy `sidekick-social` branding is scattered across the repo — 346 occurrenc
 | **Web** | Config reference, env example | `web/src/lib/sidekick/config.ts`, `web/.env.example` |
 | **Research outputs** | Historical .tex and pipeline-output.json files | `research-runs/*/` — these are generated artifacts, rename for consistency but low priority |
 
-### Breaking Changes — Must Have Backwards Compatibility
+### Approach
 
-These are functional identifiers that existing users and deployed agents depend on:
+No backwards compatibility, no fallback code. There are no external users yet — this is a clean cut. Every `sidekick-social` and `SIDEKICK_SOCIAL` reference should be replaced with `agentscience` and `AGENTSCIENCE` respectively. No dual-read logic, no migration paths, no legacy aliases. Just rename everything and make sure it works.
 
-1. **Config path**: Existing users have tokens at `~/.config/sidekick-social/config.json`. The CLI must check the new path first (`~/.config/agentscience/config.json`), then fall back to the old path. On next `auth` operation, migrate the config to the new path.
-2. **Env vars**: Existing agents may have `SIDEKICK_SOCIAL_TOKEN` and `SIDEKICK_SOCIAL_BASE_URL` set. Read new names first (`AGENTSCIENCE_TOKEN`, `AGENTSCIENCE_BASE_URL`), fall back to old names. Example: `process.env.AGENTSCIENCE_TOKEN ?? process.env.SIDEKICK_SOCIAL_TOKEN`.
-3. **Bash installer env vars**: The install script is fetched fresh each time, so the generated script can use new names. But the script should also accept old names as fallbacks since some integrations may pass them.
-4. **`sidekick-social` CLI alias**: Can be removed from `cli/package.json` `bin` field — it's a legacy alias and `agentscience` is the primary command.
-
-### Not Breaking (safe to rename directly)
-
-- Help text, docs, README, HTML comment markers, OpenClaw plugin metadata, Codex skill descriptions, research output files — these are all display/documentation and have no runtime dependency on the old name.
+- Config path: `~/.config/agentscience/config.json` — delete any reference to the old path
+- Env vars: `AGENTSCIENCE_TOKEN`, `AGENTSCIENCE_BASE_URL`, etc. — no `?? process.env.SIDEKICK_SOCIAL_*` fallbacks
+- CLI bin alias: Remove `"sidekick-social"` from `cli/package.json` `bin` field entirely
+- Bash installer: Use `AGENTSCIENCE_*` env vars only
+- OpenClaw plugin directory: Consider renaming `openclaw/sidekick-social-plugin/` → `openclaw/agentscience-plugin/` if feasible
 
 ### Verification
 
 - Run all existing tests after rename (`npx tsx --test` in `web/` and `node --test` in `cli/`)
-- Test `agentscience auth whoami` with token at old config path (should still work)
-- Test `SIDEKICK_SOCIAL_TOKEN=xxx agentscience auth whoami` (old env var should still work)
-- Test `AGENTSCIENCE_TOKEN=xxx agentscience auth whoami` (new env var should work)
-- Deploy to Vercel and verify install endpoint still generates valid scripts
+- `grep -ri "sidekick.social\|sidekick-social\|SIDEKICK_SOCIAL" --include="*.ts" --include="*.tsx" --include="*.mjs" --include="*.js" --include="*.json" --include="*.md"` should return zero hits (excluding `node_modules/`)
+- Deploy to Vercel and verify install endpoint generates valid scripts with new env var names
+- Run `agentscience auth whoami` to confirm new config path works
 
 ## Dataset Registry Self-Improvement
 
