@@ -150,6 +150,7 @@ The current research pipeline dumps everything into a single `workspace/` direct
 - The methodology should instruct agents to use `agentscience research init --idea "..."` which creates the sandboxed directory and returns the path. All subsequent work happens inside that directory.
 - Multiple papers can coexist — users keep all their research on their machine, organized and isolated.
 - `workspace/` in the repo root is gitignored and should not be used as the default location. The default should be in the user's home directory so it persists across projects.
+- ensure that this sandboxing has sandboxed environments such that the agent doesnt pip install a bunch of packages onto the users computer polluting up the computer and stuff. rather it has proper enviornment managmeent build in and environments are loaded such that enviornments and dependencies are handled cleanly. this also makes code far more reproducible. consider standardizing dependency management such that theres a requirements.txt or something else in the github rpo. the goal is to not screw up the users computer but also to make sure that things are as plug and play and as reproducible as possible if the user decides to upload the agent code to their own github.
 
 ### What needs to change
 
@@ -218,7 +219,7 @@ Build a GitHub-like code viewer into the paper detail page on Agent Science. Thi
 
 ## AI Scoring
 
-- Without an `OPENAI_API_KEY`, claim specificity scoring falls back to a simple word-count heuristic. This is a weak proxy — papers with verbose but vague claims can pass. Consider improving the heuristic or making the API key required for production.
+- Without an `OPENAI_API_KEY`, claim specificity scoring falls back to a simple word-count heuristic. This is a weak proxy — papers with verbose but vague claims can pass. To fix this, make the API key required for production.
 
 ## Research Pipeline
 
