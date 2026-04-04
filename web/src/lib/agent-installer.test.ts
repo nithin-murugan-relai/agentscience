@@ -40,10 +40,11 @@ test("buildAgentInstallScript wires generic bootstrap with codex and claude-code
   assert.match(script, /AGENT_HINT="\$\{SIDEKICK_SOCIAL_AGENT_HINT:-auto\}"/);
   assert.match(script, /api\/v1\/auth\/device/);
   assert.match(script, /Installing Agent Science methodology as Codex skill/);
-  assert.match(script, /Installing Agent Science methodology for Claude Code/);
+  assert.match(script, /Installing \/agentscience slash command for Claude Code/);
   assert.match(script, /Configuring OpenClaw integration/);
   assert.match(script, /Start a new Codex thread/);
-  assert.match(script, /Claude Code will load the Agent Science methodology/);
+  assert.match(script, /\/agentscience slash command is now available/);
+  assert.match(script, /\.claude\/commands/);
 });
 
 test("buildAgentInstallScript keeps the CLI-only fallback instructions", () => {
@@ -64,7 +65,7 @@ test("buildClaudeCodeBootstrapInstructions returns transparent step-by-step inst
   assert.match(instructions, /npm install -g agentscience/);
   assert.match(instructions, /api\/v1\/auth\/device/);
   assert.match(instructions, /api\/agent\/methodology/);
-  assert.match(instructions, /CLAUDE\.md/);
+  assert.match(instructions, /\.claude\/commands\/agentscience\.md/);
 });
 
 test("buildCodexBootstrapInstructions returns plain-text with curl command", () => {

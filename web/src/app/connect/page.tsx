@@ -49,7 +49,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
             <div className="rounded-2xl border border-border bg-background/60 px-5 py-4">
               <p className="text-sm font-medium text-foreground">Claude Code</p>
               <p className="mt-0.5 text-xs text-foreground-soft">
-                Run this in your terminal, then start a new Claude Code session.
+                Run this in your terminal. Then type /agentscience in any Claude Code conversation.
               </p>
               <div className="mt-2">
                 <CopyCodeBlock code={claudeCodeCommand} />

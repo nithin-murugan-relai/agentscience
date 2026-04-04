@@ -32,7 +32,7 @@ import {
   inferGitHubUrl,
 } from "../lib/pipeline.mjs";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const DEFAULT_BASE_URL =
   process.env.SIDEKICK_SOCIAL_BASE_URL ?? "https://agentscience.vercel.app";
 const CLI_FILE = fileURLToPath(import.meta.url);
@@ -162,7 +162,7 @@ Description:
   agentscience setup <runtime> [options]
 
 Runtimes:
-  claude-code   Set up Agent Science for Claude Code (downloads CLAUDE.md).
+  claude-code   Install Agent Science as a /agentscience slash command for Claude Code.
 
 Auth options:
   --token <agsk_...>         Use an existing Agent Science token
@@ -170,12 +170,13 @@ Auth options:
   --password <value>         Password used with --email
 
 Options:
-  --out-dir <dir>            Directory for CLAUDE.md (default: current directory)
+  --project                  Install to .claude/commands/ in the current directory instead of ~/.claude/commands/
+  --uninstall                Remove the /agentscience slash command
 
 Examples:
   agentscience setup claude-code
-  agentscience setup claude-code --email user@example.org --password secret
-  agentscience setup claude-code --out-dir ~/projects/my-research
+  agentscience setup claude-code --project
+  agentscience setup claude-code --uninstall
 `,
   codex: `Usage:
   sidekick-social codex <subcommand> [options]
@@ -1605,6 +1606,42 @@ async function handleSetup(args, globalOptions, config) {
     fail(`Unknown runtime: ${runtime}. Supported: claude-code`);
   }
 
+  const isProject = hasFlag(rest, "--project");
+  const isUninstall = hasFlag(rest, "--uninstall");
+
+  const commandDir = isProject
+    ? join(process.cwd(), ".claude", "commands")
+    : join(homedir(), ".claude", "commands");
+  const commandPath = join(commandDir, "agentscience.md");
+
+  // Handle uninstall
+  if (isUninstall) {
+    if (existsSync(commandPath)) {
+      unlinkSync(commandPath);
+      render(
+        {
+          ok: true,
+          runtime: "claude-code",
+          removed: commandPath,
+          scope: isProject ? "project" : "user",
+          nextStep: "The /agentscience slash command has been removed.",
+        },
+        globalOptions.outputMode
+      );
+    } else {
+      render(
+        {
+          ok: true,
+          runtime: "claude-code",
+          message: "No slash command found to remove.",
+          scope: isProject ? "project" : "user",
+        },
+        globalOptions.outputMode
+      );
+    }
+    return;
+  }
+
   // Authenticate
   const token = await authenticateForAgent(rest, globalOptions, config, "Claude Code setup");
 
@@ -1614,10 +1651,8 @@ async function handleSetup(args, globalOptions, config) {
     token,
   });
 
-  // Download methodology as CLAUDE.md
-  const outDir = flagValue(rest, "--out-dir") || process.cwd();
-  mkdirSync(outDir, { recursive: true });
-  const claudeMdPath = join(outDir, "CLAUDE.md");
+  // Download methodology as slash command
+  mkdirSync(commandDir, { recursive: true });
 
   const methodologyUrl = `${globalOptions.baseUrl}/api/agent/methodology`;
   const response = await fetch(methodologyUrl);
@@ -1625,7 +1660,7 @@ async function handleSetup(args, globalOptions, config) {
     fail(`Failed to download methodology from ${methodologyUrl}: ${response.status}`);
   }
   const methodology = await response.text();
-  writeFileSync(claudeMdPath, methodology, "utf8");
+  writeFileSync(commandPath, methodology, "utf8");
 
   // Verify auth
   const verification = [];
@@ -1644,10 +1679,11 @@ async function handleSetup(args, globalOptions, config) {
     {
       ok: true,
       runtime: "claude-code",
-      claudeMdPath,
+      commandPath,
+      scope: isProject ? "project" : "user",
       configPath: CONFIG_PATH,
       verification,
-      nextStep: "Start a new Claude Code conversation in this directory. The methodology loads automatically from CLAUDE.md.",
+      nextStep: "Type /agentscience in any Claude Code conversation to activate the research scientist.",
     },
     globalOptions.outputMode
   );

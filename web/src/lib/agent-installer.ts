@@ -233,14 +233,15 @@ case "$RUNTIME" in
     log "Codex skill installed at $CODEX_SKILLS_DIR/agent-science/SKILL.md"
     ;;
   claude-code)
-    log "Installing Agent Science methodology for Claude Code"
+    log "Installing /agentscience slash command for Claude Code"
 
-    CLAUDE_MD_PATH="\${CLAUDE_CODE_PROJECT_DIR:-$PWD}/CLAUDE.md"
+    CLAUDE_CMD_DIR="\${CLAUDE_CODE_HOME:-$HOME}/.claude/commands"
+    mkdir -p "$CLAUDE_CMD_DIR"
 
     log "Downloading methodology from $APP_URL/api/agent/methodology"
-    curl -fsSL "$APP_URL/api/agent/methodology" > "$CLAUDE_MD_PATH"
+    curl -fsSL "$APP_URL/api/agent/methodology" > "$CLAUDE_CMD_DIR/agentscience.md"
 
-    log "Methodology installed at $CLAUDE_MD_PATH"
+    log "Slash command installed at $CLAUDE_CMD_DIR/agentscience.md"
     ;;
   openclaw)
     log "Configuring OpenClaw integration"
@@ -259,10 +260,10 @@ if [ "$RUNTIME" = "codex" ]; then
   printf '  turn it into a real, data-driven paper. It has high standards — if\\n'
   printf '  your idea needs work, it will tell you.\\n'
 elif [ "$RUNTIME" = "claude-code" ]; then
-  printf '  Done. Claude Code will load the Agent Science methodology\\n'
-  printf '  automatically from CLAUDE.md in this directory.\\n'
+  printf '  Done. The /agentscience slash command is now available.\\n'
   printf '\\n'
-  printf '  Start a new conversation in this project to begin researching.\\n'
+  printf '  Type /agentscience in any Claude Code conversation to activate\\n'
+  printf '  the research scientist.\\n'
 elif [ "$RUNTIME" = "openclaw" ]; then
   printf '  Done. Agent Science is connected to OpenClaw.\\n'
 else
@@ -326,7 +327,7 @@ Source code: https://github.com/vineet-reddy/agentscience
 
 1. Installs the \`agentscience\` npm package globally (CLI for literature search, LaTeX compilation, dataset registry, and paper publishing)
 2. Authenticates via a device-code flow (opens a browser so the user can sign in)
-3. Downloads the research methodology to CLAUDE.md in the current directory so future sessions auto-load it
+3. Installs the \`/agentscience\` slash command to \`~/.claude/commands/\` so you can activate it in any conversation
 
 ## Setup steps
 
@@ -366,17 +367,17 @@ Verify it worked:
 agentscience auth whoami
 \`\`\`
 
-### Step 3 — Download methodology
+### Step 3 — Install slash command
 
 \`\`\`bash
-curl -s '${origin}/api/agent/methodology' > CLAUDE.md
+mkdir -p ~/.claude/commands && curl -s '${origin}/api/agent/methodology' > ~/.claude/commands/agentscience.md
 \`\`\`
 
-This saves the Agent Science research methodology as CLAUDE.md. You can inspect it — it defines the multi-stage research pipeline (idea evaluation, dataset discovery, data analysis, validation, paper writing, compilation, and publishing).
+This installs the Agent Science research methodology as a \`/agentscience\` slash command. You can inspect it — it defines the multi-stage research pipeline (idea evaluation, dataset discovery, data analysis, validation, paper writing, compilation, and publishing).
 
 ### Done
 
-Tell the user: "Agent Science is set up. Start a new conversation in this directory and I'll have the research methodology loaded automatically. Give me a research idea and I'll turn it into a real paper."`;
+Tell the user: "Agent Science is set up. Type /agentscience in any Claude Code conversation to activate the research scientist. Give me a research idea and I'll turn it into a real paper."`;
 }
 
 export function buildOpenClawInstallCommand({

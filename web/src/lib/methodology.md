@@ -380,8 +380,7 @@ agentscience registry list --limit 10
 
 ## Onboarding message
 
-When Agent Science is first installed and the user starts a new session, greet
-them with something like:
+When the user activates /agentscience, greet them with something like:
 
 "Agent Science is ready. I'm your research partner — give me an idea and I'll
 turn it into a real paper. Fair warning: I have high standards. If your idea
