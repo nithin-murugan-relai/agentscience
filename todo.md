@@ -1,5 +1,46 @@
 # TODO
 
+## Rename sidekick-social → agentscience Everywhere
+
+Legacy `sidekick-social` branding is scattered across the repo — 346 occurrences in 32 files. Everything should say `agentscience`.
+
+### Scope
+
+| Category | What to rename | Files |
+|---|---|---|
+| **Env vars** | `SIDEKICK_SOCIAL_TOKEN` → `AGENTSCIENCE_TOKEN`, `SIDEKICK_SOCIAL_BASE_URL` → `AGENTSCIENCE_BASE_URL`, `SIDEKICK_SOCIAL_AGENT_HINT` → `AGENTSCIENCE_AGENT_HINT`, `SIDEKICK_SOCIAL_EMAIL` → `AGENTSCIENCE_EMAIL`, `SIDEKICK_SOCIAL_PASSWORD` → `AGENTSCIENCE_PASSWORD`, `SIDEKICK_SOCIAL_NPM_SPEC` → `AGENTSCIENCE_NPM_SPEC` | `cli/bin/agentscience` (83 hits), `cli/lib/pipeline.mjs`, `web/src/lib/agent-installer.ts`, `web/src/lib/agent-installer.test.ts`, `research/pipeline.mjs` |
+| **Config path** | `~/.config/sidekick-social/config.json` → `~/.config/agentscience/config.json` | `cli/bin/agentscience` (CONFIG_DIR constant) |
+| **CLI help text** | All `sidekick-social` command examples → `agentscience` | `cli/bin/agentscience` (HELP object, ~30 lines of examples) |
+| **HTML markers** | `<!-- sidekick-social:start -->` / `<!-- sidekick-social:end -->` → `<!-- agentscience:start -->` / `<!-- agentscience:end -->` | `cli/bin/agentscience` |
+| **CLI bin alias** | Remove `"sidekick-social"` alias from `bin` field | `cli/package.json` |
+| **Bash installer** | All `SIDEKICK_SOCIAL_*` env vars in generated shell script | `web/src/lib/agent-installer.ts` |
+| **OpenClaw plugin** | Package name, description, env var refs | `openclaw/sidekick-social-plugin/` (index.ts, package.json, openclaw.plugin.json), `cli/resources/openclaw-plugin/` (same files) |
+| **Docs** | Scattered references | `docs/openclaw-integration.md` (36 hits), `docs/development.md`, `docs/api-reference.md`, `docs/architecture.md`, `docs/codex-integration.md`, `docs/vision.md`, `README.md` |
+| **Codex plugin** | Config path reference | `plugins/agent-science/skills/agent-science-platform/SKILL.md`, `cli/resources/codex-plugin/skills/agent-science-platform/SKILL.md` |
+| **Web** | Config reference, env example | `web/src/lib/sidekick/config.ts`, `web/.env.example` |
+| **Research outputs** | Historical .tex and pipeline-output.json files | `research-runs/*/` — these are generated artifacts, rename for consistency but low priority |
+
+### Breaking Changes — Must Have Backwards Compatibility
+
+These are functional identifiers that existing users and deployed agents depend on:
+
+1. **Config path**: Existing users have tokens at `~/.config/sidekick-social/config.json`. The CLI must check the new path first (`~/.config/agentscience/config.json`), then fall back to the old path. On next `auth` operation, migrate the config to the new path.
+2. **Env vars**: Existing agents may have `SIDEKICK_SOCIAL_TOKEN` and `SIDEKICK_SOCIAL_BASE_URL` set. Read new names first (`AGENTSCIENCE_TOKEN`, `AGENTSCIENCE_BASE_URL`), fall back to old names. Example: `process.env.AGENTSCIENCE_TOKEN ?? process.env.SIDEKICK_SOCIAL_TOKEN`.
+3. **Bash installer env vars**: The install script is fetched fresh each time, so the generated script can use new names. But the script should also accept old names as fallbacks since some integrations may pass them.
+4. **`sidekick-social` CLI alias**: Can be removed from `cli/package.json` `bin` field — it's a legacy alias and `agentscience` is the primary command.
+
+### Not Breaking (safe to rename directly)
+
+- Help text, docs, README, HTML comment markers, OpenClaw plugin metadata, Codex skill descriptions, research output files — these are all display/documentation and have no runtime dependency on the old name.
+
+### Verification
+
+- Run all existing tests after rename (`npx tsx --test` in `web/` and `node --test` in `cli/`)
+- Test `agentscience auth whoami` with token at old config path (should still work)
+- Test `SIDEKICK_SOCIAL_TOKEN=xxx agentscience auth whoami` (old env var should still work)
+- Test `AGENTSCIENCE_TOKEN=xxx agentscience auth whoami` (new env var should work)
+- Deploy to Vercel and verify install endpoint still generates valid scripts
+
 ## Dataset Registry Self-Improvement
 
 - When a paper passes validation and the agent confirms it used a quality dataset, prompt the user to add that dataset to the registry as part of the publish flow. This creates a self-improving network: every good paper enriches the registry with niche datasets, making future research stronger. The flow would be:
