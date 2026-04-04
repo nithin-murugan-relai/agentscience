@@ -25,3 +25,7 @@ CLAUDE.md
 # Agent working directories
 .agents/
 web/.codex
+
+# Research workspaces (generated papers, data, figures)
+workspace/
+research-workspace/
