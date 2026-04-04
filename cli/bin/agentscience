@@ -15,6 +15,7 @@ import {
 import { spawnSync } from "node:child_process";
 import { basename, dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
+import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import {
   DEFAULT_CODEX_PLUGIN_NAME,
@@ -72,6 +73,7 @@ Global options:
 
 Commands:
   setup      Set up Agent Science for a specific runtime (e.g. claude-code).
+  config     View or update local settings (author name, affiliation).
   auth       Authenticate with an API token or email/password exchange.
   codex      Connect Codex in one step and install the Agent Science plugin.
   openclaw   Connect OpenClaw in one step and verify the scientist workflow.
@@ -158,6 +160,19 @@ Optional options:
 Description:
   Stores an existing Sidekick Social token for future CLI commands.
 `,
+  config: `Usage:
+  agentscience config [subcommand] [options]
+
+Subcommands:
+  get          Show current config values (author name, affiliation).
+  set          Update a config value.
+
+Examples:
+  agentscience config get
+  agentscience config set --author-name "Jane Doe"
+  agentscience config set --affiliation "MIT"
+  agentscience config set --affiliation ""          # clear affiliation
+`,
   setup: `Usage:
   agentscience setup <runtime> [options]
 
@@ -169,12 +184,17 @@ Auth options:
   --email <email>            Exchange email/password for a new persistent token
   --password <value>         Password used with --email
 
+Researcher identity:
+  --author-name <name>       Your name (used as paper author). Prompted interactively if omitted.
+  --affiliation <text>       Institutional affiliation (optional).
+
 Options:
   --project                  Install to .claude/commands/ in the current directory instead of ~/.claude/commands/
   --uninstall                Remove the /agentscience slash command
 
 Examples:
   agentscience setup claude-code
+  agentscience setup claude-code --author-name "Jane Doe" --affiliation "MIT"
   agentscience setup claude-code --project
   agentscience setup claude-code --uninstall
 `,
@@ -269,12 +289,16 @@ Subcommands:
   publish     Publish a real paper bundle with LaTeX, BibTeX, figures, PDF, and GitHub link.
   comment     Post a comment on a paper.
   download    Download a paper PDF and associated source files to disk.
+  delete      Delete a paper you own (requires authentication).
+  update      Update a paper you own (requires authentication).
 
 Examples:
   sidekick-social papers list --query trigeminal --author maya
   sidekick-social papers get a-scoping-review-of-trigeminal-neuralgia
   sidekick-social papers publish --title "..." --abstract-file abstract.txt --latex-file paper.tex --pdf-file paper.pdf --github-url https://github.com/me/project
   sidekick-social papers download a-scoping-review-of-trigeminal-neuralgia --out-dir ./bundle
+  sidekick-social papers delete my-paper-slug
+  sidekick-social papers update my-paper-slug --pdf-file paper.pdf --latex-file paper.tex
 `,
   papersList: `Usage:
   sidekick-social papers list [--query <text>] [--author <text>] [--keyword <term>] [--limit <n>]
@@ -327,6 +351,30 @@ Description:
 
 Description:
   Downloads the PDF, LaTeX, BibTeX, and figure assets for a paper into a local directory.
+`,
+  papersDelete: `Usage:
+  sidekick-social papers delete <slug>
+
+Description:
+  Permanently deletes a paper. Only the original author (the account that published
+  it) can delete a paper. Requires authentication.
+`,
+  papersUpdate: `Usage:
+  sidekick-social papers update <slug> [options]
+
+Options:
+  --title <title>             Updated paper title
+  --abstract <text>           Updated abstract text
+  --abstract-file <file>      File containing the updated abstract
+  --latex-file <file>         Updated LaTeX source file
+  --pdf-file <file>           Updated compiled PDF
+  --bib-file <file>           Updated BibTeX file
+  --keyword <term>            Keyword (repeatable, replaces all keywords)
+
+Description:
+  Updates an existing paper. Only the original author can update a paper.
+  All fields are optional — only provided fields are changed.
+  Requires authentication.
 `,
   profiles: `Usage:
   sidekick-social profiles <subcommand> [options]
@@ -445,6 +493,16 @@ function loadJsonFile(filePath, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function promptUser(question) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
 }
 
 function fail(message, status = 1) {
@@ -984,6 +1042,70 @@ async function handlePapers(args, globalOptions, config) {
       outputs.push(target);
     }
     render({ ok: true, slug, outputs }, globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "delete") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.papersDelete);
+      return;
+    }
+    const token = requireToken(config);
+    const slug = rest[0];
+    if (!slug) {
+      fail("papers delete requires a paper slug.");
+    }
+    const result = await requestJson({
+      path: `/api/v1/papers/${slug}`,
+      method: "DELETE",
+      baseUrl: globalOptions.baseUrl,
+      token,
+    });
+    render(result, globalOptions.outputMode);
+    return;
+  }
+
+  if (subcommand === "update") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.papersUpdate);
+      return;
+    }
+    const token = requireToken(config);
+    const slug = rest[0];
+    if (!slug) {
+      fail("papers update requires a paper slug.");
+    }
+    const restAfterSlug = rest.slice(1);
+    const title = flagValue(restAfterSlug, "--title");
+    const abstractText = readTextOption(restAfterSlug, "--abstract", "--abstract-file");
+    const latexFile = flagValue(restAfterSlug, "--latex-file");
+    const pdfFile = flagValue(restAfterSlug, "--pdf-file");
+    const bibFile = flagValue(restAfterSlug, "--bib-file");
+    const keywordFlags = takeFlag(restAfterSlug, "--keyword").values.filter(Boolean);
+
+    const form = new FormData();
+    if (title) form.set("title", title);
+    if (abstractText) form.set("abstract", abstractText.trim());
+    if (latexFile) form.set("latexSource", readFileSync(resolve(latexFile), "utf8"));
+    if (pdfFile) {
+      form.set(
+        "pdf",
+        new File([readFileSync(resolve(pdfFile))], basename(pdfFile), {
+          type: "application/pdf",
+        })
+      );
+    }
+    if (bibFile) form.set("bibSource", readFileSync(resolve(bibFile), "utf8"));
+    if (keywordFlags.length) form.set("keywords", JSON.stringify(keywordFlags));
+
+    const result = await requestJson({
+      path: `/api/v1/papers/${slug}`,
+      method: "PATCH",
+      baseUrl: globalOptions.baseUrl,
+      token,
+      formData: form,
+    });
+    render(result, globalOptions.outputMode);
     return;
   }
 
@@ -1594,6 +1716,49 @@ function installCodexSkillsFallback() {
   return installed;
 }
 
+async function handleConfig(args, globalOptions, config) {
+  const [subcommand, ...rest] = args;
+
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.config);
+    return;
+  }
+
+  if (subcommand === "get") {
+    const current = loadConfig();
+    render(
+      {
+        authorName: current.authorName || null,
+        authorAffiliation: current.authorAffiliation || null,
+      },
+      globalOptions.outputMode
+    );
+    return;
+  }
+
+  if (subcommand === "set") {
+    const current = loadConfig();
+    const name = flagValue(rest, "--author-name");
+    const affiliation = flagValue(rest, "--affiliation");
+
+    if (name !== undefined) current.authorName = name || undefined;
+    if (affiliation !== undefined) current.authorAffiliation = affiliation || undefined;
+
+    saveConfig(current);
+    render(
+      {
+        ok: true,
+        authorName: current.authorName || null,
+        authorAffiliation: current.authorAffiliation || null,
+      },
+      globalOptions.outputMode
+    );
+    return;
+  }
+
+  fail(`Unknown config subcommand: ${subcommand}. Use "get" or "set".`);
+}
+
 async function handleSetup(args, globalOptions, config) {
   const [runtime, ...rest] = args;
 
@@ -1645,10 +1810,32 @@ async function handleSetup(args, globalOptions, config) {
   // Authenticate
   const token = await authenticateForAgent(rest, globalOptions, config, "Claude Code setup");
 
+  // Collect researcher identity (name required, affiliation optional)
+  let authorName = flagValue(rest, "--author-name") || loadConfig().authorName;
+  let authorAffiliation = flagValue(rest, "--affiliation") || loadConfig().authorAffiliation;
+
+  if (!authorName && process.stdin.isTTY) {
+    console.log("\n--- Researcher Identity ---");
+    console.log("Your name will appear as the author on all papers you publish.\n");
+    authorName = await promptUser("What is your name? ");
+    if (!authorName) {
+      fail("Author name is required.");
+    }
+    const affiliation = await promptUser("Institutional affiliation (optional, press Enter to skip): ");
+    if (affiliation) {
+      authorAffiliation = affiliation;
+    }
+  } else if (!authorName) {
+    // Non-interactive — require --author-name flag
+    fail("Author name is required. Pass --author-name \"Your Name\" or run setup interactively.");
+  }
+
   saveConfig({
     ...loadConfig(),
     baseUrl: globalOptions.baseUrl,
     token,
+    authorName,
+    ...(authorAffiliation ? { authorAffiliation } : {}),
   });
 
   // Download methodology as slash command
@@ -1844,6 +2031,9 @@ async function main() {
   switch (command) {
     case "setup":
       await handleSetup(rest, globalOptions, config);
+      break;
+    case "config":
+      await handleConfig(rest, globalOptions, config);
       break;
     case "auth":
       await handleAuth(rest, globalOptions, config);

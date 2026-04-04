@@ -588,6 +588,86 @@ export async function buildDigestForUser(userId: string) {
   };
 }
 
+export async function checkPaperOwnership(slug: string, userId: string) {
+  const paper = await prisma.paper.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      authors: {
+        where: { userId },
+        select: { userId: true },
+      },
+    },
+  });
+
+  if (!paper) {
+    return { paper: null, isOwner: false };
+  }
+
+  return { paper, isOwner: paper.authors.length > 0 };
+}
+
+export async function deletePaper(slug: string, userId: string) {
+  const { paper, isOwner } = await checkPaperOwnership(slug, userId);
+
+  if (!paper) {
+    throw new UserFacingError("Paper not found.", 404);
+  }
+
+  if (!isOwner) {
+    throw new UserFacingError("You do not have permission to delete this paper.", 403);
+  }
+
+  await prisma.paper.delete({ where: { id: paper.id } });
+}
+
+export type PaperUpdateInput = {
+  title?: string;
+  abstract?: string;
+  latexSource?: string;
+  bibSource?: string;
+  pdf?: UploadDescriptor | null;
+  keywords?: string[];
+};
+
+export async function updatePaper(slug: string, userId: string, input: PaperUpdateInput) {
+  const { paper, isOwner } = await checkPaperOwnership(slug, userId);
+
+  if (!paper) {
+    throw new UserFacingError("Paper not found.", 404);
+  }
+
+  if (!isOwner) {
+    throw new UserFacingError("You do not have permission to update this paper.", 403);
+  }
+
+  const data: Record<string, unknown> = {};
+
+  if (input.title !== undefined) data.title = input.title;
+  if (input.abstract !== undefined) data.abstract = input.abstract;
+  if (input.latexSource !== undefined) data.latexSource = input.latexSource;
+  if (input.bibSource !== undefined) data.bibSource = input.bibSource;
+  if (input.keywords !== undefined) data.keywords = input.keywords;
+
+  if (input.pdf) {
+    data.pdfData = toPrismaBytes(input.pdf.bytes);
+    data.pdfMimeType = input.pdf.mimeType;
+    data.pdfFileName = input.pdf.fileName;
+  }
+
+  await prisma.paper.update({
+    where: { id: paper.id },
+    data,
+  });
+
+  const detail = await getPaperDetail(slug);
+  if (!detail) {
+    throw new UserFacingError("Paper was updated but could not be loaded.", 500);
+  }
+
+  return detail;
+}
+
 export async function ensureCoAuthor(name: string, email?: string, institution?: string) {
   return ensureImportedUser(name, email, institution);
 }

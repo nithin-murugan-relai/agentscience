@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { getPaperDetail, serializePaperDetail } from "@/lib/platform";
+import { getApiUser, unauthorizedJson } from "@/lib/api-auth";
+import { UserFacingError } from "@/lib/errors";
+import {
+  deletePaper,
+  getPaperDetail,
+  serializePaperDetail,
+  updatePaper,
+} from "@/lib/platform";
 
 type RouteProps = {
   params: Promise<{ slug: string }>;
@@ -17,4 +24,84 @@ export async function GET(_: Request, { params }: RouteProps) {
   return NextResponse.json({
     paper: serializePaperDetail(paper),
   });
+}
+
+export async function DELETE(request: Request, { params }: RouteProps) {
+  const user = await getApiUser(request);
+  if (!user) {
+    return unauthorizedJson();
+  }
+
+  const { slug } = await params;
+
+  try {
+    await deletePaper(slug, user.id);
+    return NextResponse.json({ ok: true, slug });
+  } catch (error) {
+    if (error instanceof UserFacingError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
+  }
+}
+
+export async function PATCH(request: Request, { params }: RouteProps) {
+  const user = await getApiUser(request);
+  if (!user) {
+    return unauthorizedJson();
+  }
+
+  const { slug } = await params;
+
+  try {
+    const contentType = request.headers.get("content-type") ?? "";
+    let title: string | undefined;
+    let abstract: string | undefined;
+    let latexSource: string | undefined;
+    let bibSource: string | undefined;
+    let keywords: string[] | undefined;
+    let pdf: { fileName: string; mimeType: string; bytes: Buffer } | null = null;
+
+    if (contentType.includes("multipart/form-data")) {
+      const form = await request.formData();
+      if (form.has("title")) title = form.get("title") as string;
+      if (form.has("abstract")) abstract = form.get("abstract") as string;
+      if (form.has("latexSource")) latexSource = form.get("latexSource") as string;
+      if (form.has("bibSource")) bibSource = form.get("bibSource") as string;
+      if (form.has("keywords")) {
+        keywords = JSON.parse(form.get("keywords") as string);
+      }
+      const pdfFile = form.get("pdf") as File | null;
+      if (pdfFile) {
+        pdf = {
+          fileName: pdfFile.name,
+          mimeType: pdfFile.type || "application/pdf",
+          bytes: Buffer.from(await pdfFile.arrayBuffer()),
+        };
+      }
+    } else {
+      const body = await request.json();
+      title = body.title;
+      abstract = body.abstract;
+      latexSource = body.latexSource;
+      bibSource = body.bibSource;
+      keywords = body.keywords;
+    }
+
+    const detail = await updatePaper(slug, user.id, {
+      title,
+      abstract,
+      latexSource,
+      bibSource,
+      keywords,
+      pdf,
+    });
+
+    return NextResponse.json({ paper: serializePaperDetail(detail) });
+  } catch (error) {
+    if (error instanceof UserFacingError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
+  }
 }

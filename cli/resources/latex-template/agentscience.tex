@@ -64,17 +64,12 @@
   \titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{1em}{}
 }{}
 
-% --- Abstract formatting ---
-\renewenvironment{abstract}{%
-  \begin{center}
-    \begin{minipage}{0.92\textwidth}
-      \small
-      \noindent\textbf{Abstract.}
-}{%
-    \end{minipage}
-  \end{center}
-  \vspace{1em}
-}
+% --- Abstract formatting (single-column, full-width) ---
+% In twocolumn mode, \textwidth is the full page width.
+% We render the abstract inside \twocolumn[...] so it spans both columns
+% and does not overlap with the two-column body text.
+\newcommand{\paperabstract}{}  % placeholder; redefine before \begin{document}
+\newcommand{\paperkeywords}{}  % placeholder; redefine before \begin{document}
 
 % ============================================================================
 % PAPER CONTENT — Fill in everything below this line.
@@ -86,23 +81,44 @@
 }
 
 \author{%
-  % AUTHOR NAME(S) HERE
-  % Format: First Last\thanks{Affiliation or email}
+  % AUTHOR NAME — use the researcher's name from: agentscience config get
+  % Example: Jane Doe\thanks{MIT}
+  % Do NOT list AI tools, bots, or "Agent Science Research" as authors.
+  % The author is the person who initiated and directed the research.
+  % If the researcher has an affiliation, include it via \thanks{}.
 }
 
 \date{}
 
-\begin{document}
-\maketitle
-
-\begin{abstract}
+% Define abstract content (will be rendered in single-column header)
+\renewcommand{\paperabstract}{%
 % 150-250 words. State the problem, approach, key finding, and why it matters.
 % Write this section LAST even though it appears first.
-\end{abstract}
+}
 
-% --- Keywords ---
-\vspace{0.5em}
-\noindent\textbf{Keywords:} % keyword1, keyword2, keyword3
+% Define keywords
+\renewcommand{\paperkeywords}{keyword1, keyword2, keyword3}
+
+\begin{document}
+
+% Render title, abstract, and keywords in a single-column header,
+% then switch to two-column layout for the body.
+\twocolumn[%
+  \maketitle
+  \begin{center}
+    \begin{minipage}{0.92\textwidth}
+      \small
+      \noindent\textbf{Abstract.} \paperabstract
+    \end{minipage}
+  \end{center}
+  \vspace{0.5em}
+  \begin{center}
+    \begin{minipage}{0.92\textwidth}
+      \small\noindent\textbf{Keywords:} \paperkeywords
+    \end{minipage}
+  \end{center}
+  \vspace{1.5em}
+]
 
 \section{Introduction}
 % What is the problem? Why does it matter? What has been done before?
