@@ -45,7 +45,6 @@ cd cli && npm install -g .
 
 # Verify
 agentscience --help
-sidekick-social --help   # alias
 ```
 
 ## Environment Variables

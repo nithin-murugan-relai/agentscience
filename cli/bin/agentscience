@@ -33,7 +33,7 @@ import {
   inferGitHubUrl,
 } from "../lib/pipeline.mjs";
 
-const VERSION = "0.4.1";
+const VERSION = "0.4.2";
 const DEFAULT_BASE_URL =
   process.env.SIDEKICK_SOCIAL_BASE_URL ?? "https://agentscience.vercel.app";
 const CLI_FILE = fileURLToPath(import.meta.url);
