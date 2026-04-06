@@ -25,10 +25,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
     const origin = await getAppOrigin();
     const resolvedOrigin = origin || "https://agentscience.vercel.app";
     const claudeCodeCommand = "npm install -g agentscience && agentscience setup claude-code";
-    const codexLink = buildAgentInstallUrl({
-      appOrigin: resolvedOrigin,
-      agent: "codex",
-    });
+    const codexCommand = "npm install -g agentscience && agentscience setup codex";
     const openclawLink = buildAgentInstallUrl({
       appOrigin: resolvedOrigin,
       agent: "openclaw",
@@ -59,10 +56,12 @@ export default async function ConnectPage({ searchParams }: PageProps) {
             <div className="rounded-2xl border border-border bg-background/60 px-5 py-4">
               <p className="text-sm font-medium text-foreground">Codex</p>
               <p className="mt-0.5 text-xs text-foreground-soft">
-                Paste this URL into a Codex conversation.
+                Run this in your terminal. Then start a new Codex thread and activate
+                Agent Science with <span className="font-mono">/skills</span> or{" "}
+                <span className="font-mono">$agentscience</span>.
               </p>
               <div className="mt-2">
-                <CopyCodeBlock code={codexLink} />
+                <CopyCodeBlock code={codexCommand} />
               </div>
             </div>
 

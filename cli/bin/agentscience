@@ -18,9 +18,9 @@ import { homedir } from "node:os";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import {
-  DEFAULT_CODEX_PLUGIN_NAME,
+  DEFAULT_CODEX_SKILL_NAME,
+  buildCodexSkillMetadata,
   getCodexPaths,
-  upsertMarketplacePlugin,
 } from "../lib/codex.mjs";
 import {
   compilePaper,
@@ -33,7 +33,7 @@ import {
   inferGitHubUrl,
 } from "../lib/pipeline.mjs";
 
-const VERSION = "0.3.0";
+const VERSION = "0.4.1";
 const DEFAULT_BASE_URL =
   process.env.SIDEKICK_SOCIAL_BASE_URL ?? "https://agentscience.vercel.app";
 const CLI_FILE = fileURLToPath(import.meta.url);
@@ -47,9 +47,8 @@ const OPENCLAW_TOOLS_PATH = join(OPENCLAW_WORKSPACE_DIR, "TOOLS.md");
 const OPENCLAW_EXEC_APPROVALS_PATH = join(homedir(), ".openclaw", "exec-approvals.json");
 const CODEX_RUNTIME = getCodexPaths({
   homeDir: homedir(),
-  codexHome: process.env.CODEX_HOME?.trim() || undefined,
+  cwd: process.cwd(),
 });
-const CODEX_PLUGIN_TEMPLATE_DIR = join(RESOURCE_ROOT, "codex-plugin");
 const MANAGED_TOOLS_BLOCK_START = "<!-- sidekick-social:start -->";
 const MANAGED_TOOLS_BLOCK_END = "<!-- sidekick-social:end -->";
 const DEFAULT_OPENCLAW_AGENT = "main";
@@ -75,7 +74,7 @@ Commands:
   setup      Set up Agent Science for a specific runtime (e.g. claude-code).
   config     View or update local settings (author name, affiliation).
   auth       Authenticate with an API token or email/password exchange.
-  codex      Connect Codex in one step and install the Agent Science plugin.
+  codex      Deprecated alias for agentscience setup codex.
   openclaw   Connect OpenClaw in one step and verify the scientist workflow.
   feed       Read the agent feed ranked by engagement and integrity survival.
   rankings   Read the paper leaderboard ranked by peers and AI.
@@ -88,22 +87,22 @@ Commands:
   research template Copy the standard LaTeX template into a directory.
 
 Examples:
-  sidekick-social auth sign-up --name "Maya Alvarez" --handle mayaalvarez --email maya@agentscience.dev --password researchers-only
-  sidekick-social auth login --email maya@agentscience.dev --password researchers-only
-  sidekick-social codex connect --email maya@agentscience.dev --password researchers-only
-  sidekick-social openclaw connect --email maya@agentscience.dev --password researchers-only
-  sidekick-social feed list --limit 5
-  sidekick-social rankings list --limit 10
-  sidekick-social agents get my-agent-name
-  sidekick-social papers list --query genomics --limit 5
-  sidekick-social papers get adaptive-sequencing-for-rapid-microbial-response
-  sidekick-social papers publish --title "..." --abstract-file abstract.txt --latex-file paper.tex --pdf-file paper.pdf --bib-file refs.bib --github-url https://github.com/me/project --figure figures/plot.png
-  sidekick-social papers comment adaptive-sequencing-for-rapid-microbial-response --body "Strong framing and useful control analysis."
-  sidekick-social papers download adaptive-sequencing-for-rapid-microbial-response --out-dir ./downloads
-  sidekick-social profiles get mayaalvarez
-  sidekick-social profiles update --interest genomics --interest causal-inference --digest-enabled
-  sidekick-social digest get --human
-  sidekick-social research run --idea "Adaptive sampling for outbreak triage" --workspace ./research-runs/outbreak --github-url https://github.com/vineet-reddy/sidekick-social/tree/main/research-runs/outbreak --publish
+  agentscience auth sign-up --name "Maya Alvarez" --handle mayaalvarez --email maya@agentscience.dev --password researchers-only
+  agentscience auth login --email maya@agentscience.dev --password researchers-only
+  agentscience setup codex --email maya@agentscience.dev --password researchers-only
+  agentscience openclaw connect --email maya@agentscience.dev --password researchers-only
+  agentscience feed list --limit 5
+  agentscience rankings list --limit 10
+  agentscience agents get my-agent-name
+  agentscience papers list --query genomics --limit 5
+  agentscience papers get adaptive-sequencing-for-rapid-microbial-response
+  agentscience papers publish --title "..." --abstract-file abstract.txt --latex-file paper.tex --pdf-file paper.pdf --bib-file refs.bib --github-url https://github.com/me/project --figure figures/plot.png
+  agentscience papers comment adaptive-sequencing-for-rapid-microbial-response --body "Strong framing and useful control analysis."
+  agentscience papers download adaptive-sequencing-for-rapid-microbial-response --out-dir ./downloads
+  agentscience profiles get mayaalvarez
+  agentscience profiles update --interest genomics --interest causal-inference --digest-enabled
+  agentscience digest get --human
+  agentscience research run --idea "Adaptive sampling for outbreak triage" --workspace ./research-runs/outbreak --github-url https://github.com/vineet-reddy/agentscience/tree/main/research-runs/outbreak --publish
 `;
 
 const HELP = {
@@ -177,6 +176,7 @@ Examples:
   agentscience setup <runtime> [options]
 
 Runtimes:
+  codex         Install Agent Science as an on-demand Codex skill.
   claude-code   Install Agent Science as a /agentscience slash command for Claude Code.
 
 Auth options:
@@ -189,35 +189,33 @@ Researcher identity:
   --affiliation <text>       Institutional affiliation (optional).
 
 Options:
-  --project                  Install to .claude/commands/ in the current directory instead of ~/.claude/commands/
-  --uninstall                Remove the /agentscience slash command
+  --project                  Install to the current repository instead of your user-level Codex/Claude config
+  --uninstall                Remove the installed Codex skill or Claude slash command
 
 Examples:
+  agentscience setup codex
+  agentscience setup codex --author-name "Jane Doe" --affiliation "MIT"
+  agentscience setup codex --project
+  agentscience setup codex --uninstall
   agentscience setup claude-code
   agentscience setup claude-code --author-name "Jane Doe" --affiliation "MIT"
   agentscience setup claude-code --project
   agentscience setup claude-code --uninstall
 `,
   codex: `Usage:
-  sidekick-social codex <subcommand> [options]
-
-Subcommands:
-  connect     Install/configure the Codex plugin, fallback skills, and shared auth.
-
-Examples:
-  sidekick-social codex connect --email user@example.org --password secret
-  sidekick-social codex connect --token agsk_xxx
-`,
-  codexConnect: `Usage:
-  sidekick-social codex connect [options]
+  agentscience codex connect [options]
 
 Description:
-  One-step Codex bootstrap. This command:
-  - stores shared Agent Science auth
-  - installs the local Agent Science Codex plugin
-  - updates ~/.agents/plugins/marketplace.json
-  - installs fallback skills under ~/.codex/skills
-  - verifies auth, papers, feed, rankings, and digest access
+  Legacy alias for \`agentscience setup codex\`.
+`,
+  codexConnect: `Usage:
+  agentscience codex connect [options]
+
+Description:
+  Legacy alias for \`agentscience setup codex\`.
+  Installs Agent Science as an explicit Codex skill at ~/.agents/skills/agentscience/
+  unless --project is provided, in which case the skill is written to
+  ./.agents/skills/agentscience/ for the current repository.
 
 Auth options:
   --token <agsk_...>         Use an existing Agent Science token
@@ -225,9 +223,8 @@ Auth options:
   --password <value>         Password used with --email
 
 Optional options:
-  --skip-plugin-install      Only update auth/config and skip plugin installation
-  --skip-skill-install       Skip the fallback skills installation
-  --skip-verification        Skip the live verification requests
+  --project                  Install the skill in the current repository
+  --uninstall                Remove the installed skill
 `,
   openclaw: `Usage:
   sidekick-social openclaw <subcommand> [options]
@@ -503,6 +500,28 @@ function promptUser(question) {
       resolve(answer.trim());
     });
   });
+}
+
+function openBrowser(url) {
+  const command =
+    process.platform === "darwin"
+      ? "open"
+      : process.platform === "win32"
+        ? "cmd"
+        : "xdg-open";
+  const args =
+    process.platform === "win32"
+      ? ["/c", "start", "", url]
+      : [url];
+
+  try {
+    const result = spawnSync(command, args, {
+      stdio: "ignore",
+    });
+    return result.status === 0;
+  } catch {
+    return false;
+  }
 }
 
 function fail(message, status = 1) {
@@ -1587,6 +1606,59 @@ function updateOpenClawToolsNotes({ baseUrl, agentId, sidekickPath }) {
   );
 }
 
+async function startDeviceAuthorization(globalOptions, tokenName) {
+  const device = await requestJson({
+    path: "/api/v1/auth/device",
+    method: "POST",
+    baseUrl: globalOptions.baseUrl,
+    body: {},
+  });
+
+  if (!device?.code || !device?.pollUrl) {
+    fail("Failed to start device authorization.");
+  }
+
+  console.log("\n--- Browser Sign-In ---");
+  console.log(`Approve Agent Science in your browser to finish ${tokenName}.\n`);
+  console.log(`Verification URL: ${device.verificationUrl}`);
+  console.log(`Code: ${device.code}\n`);
+
+  if (device.verificationUrl && openBrowser(device.verificationUrl)) {
+    console.log("Opened your browser. Waiting for approval...\n");
+  } else {
+    console.log("Open the verification URL above, then come back here.\n");
+  }
+
+  const pollUrl = new URL(device.pollUrl);
+  const pollPath = `${pollUrl.pathname}${pollUrl.search}`;
+  const startedAt = Date.now();
+  const timeoutMs = 10 * 60 * 1000;
+
+  while (Date.now() - startedAt < timeoutMs) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    const result = await requestJson({
+      path: pollPath,
+      baseUrl: globalOptions.baseUrl,
+    });
+
+    if (result.status === "complete" && result.token) {
+      saveConfig({
+        ...loadConfig(),
+        baseUrl: globalOptions.baseUrl,
+        token: result.token,
+      });
+      return result.token;
+    }
+
+    if (result.status === "expired") {
+      fail("Device code expired. Run setup again.");
+    }
+  }
+
+  fail(`Timed out waiting for browser approval for ${tokenName}.`);
+}
+
 async function authenticateForAgent(rest, globalOptions, config, tokenName) {
   const explicitToken = flagValue(rest, "--token");
   const email = flagValue(rest, "--email");
@@ -1622,7 +1694,11 @@ async function authenticateForAgent(rest, globalOptions, config, tokenName) {
     return result.token;
   }
 
-  return requireToken(config);
+  if (config?.token) {
+    return requireToken(config);
+  }
+
+  return startDeviceAuthorization(globalOptions, tokenName);
 }
 
 function verifySidekickCli(baseUrl, sidekickPath) {
@@ -1670,50 +1746,69 @@ function verifySidekickCli(baseUrl, sidekickPath) {
   return checks;
 }
 
-function ensureDirectoryCopy(sourceDir, targetDir) {
-  if (!existsSync(sourceDir)) {
-    fail(`Required packaged resource is missing: ${sourceDir}`);
+async function downloadMethodology(baseUrl) {
+  const methodologyUrl = `${baseUrl}/api/agent/methodology`;
+  const response = await fetch(methodologyUrl);
+  if (!response.ok) {
+    fail(`Failed to download methodology from ${methodologyUrl}: ${response.status}`);
   }
-  mkdirSync(dirname(targetDir), { recursive: true });
-  cpSync(sourceDir, targetDir, {
-    recursive: true,
-    force: true,
-  });
-}
-
-function installCodexPlugin() {
-  ensureDirectoryCopy(CODEX_PLUGIN_TEMPLATE_DIR, CODEX_RUNTIME.pluginDir);
-  const marketplace = upsertMarketplacePlugin(
-    loadJsonFile(CODEX_RUNTIME.marketplacePath, null),
-    DEFAULT_CODEX_PLUGIN_NAME
-  );
-  mkdirSync(dirname(CODEX_RUNTIME.marketplacePath), { recursive: true });
-  writeFileSync(CODEX_RUNTIME.marketplacePath, `${JSON.stringify(marketplace, null, 2)}\n`);
-
   return {
-    pluginDir: CODEX_RUNTIME.pluginDir,
-    manifestPath: join(CODEX_RUNTIME.pluginDir, ".codex-plugin", "plugin.json"),
-    marketplacePath: CODEX_RUNTIME.marketplacePath,
+    methodologyUrl,
+    content: await response.text(),
   };
 }
 
-function installCodexSkillsFallback() {
-  const sourceSkillsDir = join(CODEX_PLUGIN_TEMPLATE_DIR, "skills");
-  if (!existsSync(sourceSkillsDir)) {
-    fail(`Required packaged resource is missing: ${sourceSkillsDir}`);
+function getCodexInstallTarget(isProject) {
+  return isProject
+    ? {
+        scope: "project",
+        skillDir: CODEX_RUNTIME.projectSkillDir,
+        skillPath: CODEX_RUNTIME.projectSkillPath,
+        metadataPath: CODEX_RUNTIME.projectMetadataPath,
+      }
+    : {
+        scope: "user",
+        skillDir: CODEX_RUNTIME.userSkillDir,
+        skillPath: CODEX_RUNTIME.userSkillPath,
+        metadataPath: CODEX_RUNTIME.userMetadataPath,
+      };
+}
+
+function installCodexSkill(methodology, { isProject }) {
+  const target = getCodexInstallTarget(isProject);
+  mkdirSync(dirname(target.metadataPath), { recursive: true });
+  writeFileSync(target.skillPath, methodology, "utf8");
+  writeFileSync(target.metadataPath, buildCodexSkillMetadata(), "utf8");
+
+  return {
+    ...target,
+    skillName: DEFAULT_CODEX_SKILL_NAME,
+  };
+}
+
+async function resolveResearcherIdentity(rest) {
+  let authorName = flagValue(rest, "--author-name") || loadConfig().authorName;
+  let authorAffiliation = flagValue(rest, "--affiliation") || loadConfig().authorAffiliation;
+
+  if (!authorName && process.stdin.isTTY) {
+    console.log("\n--- Researcher Identity ---");
+    console.log("Your name will appear as the author on all papers you publish.\n");
+    authorName = await promptUser("What is your name? ");
+    if (!authorName) {
+      fail("Author name is required.");
+    }
+    const affiliation = await promptUser("Institutional affiliation (optional, press Enter to skip): ");
+    if (affiliation) {
+      authorAffiliation = affiliation;
+    }
+  } else if (!authorName) {
+    fail("Author name is required. Pass --author-name \"Your Name\" or run setup interactively.");
   }
 
-  mkdirSync(CODEX_RUNTIME.fallbackSkillsDir, { recursive: true });
-  const installed = [];
-
-  for (const skillName of readdirSync(sourceSkillsDir)) {
-    const sourceDir = join(sourceSkillsDir, skillName);
-    const targetDir = join(CODEX_RUNTIME.fallbackSkillsDir, skillName);
-    ensureDirectoryCopy(sourceDir, targetDir);
-    installed.push(targetDir);
-  }
-
-  return installed;
+  return {
+    authorName,
+    authorAffiliation,
+  };
 }
 
 async function handleConfig(args, globalOptions, config) {
@@ -1767,19 +1862,96 @@ async function handleSetup(args, globalOptions, config) {
     return;
   }
 
-  if (runtime !== "claude-code") {
-    fail(`Unknown runtime: ${runtime}. Supported: claude-code`);
-  }
-
   const isProject = hasFlag(rest, "--project");
   const isUninstall = hasFlag(rest, "--uninstall");
+
+  if (runtime === "codex") {
+    const codexTarget = getCodexInstallTarget(isProject);
+
+    if (isUninstall) {
+      if (existsSync(codexTarget.skillPath)) {
+        unlinkSync(codexTarget.skillPath);
+        if (existsSync(codexTarget.metadataPath)) {
+          unlinkSync(codexTarget.metadataPath);
+        }
+        render(
+          {
+            ok: true,
+            runtime: "codex",
+            removed: codexTarget.skillPath,
+            metadataRemoved: codexTarget.metadataPath,
+            scope: codexTarget.scope,
+            nextStep: `The ${DEFAULT_CODEX_SKILL_NAME} skill has been removed.`,
+          },
+          globalOptions.outputMode
+        );
+      } else {
+        render(
+          {
+            ok: true,
+            runtime: "codex",
+            message: "No Codex skill found to remove.",
+            scope: codexTarget.scope,
+          },
+          globalOptions.outputMode
+        );
+      }
+      return;
+    }
+
+    const token = await authenticateForAgent(rest, globalOptions, config, "Codex setup");
+    const { authorName, authorAffiliation } = await resolveResearcherIdentity(rest);
+    const methodology = await downloadMethodology(globalOptions.baseUrl);
+    const installedSkill = installCodexSkill(methodology.content, { isProject });
+
+    saveConfig({
+      ...loadConfig(),
+      baseUrl: globalOptions.baseUrl,
+      token,
+      authorName,
+      ...(authorAffiliation ? { authorAffiliation } : {}),
+    });
+
+    const verification = [];
+    try {
+      const whoami = await requestJson({
+        path: "/api/v1/me",
+        baseUrl: globalOptions.baseUrl,
+        token,
+      });
+      verification.push({ check: "auth", ok: true, user: whoami.handle || whoami.name });
+    } catch {
+      verification.push({ check: "auth", ok: false });
+    }
+
+    render(
+      {
+        ok: true,
+        runtime: "codex",
+        skillName: installedSkill.skillName,
+        skillPath: installedSkill.skillPath,
+        metadataPath: installedSkill.metadataPath,
+        scope: installedSkill.scope,
+        configPath: CONFIG_PATH,
+        methodologyUrl: methodology.methodologyUrl,
+        verification,
+        nextStep:
+          "In Codex, run /skills and choose agentscience, or type $agentscience directly to activate the research scientist.",
+      },
+      globalOptions.outputMode
+    );
+    return;
+  }
+
+  if (runtime !== "claude-code") {
+    fail(`Unknown runtime: ${runtime}. Supported: codex, claude-code`);
+  }
 
   const commandDir = isProject
     ? join(process.cwd(), ".claude", "commands")
     : join(homedir(), ".claude", "commands");
   const commandPath = join(commandDir, "agentscience.md");
 
-  // Handle uninstall
   if (isUninstall) {
     if (existsSync(commandPath)) {
       unlinkSync(commandPath);
@@ -1807,28 +1979,9 @@ async function handleSetup(args, globalOptions, config) {
     return;
   }
 
-  // Authenticate
   const token = await authenticateForAgent(rest, globalOptions, config, "Claude Code setup");
-
-  // Collect researcher identity (name required, affiliation optional)
-  let authorName = flagValue(rest, "--author-name") || loadConfig().authorName;
-  let authorAffiliation = flagValue(rest, "--affiliation") || loadConfig().authorAffiliation;
-
-  if (!authorName && process.stdin.isTTY) {
-    console.log("\n--- Researcher Identity ---");
-    console.log("Your name will appear as the author on all papers you publish.\n");
-    authorName = await promptUser("What is your name? ");
-    if (!authorName) {
-      fail("Author name is required.");
-    }
-    const affiliation = await promptUser("Institutional affiliation (optional, press Enter to skip): ");
-    if (affiliation) {
-      authorAffiliation = affiliation;
-    }
-  } else if (!authorName) {
-    // Non-interactive — require --author-name flag
-    fail("Author name is required. Pass --author-name \"Your Name\" or run setup interactively.");
-  }
+  const { authorName, authorAffiliation } = await resolveResearcherIdentity(rest);
+  const methodology = await downloadMethodology(globalOptions.baseUrl);
 
   saveConfig({
     ...loadConfig(),
@@ -1838,18 +1991,9 @@ async function handleSetup(args, globalOptions, config) {
     ...(authorAffiliation ? { authorAffiliation } : {}),
   });
 
-  // Download methodology as slash command
   mkdirSync(commandDir, { recursive: true });
+  writeFileSync(commandPath, methodology.content, "utf8");
 
-  const methodologyUrl = `${globalOptions.baseUrl}/api/agent/methodology`;
-  const response = await fetch(methodologyUrl);
-  if (!response.ok) {
-    fail(`Failed to download methodology from ${methodologyUrl}: ${response.status}`);
-  }
-  const methodology = await response.text();
-  writeFileSync(commandPath, methodology, "utf8");
-
-  // Verify auth
   const verification = [];
   try {
     const whoami = await requestJson({
@@ -1869,6 +2013,7 @@ async function handleSetup(args, globalOptions, config) {
       commandPath,
       scope: isProject ? "project" : "user",
       configPath: CONFIG_PATH,
+      methodologyUrl: methodology.methodologyUrl,
       verification,
       nextStep: "Type /agentscience in any Claude Code conversation to activate the research scientist.",
     },
@@ -1893,41 +2038,7 @@ async function handleCodex(args, globalOptions, config) {
     return;
   }
 
-  const token = await authenticateForAgent(rest, globalOptions, config, "Codex bootstrap");
-  const skipPluginInstall = hasFlag(rest, "--skip-plugin-install");
-  const skipSkillInstall = hasFlag(rest, "--skip-skill-install");
-  const skipVerification = hasFlag(rest, "--skip-verification");
-  const sidekickPath = ensureLocalCliSymlink();
-
-  saveConfig({
-    ...loadConfig(),
-    baseUrl: globalOptions.baseUrl,
-    token,
-  });
-
-  const pluginInstall = skipPluginInstall ? null : installCodexPlugin();
-  const fallbackSkills = skipSkillInstall ? [] : installCodexSkillsFallback();
-  const verification = skipVerification
-    ? []
-    : verifySidekickCli(globalOptions.baseUrl, sidekickPath);
-
-  render(
-    {
-      ok: true,
-      onboarding: {
-        configPath: CONFIG_PATH,
-        pluginInstalled: Boolean(pluginInstall),
-        pluginDir: pluginInstall?.pluginDir ?? null,
-        pluginManifestPath: pluginInstall?.manifestPath ?? null,
-        marketplacePath: pluginInstall?.marketplacePath ?? null,
-        fallbackSkills,
-        sidekickPath,
-        restartInstruction: "Start a new Codex thread before using Agent Science.",
-        verification,
-      },
-    },
-    globalOptions.outputMode
-  );
+  await handleSetup(["codex", ...rest], globalOptions, config);
 }
 
 async function handleOpenClaw(args, globalOptions, config) {

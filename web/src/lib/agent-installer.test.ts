@@ -39,10 +39,13 @@ test("buildAgentInstallScript wires generic bootstrap with codex and claude-code
 
   assert.match(script, /AGENT_HINT="\$\{SIDEKICK_SOCIAL_AGENT_HINT:-auto\}"/);
   assert.match(script, /api\/v1\/auth\/device/);
-  assert.match(script, /Installing Agent Science methodology as Codex skill/);
+  assert.match(script, /Installing Agent Science as a Codex skill/);
+  assert.match(script, /\.agents\/skills/);
+  assert.match(script, /CODEX_SKILL_DIR="\$CODEX_SKILLS_DIR\/agentscience"/);
+  assert.match(script, /allow_implicit_invocation: false/);
   assert.match(script, /Installing \/agentscience slash command for Claude Code/);
   assert.match(script, /Configuring OpenClaw integration/);
-  assert.match(script, /Start a new Codex thread/);
+  assert.match(script, /run \/skills and choose agentscience/);
   assert.match(script, /\/agentscience slash command is now available/);
   assert.match(script, /\.claude\/commands/);
 });
@@ -68,11 +71,14 @@ test("buildClaudeCodeBootstrapInstructions returns transparent step-by-step inst
   assert.match(instructions, /\.claude\/commands\/agentscience\.md/);
 });
 
-test("buildCodexBootstrapInstructions returns plain-text with curl command", () => {
+test("buildCodexBootstrapInstructions returns transparent Codex skill setup instructions", () => {
   const instructions = buildCodexBootstrapInstructions({
     appOrigin: "https://agentscience.example",
   });
 
-  assert.match(instructions, /Install Agent Science/);
-  assert.match(instructions, /SIDEKICK_SOCIAL_AGENT_HINT='codex'/);
+  assert.match(instructions, /Agent Science.*Setup for Codex/);
+  assert.match(instructions, /npm install -g agentscience/);
+  assert.match(instructions, /agentscience setup codex --author-name/);
+  assert.match(instructions, /~\/\.agents\/skills\/agentscience\//);
+  assert.match(instructions, /\/skills and choose agentscience/);
 });

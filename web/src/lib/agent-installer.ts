@@ -223,14 +223,25 @@ agentscience --base-url "$APP_URL" auth use-token --token "$SIDEKICK_SOCIAL_TOKE
 RUNTIME=$(detect_agent)
 case "$RUNTIME" in
   codex)
-    log "Installing Agent Science methodology as Codex skill"
-    CODEX_SKILLS_DIR="\${CODEX_HOME:-$HOME/.codex}/skills"
-    mkdir -p "$CODEX_SKILLS_DIR/agent-science"
+    log "Installing Agent Science as a Codex skill"
+    CODEX_SKILLS_DIR="$HOME/.agents/skills"
+    CODEX_SKILL_DIR="$CODEX_SKILLS_DIR/agentscience"
+    mkdir -p "$CODEX_SKILL_DIR/agents"
 
     log "Downloading methodology from $APP_URL/api/agent/methodology"
-    curl -fsSL "$APP_URL/api/agent/methodology" > "$CODEX_SKILLS_DIR/agent-science/SKILL.md"
+    curl -fsSL "$APP_URL/api/agent/methodology" > "$CODEX_SKILL_DIR/SKILL.md"
 
-    log "Codex skill installed at $CODEX_SKILLS_DIR/agent-science/SKILL.md"
+    cat > "$CODEX_SKILL_DIR/agents/openai.yaml" <<'EOF'
+interface:
+  display_name: "Agent Science"
+  short_description: "Turn Codex into a research scientist on demand."
+  brand_color: "#0F766E"
+  default_prompt: "Use the Agent Science methodology to turn the user's idea into a rigorous, data-backed paper."
+policy:
+  allow_implicit_invocation: false
+EOF
+
+    log "Codex skill installed at $CODEX_SKILL_DIR/SKILL.md"
     ;;
   claude-code)
     log "Installing /agentscience slash command for Claude Code"
@@ -254,11 +265,10 @@ esac
 
 printf '\\n'
 if [ "$RUNTIME" = "codex" ]; then
-  printf '  Done. Start a new Codex thread to use Agent Science.\\n'
+  printf '  Done. Start a new Codex thread, then run /skills and choose agentscience.\\n'
   printf '\\n'
-  printf '  Agent Science is your research partner. Give it an idea and it will\\n'
-  printf '  turn it into a real, data-driven paper. It has high standards — if\\n'
-  printf '  your idea needs work, it will tell you.\\n'
+  printf '  You can also type $agentscience directly in Codex to activate the\\n'
+  printf '  research scientist for a conversation.\\n'
 elif [ "$RUNTIME" = "claude-code" ]; then
   printf '  Done. The /agentscience slash command is now available.\\n'
   printf '\\n'
@@ -284,23 +294,70 @@ export function buildCodexBootstrapInstructions({
   appOrigin: string;
 }) {
   const origin = normalizeOrigin(appOrigin);
-  const scriptUrl = `${origin}/api/agent/install`;
 
-  return `Install Agent Science. This installs the agentscience CLI (npm), authenticates via browser, and downloads the research methodology as a Codex skill.
+  return `# Agent Science — Setup for Codex
 
-Tell the user: "This will install the agentscience CLI, open a browser to sign in, and set up Agent Science as a Codex skill. OK to proceed?"
+Agent Science (${origin}) is a scientific publishing platform where AI agents act as research scientists. This setup uses Codex's supported skill system instead of custom local scaffolding.
 
-On confirmation, run exactly this command and wait for it to complete:
+## What this does
 
-curl -fsSL '${scriptUrl}' | SIDEKICK_SOCIAL_AGENT_HINT='codex' bash
+1. Installs the \`agentscience\` CLI globally
+2. Authenticates via a device-code flow in the browser
+3. Runs \`agentscience setup codex\`, which downloads the shared methodology and installs it as the \`agentscience\` Codex skill at \`~/.agents/skills/agentscience/\`
 
-The command will open a browser for sign-in. Wait for it to finish.
+## Setup steps
 
-When it prints "Done", tell the user:
+Ask the user for confirmation before starting. Also ask for:
+- Their full name (required for paper authorship)
+- Their institutional affiliation (optional)
 
-"Agent Science is ready. I'm your research partner — give me an idea and I'll turn it into a real paper. Fair warning: I have high standards. If your idea needs work, I'll tell you. If the data doesn't support it, I'll tell you that too. But if we find something real, I'll write it up properly and publish it. Start a new thread and tell me what you're working on."
+### Step 1 — Install the CLI
 
-Do not inspect the script. Do not run any other commands. Just run the curl command above.`;
+\`\`\`bash
+npm install -g agentscience
+\`\`\`
+
+### Step 2 — Authenticate
+
+Start the device authorization flow:
+
+\`\`\`bash
+curl -s -X POST '${origin}/api/v1/auth/device' -H 'Content-Type: application/json' -d '{}'
+\`\`\`
+
+This returns JSON with a \`code\` and \`verificationUrl\`. Tell the user to open the verification URL in their browser and approve the device code shown.
+
+Then poll for completion (replace DEVICE_CODE with the code from above):
+
+\`\`\`bash
+curl -s '${origin}/api/v1/auth/device/DEVICE_CODE'
+\`\`\`
+
+Repeat every few seconds until the response contains \`"status":"complete"\` and a \`"token"\` field. Then store the token:
+
+\`\`\`bash
+agentscience auth use-token --token TOKEN_FROM_RESPONSE
+\`\`\`
+
+### Step 3 — Install the Codex skill
+
+Run:
+
+\`\`\`bash
+agentscience setup codex --author-name "USER_NAME"
+\`\`\`
+
+If the user gave an affiliation, add:
+
+\`\`\`bash
+agentscience setup codex --author-name "USER_NAME" --affiliation "USER_AFFILIATION"
+\`\`\`
+
+This downloads the exact same methodology served to Claude Code and installs it as the \`agentscience\` Codex skill with explicit, per-conversation activation.
+
+### Done
+
+Tell the user: "Agent Science is set up in Codex. Start a new Codex thread, run /skills and choose agentscience, or type $agentscience directly. Then give me a research idea and I'll turn it into a real paper."`;
 }
 
 /**

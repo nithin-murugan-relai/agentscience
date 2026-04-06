@@ -2,22 +2,28 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  DEFAULT_CODEX_PLUGIN_NAME,
+  DEFAULT_CODEX_SKILL_NAME,
+  buildCodexSkillMetadata,
   detectAgentRuntime,
   getCodexPaths,
-  upsertMarketplacePlugin,
 } from "./codex.mjs";
 
-test("getCodexPaths uses the expected home-local locations", () => {
+test("getCodexPaths uses official Codex skill locations", () => {
   const paths = getCodexPaths({
     homeDir: "/tmp/example",
-    codexHome: "/tmp/example/.codex-custom",
+    cwd: "/tmp/example/project",
   });
 
-  assert.equal(paths.pluginName, DEFAULT_CODEX_PLUGIN_NAME);
-  assert.equal(paths.pluginDir, "/tmp/example/plugins/agent-science");
-  assert.equal(paths.marketplacePath, "/tmp/example/.agents/plugins/marketplace.json");
-  assert.equal(paths.fallbackSkillsDir, "/tmp/example/.codex-custom/skills");
+  assert.equal(paths.skillName, DEFAULT_CODEX_SKILL_NAME);
+  assert.equal(paths.userSkillsDir, "/tmp/example/.agents/skills");
+  assert.equal(paths.userSkillDir, "/tmp/example/.agents/skills/agentscience");
+  assert.equal(paths.userSkillPath, "/tmp/example/.agents/skills/agentscience/SKILL.md");
+  assert.equal(
+    paths.userMetadataPath,
+    "/tmp/example/.agents/skills/agentscience/agents/openai.yaml"
+  );
+  assert.equal(paths.projectSkillsDir, "/tmp/example/project/.agents/skills");
+  assert.equal(paths.projectSkillDir, "/tmp/example/project/.agents/skills/agentscience");
 });
 
 test("detectAgentRuntime honors explicit hints and runtime presence", () => {
@@ -28,53 +34,13 @@ test("detectAgentRuntime honors explicit hints and runtime presence", () => {
   assert.equal(detectAgentRuntime({}), "none");
 });
 
-test("upsertMarketplacePlugin preserves metadata and replaces existing plugin entries", () => {
-  const marketplace = upsertMarketplacePlugin({
-    name: "custom-marketplace",
-    interface: {
-      displayName: "Custom Plugins",
-    },
-    plugins: [
-      {
-        name: "other-plugin",
-        source: {
-          source: "local",
-          path: "./plugins/other-plugin",
-        },
-        policy: {
-          installation: "AVAILABLE",
-          authentication: "ON_INSTALL",
-        },
-        category: "Productivity",
-      },
-      {
-        name: "agent-science",
-        source: {
-          source: "local",
-          path: "./plugins/agent-science-old",
-        },
-        policy: {
-          installation: "NOT_AVAILABLE",
-          authentication: "ON_USE",
-        },
-        category: "Old",
-      },
-    ],
-  });
+test("buildCodexSkillMetadata disables implicit invocation and exposes UI metadata", () => {
+  const metadata = buildCodexSkillMetadata();
 
-  assert.equal(marketplace.name, "custom-marketplace");
-  assert.equal(marketplace.interface.displayName, "Custom Plugins");
-  assert.equal(marketplace.plugins.length, 2);
-  assert.deepEqual(marketplace.plugins[1], {
-    name: "agent-science",
-    source: {
-      source: "local",
-      path: "./plugins/agent-science",
-    },
-    policy: {
-      installation: "AVAILABLE",
-      authentication: "ON_INSTALL",
-    },
-    category: "Research",
-  });
+  assert.match(metadata, /display_name: "Agent Science"/);
+  assert.match(metadata, /allow_implicit_invocation: false/);
+  assert.match(
+    metadata,
+    /default_prompt: "Use the Agent Science methodology to turn the user's idea into a rigorous, data-backed paper\."/
+  );
 });

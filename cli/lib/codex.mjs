@@ -1,19 +1,24 @@
-export const DEFAULT_CODEX_PLUGIN_NAME = "agent-science";
+export const DEFAULT_CODEX_SKILL_NAME = "agentscience";
 
 export function getCodexPaths({
   homeDir,
-  codexHome,
-  pluginName = DEFAULT_CODEX_PLUGIN_NAME,
+  cwd,
+  skillName = DEFAULT_CODEX_SKILL_NAME,
 }) {
-  const resolvedCodexHome = codexHome || `${homeDir}/.codex`;
+  const resolvedCwd = cwd || process.cwd();
+  const userSkillDir = `${homeDir}/.agents/skills/${skillName}`;
+  const projectSkillDir = `${resolvedCwd}/.agents/skills/${skillName}`;
 
   return {
-    codexHome: resolvedCodexHome,
-    pluginName,
-    pluginDir: `${homeDir}/plugins/${pluginName}`,
-    marketplacePath: `${homeDir}/.agents/plugins/marketplace.json`,
-    fallbackSkillsDir: `${resolvedCodexHome}/skills`,
-    pluginSkillsSource: "skills",
+    skillName,
+    userSkillsDir: `${homeDir}/.agents/skills`,
+    userSkillDir,
+    userSkillPath: `${userSkillDir}/SKILL.md`,
+    userMetadataPath: `${userSkillDir}/agents/openai.yaml`,
+    projectSkillsDir: `${resolvedCwd}/.agents/skills`,
+    projectSkillDir,
+    projectSkillPath: `${projectSkillDir}/SKILL.md`,
+    projectMetadataPath: `${projectSkillDir}/agents/openai.yaml`,
   };
 }
 
@@ -38,50 +43,18 @@ export function detectAgentRuntime({
   return "none";
 }
 
-export function upsertMarketplacePlugin(existingMarketplace, pluginName = DEFAULT_CODEX_PLUGIN_NAME) {
-  const marketplace =
-    existingMarketplace &&
-    typeof existingMarketplace === "object" &&
-    !Array.isArray(existingMarketplace)
-      ? existingMarketplace
-      : {};
-  const existingPlugins = Array.isArray(marketplace.plugins) ? marketplace.plugins : [];
-  const withoutCurrent = existingPlugins.filter((plugin) => plugin?.name !== pluginName);
-
-  return {
-    name:
-      typeof marketplace.name === "string" && marketplace.name.trim()
-        ? marketplace.name
-        : "agent-science-local",
-    interface:
-      marketplace.interface &&
-      typeof marketplace.interface === "object" &&
-      !Array.isArray(marketplace.interface)
-        ? {
-            ...marketplace.interface,
-            displayName:
-              typeof marketplace.interface.displayName === "string" &&
-              marketplace.interface.displayName.trim()
-                ? marketplace.interface.displayName
-                : "Agent Science Local Plugins",
-          }
-        : {
-            displayName: "Agent Science Local Plugins",
-          },
-    plugins: [
-      ...withoutCurrent,
-      {
-        name: pluginName,
-        source: {
-          source: "local",
-          path: `./plugins/${pluginName}`,
-        },
-        policy: {
-          installation: "AVAILABLE",
-          authentication: "ON_INSTALL",
-        },
-        category: "Research",
-      },
-    ],
-  };
+export function buildCodexSkillMetadata({
+  displayName = "Agent Science",
+  shortDescription = "Turn Codex into a research scientist on demand.",
+  defaultPrompt = "Use the Agent Science methodology to turn the user's idea into a rigorous, data-backed paper.",
+  brandColor = "#0F766E",
+} = {}) {
+  return `interface:
+  display_name: "${displayName}"
+  short_description: "${shortDescription}"
+  brand_color: "${brandColor}"
+  default_prompt: "${defaultPrompt}"
+policy:
+  allow_implicit_invocation: false
+`;
 }
