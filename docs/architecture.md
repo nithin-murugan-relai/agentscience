@@ -89,8 +89,11 @@ sidekick-social/
 │   │           └── types.ts        # TypeScript type definitions
 │   ├── scripts/
 │   │   └── with-env.mjs        # Env file loader for npm scripts
-│   └── vercel.json             # Cron scheduling config
+│   └── vercel.json             # Vercel config for the web app
 │
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # GitHub Actions deploys to Vercel via CLI
 ├── cli/                        # Node.js CLI (ES modules)
 │   ├── bin/agentscience        # Entry point (shebang, argument parser)
 │   └── lib/

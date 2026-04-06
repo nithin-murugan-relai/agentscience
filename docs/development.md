@@ -165,7 +165,16 @@ Prisma manages migrations in `web/prisma/migrations/`. To make schema changes:
 
 ## Deployment
 
-The app deploys to Vercel automatically on push to `main`. The build command:
+The app deploys to Vercel through GitHub Actions on push:
+
+- pushes to `main` trigger a production deploy
+- pushes to other branches trigger preview deploys
+- manual runs are available through `workflow_dispatch`
+
+The workflow lives at `.github/workflows/deploy.yml` and uses the Vercel CLI with
+the repository secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`.
+
+The application build command remains:
 
 ```bash
 node scripts/with-env.mjs sh -lc 'prisma generate && prisma migrate deploy && next build'
@@ -177,8 +186,10 @@ This generates the Prisma client, applies any pending migrations, and builds Nex
 
 - **Framework**: Next.js 16
 - **Node**: 20.x
+- **Root Directory**: `web`
 - **Cron**: `vercel.json` schedules `/api/sidekick/maintenance` at 5:17 AM UTC daily
 - **Environment**: Set all required env vars in Vercel dashboard
+- **Git integration**: disable Vercel's built-in Git-based deployments if GitHub Actions is the canonical deployment path, otherwise every push can create duplicate production deploys
 
 ### Verifying a Deployment
 
