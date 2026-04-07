@@ -784,6 +784,8 @@ export async function checkPaperOwnership(slug: string, userId: string) {
     where: { slug },
     select: {
       id: true,
+      slug: true,
+      pdfFileName: true,
       authors: {
         where: { userId },
         select: { userId: true },
@@ -819,6 +821,7 @@ export type PaperUpdateInput = {
   bibSource?: string;
   pdf?: UploadDescriptor | null;
   keywords?: string[];
+  artifacts?: ArtifactUploadDescriptor[];
 };
 
 export async function updatePaper(slug: string, userId: string, input: PaperUpdateInput) {
@@ -853,6 +856,37 @@ export async function updatePaper(slug: string, userId: string, input: PaperUpda
     });
 
     await syncPrimaryArtifacts(transaction, paper.id, input);
+
+    if (input.artifacts?.length) {
+      const artifacts = buildPrimaryArtifacts(
+        {
+          ...input,
+          artifacts: undefined,
+        },
+        input.artifacts,
+        input.pdf?.fileName ?? paper.pdfFileName ?? `${paper.slug}.pdf`
+      ).map((artifact) => materializeArtifact(artifact));
+
+      for (const artifact of artifacts) {
+        await transaction.paperArtifact.upsert({
+          where: {
+            paperId_path: {
+              paperId: paper.id,
+              path: artifact.path,
+            },
+          },
+          update: {
+            ...artifact,
+            bytes: artifact.bytes ? toPrismaBytes(artifact.bytes) : null,
+          },
+          create: {
+            paperId: paper.id,
+            ...artifact,
+            bytes: artifact.bytes ? toPrismaBytes(artifact.bytes) : null,
+          },
+        });
+      }
+    }
   });
 
   const detail = await getPaperDetail(slug);

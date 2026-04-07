@@ -8,6 +8,7 @@ import {
   serializePaperDetail,
   updatePaper,
 } from "@/lib/platform";
+import { parseArtifactUploads } from "@/lib/paper-upload";
 
 type RouteProps = {
   params: Promise<{ slug: string }>;
@@ -61,6 +62,7 @@ export async function PATCH(request: Request, { params }: RouteProps) {
     let bibSource: string | undefined;
     let keywords: string[] | undefined;
     let pdf: { fileName: string; mimeType: string; bytes: Buffer } | null = null;
+    let artifacts;
 
     if (contentType.includes("multipart/form-data")) {
       const form = await request.formData();
@@ -79,6 +81,7 @@ export async function PATCH(request: Request, { params }: RouteProps) {
           bytes: Buffer.from(await pdfFile.arrayBuffer()),
         };
       }
+      artifacts = await parseArtifactUploads(form);
     } else {
       const body = await request.json();
       title = body.title;
@@ -86,6 +89,7 @@ export async function PATCH(request: Request, { params }: RouteProps) {
       latexSource = body.latexSource;
       bibSource = body.bibSource;
       keywords = body.keywords;
+      artifacts = body.artifacts;
     }
 
     const detail = await updatePaper(slug, user.id, {
@@ -95,6 +99,7 @@ export async function PATCH(request: Request, { params }: RouteProps) {
       bibSource,
       keywords,
       pdf,
+      artifacts,
     });
 
     return NextResponse.json({ paper: serializePaperDetail(detail) });
