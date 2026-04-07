@@ -1,41 +1,5 @@
 # TODO
 
-## Rename sidekick-social → agentscience Everywhere
-
-Legacy `sidekick-social` branding is scattered across the repo — 346 occurrences in 32 files. Everything should say `agentscience`.
-
-### Scope
-
-| Category | What to rename | Files |
-|---|---|---|
-| **Env vars** | `SIDEKICK_SOCIAL_TOKEN` → `AGENTSCIENCE_TOKEN`, `SIDEKICK_SOCIAL_BASE_URL` → `AGENTSCIENCE_BASE_URL`, `SIDEKICK_SOCIAL_AGENT_HINT` → `AGENTSCIENCE_AGENT_HINT`, `SIDEKICK_SOCIAL_EMAIL` → `AGENTSCIENCE_EMAIL`, `SIDEKICK_SOCIAL_PASSWORD` → `AGENTSCIENCE_PASSWORD`, `SIDEKICK_SOCIAL_NPM_SPEC` → `AGENTSCIENCE_NPM_SPEC` | `cli/bin/agentscience` (83 hits), `cli/lib/pipeline.mjs`, `web/src/lib/agent-installer.ts`, `web/src/lib/agent-installer.test.ts`, `research/pipeline.mjs` |
-| **Config path** | `~/.config/sidekick-social/config.json` → `~/.config/agentscience/config.json` | `cli/bin/agentscience` (CONFIG_DIR constant) |
-| **CLI help text** | All `sidekick-social` command examples → `agentscience` | `cli/bin/agentscience` (HELP object, ~30 lines of examples) |
-| **HTML markers** | `<!-- sidekick-social:start -->` / `<!-- sidekick-social:end -->` → `<!-- agentscience:start -->` / `<!-- agentscience:end -->` | `cli/bin/agentscience` |
-| **CLI bin alias** | Remove `"sidekick-social"` alias from `bin` field | `cli/package.json` |
-| **Bash installer** | All `SIDEKICK_SOCIAL_*` env vars in generated shell script | `web/src/lib/agent-installer.ts` |
-| **OpenClaw plugin** | Package name, description, env var refs | `openclaw/sidekick-social-plugin/` (index.ts, package.json, openclaw.plugin.json), `cli/resources/openclaw-plugin/` (same files) |
-| **Docs** | Scattered references | `docs/openclaw-integration.md` (36 hits), `docs/development.md`, `docs/api-reference.md`, `docs/architecture.md`, `docs/codex-integration.md`, `docs/vision.md`, `README.md` |
-| **Web** | Config reference, env example | `web/src/lib/sidekick/config.ts`, `web/.env.example` |
-| **Research outputs** | Historical .tex and pipeline-output.json files | `research-runs/*/` — these are generated artifacts, rename for consistency but low priority |
-
-### Approach
-
-No backwards compatibility, no fallback code. There are no external users yet — this is a clean cut. Every `sidekick-social` and `SIDEKICK_SOCIAL` reference should be replaced with `agentscience` and `AGENTSCIENCE` respectively. No dual-read logic, no migration paths, no legacy aliases. Just rename everything and make sure it works.
-
-- Config path: `~/.config/agentscience/config.json` — delete any reference to the old path
-- Env vars: `AGENTSCIENCE_TOKEN`, `AGENTSCIENCE_BASE_URL`, etc. — no `?? process.env.SIDEKICK_SOCIAL_*` fallbacks
-- CLI bin alias: Remove `"sidekick-social"` from `cli/package.json` `bin` field entirely
-- Bash installer: Use `AGENTSCIENCE_*` env vars only
-- OpenClaw plugin directory: Consider renaming `openclaw/sidekick-social-plugin/` → `openclaw/agentscience-plugin/` if feasible
-
-### Verification
-
-- Run all existing tests after rename (`npx tsx --test` in `web/` and `node --test` in `cli/`)
-- `grep -ri "sidekick.social\|sidekick-social\|SIDEKICK_SOCIAL" --include="*.ts" --include="*.tsx" --include="*.mjs" --include="*.js" --include="*.json" --include="*.md"` should return zero hits (excluding `node_modules/`)
-- Deploy to Vercel and verify install endpoint generates valid scripts with new env var names
-- Run `agentscience auth whoami` to confirm new config path works
-
 ## Dataset Registry Self-Improvement
 
 - When a paper passes validation and the agent confirms it used a quality dataset, prompt the user to add that dataset to the registry as part of the publish flow. This creates a self-improving network: every good paper enriches the registry with niche datasets, making future research stronger. The flow would be:

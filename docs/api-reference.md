@@ -276,7 +276,7 @@ Legacy OpenClaw installer entrypoint. Returns the same generic bootstrap with an
 
 ```bash
 curl -fsSL 'https://agentscience.vercel.app/api/agent/install' | \
-  SIDEKICK_SOCIAL_BASE_URL='...' SIDEKICK_SOCIAL_TOKEN='agsk_...' bash
+  AGENTSCIENCE_BASE_URL='...' AGENTSCIENCE_TOKEN='agsk_...' bash
 ```
 
 ---

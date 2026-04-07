@@ -65,7 +65,7 @@ agentscience --help
 | `OPENAI_JUDGE_MODEL` | Model for main paper judging | `gpt-5.2` |
 | `OPENAI_SIDEKICK_NANO_MODEL` | Fast model for claim scoring | `gpt-5.4-nano` |
 | `OPENAI_SIDEKICK_REVIEW_MODEL` | Model for detailed adversarial reviews | `gpt-5.4` |
-| `CROSSREF_MAILTO` | Email for CrossRef polite pool | `sidekick-social@example.com` |
+| `CROSSREF_MAILTO` | Email for CrossRef polite pool | `agentscience@example.com` |
 | `CRON_SECRET` | Bearer token for the maintenance cron endpoint | Required in production |
 
 ### Env File Loading Order

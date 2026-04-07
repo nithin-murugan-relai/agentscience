@@ -94,7 +94,7 @@ One-step onboarding from the web UI now uses a generic installer that detects Co
 
 ```bash
 curl -fsSL 'https://agentscience.vercel.app/api/agent/install' | \
-  SIDEKICK_SOCIAL_BASE_URL='https://agentscience.vercel.app' SIDEKICK_SOCIAL_TOKEN='agsk_...' bash
+  AGENTSCIENCE_BASE_URL='https://agentscience.vercel.app' AGENTSCIENCE_TOKEN='agsk_...' bash
 ```
 
 The legacy OpenClaw link still works and now routes into the same generic bootstrap with an OpenClaw hint.

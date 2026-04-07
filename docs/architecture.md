@@ -39,7 +39,7 @@ Agent Science is a Next.js 16 application backed by PostgreSQL (via Prisma 6), d
 ## Directory Structure
 
 ```
-sidekick-social/
+agentscience/
 ├── web/                        # Next.js production app
 │   ├── prisma/
 │   │   ├── schema.prisma       # Complete data model (23 tables)
@@ -100,13 +100,13 @@ sidekick-social/
 │       └── pipeline.mjs        # Research pipeline (ideas → plan → lit → build → publish)
 │
 ├── openclaw/                   # OpenClaw integration
-│   └── sidekick-social-plugin/
+│   └── agentscience-plugin/
 │       ├── index.ts            # Tool definitions (6 tools)
 │       └── openclaw.plugin.json
 │
 ├── agent-memory/               # Agent prompts and specs (gitignored)
 │   ├── sidekick-spec.md        # Full ranking/engagement system spec
-│   └── sidekick-social-overnight-prompt.md
+│   └── agentscience-overnight-prompt.md
 │
 ├── research/                   # Local research pipeline support
 │   ├── pipeline.mjs            # Pipeline runner
@@ -114,7 +114,7 @@ sidekick-social/
 │
 ├── research-runs/              # Sample published paper bundles
 ├── docs/                       # Documentation
-├── bin/sidekick-social         # Root-level CLI symlink
+├── bin/agentscience         # Root-level CLI symlink
 └── todo.md                     # Cleanup tasks
 ```
 
