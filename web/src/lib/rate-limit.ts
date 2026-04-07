@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto";
+
 import { prisma } from "@/lib/prisma";
+import { getRedisClient } from "@/lib/redis";
 
 type RateLimitResult = {
   ok: boolean;
@@ -7,10 +10,78 @@ type RateLimitResult = {
   retryAfterMs: number;
 };
 
-let lastRateLimitPruneAt = 0;
+type CheckRateLimitOptions = {
+  namespace: string;
+  key: string;
+  limit: number;
+  windowMs: number;
+};
 
-function getWindowStart(nowMs: number, windowMs: number) {
-  return new Date(Math.floor(nowMs / windowMs) * windowMs);
+type IncrementBucketOptions = {
+  namespace: string;
+  key: string;
+  nowMs: number;
+  ttlMs: number;
+  windowMs: number;
+  windowStart: Date;
+  windowStartMs: number;
+};
+
+type IncrementBucketResult = {
+  count: number;
+};
+
+type RateLimitDependencies = {
+  nowMs: number;
+  incrementBucket: (options: IncrementBucketOptions) => Promise<IncrementBucketResult>;
+};
+
+let lastRateLimitPruneAt = 0;
+let loggedRedisFallback = false;
+
+const RATE_LIMIT_INCREMENT_SCRIPT = `
+local current = redis.call("INCR", KEYS[1])
+local ttl = tonumber(ARGV[1])
+
+if current == 1 then
+  redis.call("PEXPIRE", KEYS[1], ttl)
+end
+
+local remainingTtl = redis.call("PTTL", KEYS[1])
+
+if remainingTtl < 0 then
+  redis.call("PEXPIRE", KEYS[1], ttl)
+  remainingTtl = ttl
+end
+
+return { current, remainingTtl }
+`;
+
+export function getRateLimitWindow(nowMs: number, windowMs: number) {
+  const windowStartMs = Math.floor(nowMs / windowMs) * windowMs;
+
+  return {
+    windowStartMs,
+    resetAt: windowStartMs + windowMs,
+  };
+}
+
+export function buildRateLimitBucketKey(
+  namespace: string,
+  subject: string,
+  windowStartMs: number
+) {
+  const subjectHash = createHash("sha256").update(subject).digest("hex");
+  return `rate-limit:${namespace}:${subjectHash}:${windowStartMs}`;
+}
+
+function logRedisFallback(reason: string) {
+  if (loggedRedisFallback) {
+    return;
+  }
+
+  loggedRedisFallback = true;
+  console.warn(`Redis rate limiting unavailable (${reason}); falling back to database buckets.`);
 }
 
 function pruneStaleBuckets(nowMs: number, windowMs: number) {
@@ -32,30 +103,59 @@ function pruneStaleBuckets(nowMs: number, windowMs: number) {
     .catch(() => undefined);
 }
 
-export async function checkRateLimit(options: {
-  namespace: string;
-  key: string;
-  limit: number;
-  windowMs: number;
-}): Promise<RateLimitResult> {
-  const nowMs = Date.now();
-  const windowStart = getWindowStart(nowMs, options.windowMs);
-  const resetAt = windowStart.getTime() + options.windowMs;
+async function incrementRedisBucket(
+  options: IncrementBucketOptions
+): Promise<IncrementBucketResult | null> {
+  const client = await getRedisClient();
 
-  pruneStaleBuckets(nowMs, options.windowMs);
+  if (!client) {
+    logRedisFallback(process.env.REDIS_URL ? "connection failed" : "REDIS_URL is not set");
+    return null;
+  }
+
+  try {
+    const rawReply = await client.eval(RATE_LIMIT_INCREMENT_SCRIPT, {
+      keys: [
+        buildRateLimitBucketKey(
+          options.namespace,
+          options.key,
+          options.windowStartMs
+        ),
+      ],
+      arguments: [String(options.ttlMs)],
+    });
+
+    if (!Array.isArray(rawReply) || rawReply.length < 2) {
+      throw new Error("Unexpected Redis rate limit response.");
+    }
+
+    return {
+      count: Number(rawReply[0]),
+    };
+  } catch (error) {
+    console.error("Redis rate limit increment failed", error);
+    logRedisFallback("command failed");
+    return null;
+  }
+}
+
+async function incrementDatabaseBucket(
+  options: IncrementBucketOptions
+): Promise<IncrementBucketResult> {
+  pruneStaleBuckets(options.nowMs, options.windowMs);
 
   const bucket = await prisma.rateLimitBucket.upsert({
     where: {
       namespace_subject_windowStart: {
         namespace: options.namespace,
         subject: options.key,
-        windowStart,
+        windowStart: options.windowStart,
       },
     },
     create: {
       namespace: options.namespace,
       subject: options.key,
-      windowStart,
+      windowStart: options.windowStart,
       count: 1,
     },
     update: {
@@ -68,6 +168,35 @@ export async function checkRateLimit(options: {
     },
   });
 
+  return {
+    count: bucket.count,
+  };
+}
+
+async function incrementRateLimitBucket(options: IncrementBucketOptions) {
+  const redisBucket = await incrementRedisBucket(options);
+
+  if (redisBucket) {
+    return redisBucket;
+  }
+
+  return incrementDatabaseBucket(options);
+}
+
+export async function checkRateLimitWithDependencies(
+  options: CheckRateLimitOptions,
+  dependencies: RateLimitDependencies
+): Promise<RateLimitResult> {
+  const { nowMs } = dependencies;
+  const { windowStartMs, resetAt } = getRateLimitWindow(nowMs, options.windowMs);
+  const bucket = await dependencies.incrementBucket({
+    ...options,
+    nowMs,
+    ttlMs: Math.max(1, resetAt - nowMs),
+    windowMs: options.windowMs,
+    windowStart: new Date(windowStartMs),
+    windowStartMs,
+  });
   const ok = bucket.count <= options.limit;
 
   return {
@@ -76,4 +205,13 @@ export async function checkRateLimit(options: {
     resetAt,
     retryAfterMs: ok ? 0 : Math.max(0, resetAt - nowMs),
   };
+}
+
+export async function checkRateLimit(
+  options: CheckRateLimitOptions
+): Promise<RateLimitResult> {
+  return checkRateLimitWithDependencies(options, {
+    nowMs: Date.now(),
+    incrementBucket: incrementRateLimitBucket,
+  });
 }
