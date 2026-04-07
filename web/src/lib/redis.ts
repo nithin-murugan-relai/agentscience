@@ -1,6 +1,4 @@
-import { createClient, type RedisClientType } from "redis";
-
-type AppRedisClient = RedisClientType;
+import { createClient } from "redis";
 
 const globalForRedis = globalThis as unknown as {
   redisClient: AppRedisClient | undefined;
@@ -28,6 +26,8 @@ function createRedisClient() {
 
   return client;
 }
+
+type AppRedisClient = NonNullable<ReturnType<typeof createRedisClient>>;
 
 export async function getRedisClient() {
   if (globalForRedis.redisClient?.isOpen) {
