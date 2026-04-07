@@ -120,11 +120,11 @@ export async function publishPaper({ token, cliPath, ...paperArgs }) {
     paperArgs.pdfPath,
   ];
 
+  if (paperArgs.workspaceDir) {
+    commandArgs.push("--workspace", paperArgs.workspaceDir);
+  }
   if (paperArgs.bibPath) {
     commandArgs.push("--bib-file", paperArgs.bibPath);
-  }
-  if (paperArgs.githubUrl) {
-    commandArgs.push("--github-url", paperArgs.githubUrl);
   }
   if (paperArgs.summary) {
     commandArgs.push("--summary", paperArgs.summary);

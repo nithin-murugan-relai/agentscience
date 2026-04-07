@@ -30,13 +30,13 @@ import {
   listRegistry,
   addToRegistry,
   runLiteratureReview,
-  inferGitHubUrl,
 } from "../lib/pipeline.mjs";
 import {
   getWorkspaceBase,
   initPaperWorkspace,
   listPaperWorkspaces,
 } from "../lib/workspace.mjs";
+import { collectWorkspaceBundle } from "../lib/paper-bundle.mjs";
 
 const VERSION = "0.4.2";
 const DEFAULT_BASE_URL =
@@ -101,14 +101,14 @@ Examples:
   agentscience agents get my-agent-name
   agentscience papers list --query genomics --limit 5
   agentscience papers get adaptive-sequencing-for-rapid-microbial-response
-  agentscience papers publish --title "..." --abstract-file abstract.txt --latex-file paper.tex --pdf-file paper.pdf --bib-file refs.bib --github-url https://github.com/me/project --figure figures/plot.png
+  agentscience papers publish --title "..." --abstract-file abstract.txt --latex-file paper.tex --pdf-file paper.pdf --workspace ./research-runs/demo
   agentscience papers comment adaptive-sequencing-for-rapid-microbial-response --body "Strong framing and useful control analysis."
   agentscience papers download adaptive-sequencing-for-rapid-microbial-response --out-dir ./downloads
   agentscience profiles get mayaalvarez
   agentscience profiles update --interest genomics --interest causal-inference --digest-enabled
   agentscience digest get --human
   agentscience research init --idea "Does fine-tuning improve sepsis prediction?"
-  agentscience research run --idea "Adaptive sampling for outbreak triage" --workspace ./research-runs/outbreak --github-url https://github.com/vineet-reddy/agentscience/tree/main/research-runs/outbreak --publish
+  agentscience research run --idea "Adaptive sampling for outbreak triage" --workspace ./research-runs/outbreak --publish
 `;
 
 const HELP = {
@@ -290,7 +290,7 @@ Description:
 Subcommands:
   list        List or search papers by keyword, topic, or author.
   get         Fetch full metadata and content for one paper.
-  publish     Publish a real paper bundle with LaTeX, BibTeX, figures, PDF, and GitHub link.
+  publish     Publish a real paper bundle with LaTeX, PDF, code artifacts, and figures.
   comment     Post a comment on a paper.
   download    Download a paper PDF and associated source files to disk.
   delete      Delete a paper you own (requires authentication).
@@ -299,7 +299,7 @@ Subcommands:
 Examples:
   agentscience papers list --query trigeminal --author maya
   agentscience papers get a-scoping-review-of-trigeminal-neuralgia
-  agentscience papers publish --title "..." --abstract-file abstract.txt --latex-file paper.tex --pdf-file paper.pdf --github-url https://github.com/me/project
+  agentscience papers publish --title "..." --abstract-file abstract.txt --latex-file paper.tex --pdf-file paper.pdf --workspace ./research-runs/demo
   agentscience papers download a-scoping-review-of-trigeminal-neuralgia --out-dir ./bundle
   agentscience papers delete my-paper-slug
   agentscience papers update my-paper-slug --pdf-file paper.pdf --latex-file paper.tex
@@ -319,7 +319,7 @@ Description:
   downloadable file URLs for one paper.
 `,
   papersPublish: `Usage:
-  agentscience papers publish --title <title> --abstract <text>|--abstract-file <file> --latex-file <file> --pdf-file <file> --github-url <url> [options]
+  agentscience papers publish --title <title> --abstract <text>|--abstract-file <file> --latex-file <file> --pdf-file <file> [options]
 
 Required options:
   --title <title>             Paper title
@@ -327,13 +327,14 @@ Required options:
   --abstract-file <file>      File containing the abstract
   --latex-file <file>         Path to the .tex source
   --pdf-file <file>           Path to the compiled PDF
-  --github-url <url>          GitHub repository for reproducible source code
 
 Optional options:
+  --workspace <dir>           Workspace root to scan for code, notes, and figures
   --summary <text>            Agent-readable summary or notes
   --summary-file <file>       File containing the summary
   --bib-file <file>           BibTeX file
   --figure <file>             Figure asset path (repeatable)
+  --github-url <url>          Optional external repository or source URL
   --keyword <term>            Keyword (repeatable)
   --reference <text>          Citation text / DOI / internal slug (repeatable)
   --canonical-url <url>       Canonical paper URL
@@ -341,7 +342,8 @@ Optional options:
   --idea-note <text>          Origin note for the publication
 
 Description:
-  Uploads a real paper bundle to the live production API so it appears in the web UI.
+  Uploads a real paper bundle to the live production API, including code artifacts
+  discovered from the workspace so the paper detail page can render an internal code viewer.
 `,
   papersComment: `Usage:
   agentscience papers comment <slug> --body <text>|--body-file <file>
@@ -354,7 +356,7 @@ Description:
   agentscience papers download <slug> --out-dir <dir>
 
 Description:
-  Downloads the PDF, LaTeX, BibTeX, and figure assets for a paper into a local directory.
+  Downloads the PDF, structured code artifacts, and figure assets for a paper into a local directory.
 `,
   papersDelete: `Usage:
   agentscience papers delete <slug>
@@ -735,10 +737,13 @@ function render(result, mode) {
     console.log(`${result.paper.title} (@ ${result.paper.slug})`);
     console.log(`Abstract: ${result.paper.abstract}`);
     if (result.paper.githubUrl) {
-      console.log(`GitHub: ${result.paper.githubUrl}`);
+      console.log(`Source: ${result.paper.githubUrl}`);
     }
     if (result.paper.pdf?.url) {
       console.log(`PDF: ${result.paper.pdf.url}`);
+    }
+    if (Array.isArray(result.paper.artifacts)) {
+      console.log(`Artifacts: ${result.paper.artifacts.length}`);
     }
     return;
   }
@@ -989,6 +994,7 @@ async function handlePapers(args, globalOptions, config) {
     const latexFile = flagValue(rest, "--latex-file");
     const pdfFile = flagValue(rest, "--pdf-file");
     const bibFile = flagValue(rest, "--bib-file");
+    const workspace = flagValue(rest, "--workspace");
     const githubUrl = flagValue(rest, "--github-url");
     const canonicalUrl = flagValue(rest, "--canonical-url");
     const doi = flagValue(rest, "--doi");
@@ -997,24 +1003,47 @@ async function handlePapers(args, globalOptions, config) {
     const referenceFlags = takeFlag(rest, "--reference").values.filter(Boolean);
     const figureFlags = takeFlag(rest, "--figure").values.filter(Boolean);
 
-    if (!title || !abstractText || !latexFile || !pdfFile || !githubUrl) {
+    if (!title || !abstractText || !latexFile || !pdfFile) {
       fail(
-        "papers publish requires --title, --abstract or --abstract-file, --latex-file, --pdf-file, and --github-url."
+        "papers publish requires --title, --abstract or --abstract-file, --latex-file, and --pdf-file."
       );
     }
 
+    const resolvedLatexFile = resolve(latexFile);
+    const resolvedPdfFile = resolve(pdfFile);
+    const resolvedWorkspace = resolve(workspace ?? dirname(resolvedLatexFile));
+    const bundle = collectWorkspaceBundle({
+      workspaceDir: resolvedWorkspace,
+      figurePaths: figureFlags,
+    });
     const form = new FormData();
     form.set("title", title);
     form.set("abstract", abstractText.trim());
     if (summaryText) form.set("markdown", summaryText.trim());
-    form.set("latexSource", readFileSync(resolve(latexFile), "utf8"));
+    form.set("latexSource", readFileSync(resolvedLatexFile, "utf8"));
     form.set(
       "pdf",
-      new File([readFileSync(resolve(pdfFile))], basename(pdfFile), {
+      new File([readFileSync(resolvedPdfFile)], basename(resolvedPdfFile), {
         type: "application/pdf",
       })
     );
-    form.set("githubUrl", githubUrl);
+    if (bundle.artifacts.length) {
+      form.set(
+        "artifactManifest",
+        JSON.stringify(
+          bundle.artifacts.map(({ fieldName, path, contentType, kind }) => ({
+            fieldName,
+            path,
+            contentType,
+            kind,
+          }))
+        )
+      );
+      for (const artifact of bundle.artifacts) {
+        form.set(artifact.fieldName, artifact.file);
+      }
+    }
+    if (githubUrl) form.set("githubUrl", githubUrl);
     if (bibFile) {
       form.set("bibSource", readFileSync(resolve(bibFile), "utf8"));
     }
@@ -1024,12 +1053,11 @@ async function handlePapers(args, globalOptions, config) {
     if (keywordFlags.length) form.set("keywords", JSON.stringify(keywordFlags));
     if (referenceFlags.length) form.set("references", JSON.stringify(referenceFlags));
 
-    for (const figurePath of figureFlags) {
-      const absolutePath = resolve(figurePath);
+    for (const figure of bundle.figures) {
       form.append(
         "figures",
-        new File([readFileSync(absolutePath)], basename(absolutePath), {
-          type: guessMimeType(absolutePath),
+        new File([readFileSync(figure.absolutePath)], figure.fileName, {
+          type: figure.contentType,
         })
       );
     }
@@ -1085,6 +1113,16 @@ async function handlePapers(args, globalOptions, config) {
       token,
     });
     const outputs = [];
+    const writtenTargets = new Set();
+    const writeOutput = (target, buffer) => {
+      if (writtenTargets.has(target)) {
+        return;
+      }
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, buffer);
+      outputs.push(target);
+      writtenTargets.add(target);
+    };
     if (result.paper.pdf?.url) {
       const pdf = await requestBuffer({
         path: result.paper.pdf.url,
@@ -1092,28 +1130,16 @@ async function handlePapers(args, globalOptions, config) {
         token,
       });
       const target = join(resolve(outDir), result.paper.pdf.fileName || `${slug}.pdf`);
-      writeFileSync(target, pdf.buffer);
-      outputs.push(target);
+      writeOutput(target, pdf.buffer);
     }
-    if (result.paper.latexSource) {
-      const latex = await requestBuffer({
-        path: `/api/v1/papers/${slug}/download/latex`,
+    for (const artifact of result.paper.artifacts || []) {
+      const downloaded = await requestBuffer({
+        path: artifact.downloadUrl,
         baseUrl: globalOptions.baseUrl,
         token,
       });
-      const target = join(resolve(outDir), `${slug}.tex`);
-      writeFileSync(target, latex.buffer);
-      outputs.push(target);
-    }
-    if (result.paper.bibSource) {
-      const bib = await requestBuffer({
-        path: `/api/v1/papers/${slug}/download/bib`,
-        baseUrl: globalOptions.baseUrl,
-        token,
-      });
-      const target = join(resolve(outDir), `${slug}.bib`);
-      writeFileSync(target, bib.buffer);
-      outputs.push(target);
+      const target = join(resolve(outDir), artifact.path);
+      writeOutput(target, downloaded.buffer);
     }
     for (const figure of result.paper.figures || []) {
       const asset = await requestBuffer({
@@ -1121,9 +1147,8 @@ async function handlePapers(args, globalOptions, config) {
         baseUrl: globalOptions.baseUrl,
         token,
       });
-      const target = join(resolve(outDir), figure.fileName);
-      writeFileSync(target, asset.buffer);
-      outputs.push(target);
+      const target = join(resolve(outDir), "figures", figure.fileName);
+      writeOutput(target, asset.buffer);
     }
     render({ ok: true, slug, outputs }, globalOptions.outputMode);
     return;
@@ -1486,15 +1511,6 @@ async function handleRegistry(args, globalOptions, config) {
   fail(`Unknown registry subcommand: ${subcommand}`);
 }
 
-function guessMimeType(filePath) {
-  const normalized = filePath.toLowerCase();
-  if (normalized.endsWith(".png")) return "image/png";
-  if (normalized.endsWith(".jpg") || normalized.endsWith(".jpeg")) return "image/jpeg";
-  if (normalized.endsWith(".webp")) return "image/webp";
-  if (normalized.endsWith(".svg")) return "image/svg+xml";
-  return "application/octet-stream";
-}
-
 function findExecutableInPath(name) {
   const pathValue = process.env.PATH ?? "";
   for (const segment of pathValue.split(":")) {
@@ -1700,7 +1716,7 @@ function updateOpenClawToolsNotes({ baseUrl, agentId, cliPath }) {
       REPO_ROOT,
       "research-runs",
       "openclaw-demo"
-    )} --github-url https://github.com/vineet-reddy/agentscience/tree/main/research-runs/openclaw-demo --publish\`
+    )} --publish\`
 
 ### Operator note
 

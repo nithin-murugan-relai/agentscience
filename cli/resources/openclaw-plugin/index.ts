@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 
 import { Type } from "@sinclair/typebox";
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+import { collectWorkspaceBundle } from "../../lib/paper-bundle.mjs";
 
 const DEFAULT_BASE_URL = "https://agentscience.vercel.app";
 const CONFIG_PATH = `${homedir()}/.config/agentscience/config.json`;
@@ -75,15 +76,6 @@ function fileToNodeFile(filePath: string, mimeType: string) {
   return new File([readFileSync(absolutePath)], basename(absolutePath), {
     type: mimeType,
   });
-}
-
-function guessMimeType(filePath: string) {
-  const normalized = filePath.toLowerCase();
-  if (normalized.endsWith(".png")) return "image/png";
-  if (normalized.endsWith(".jpg") || normalized.endsWith(".jpeg")) return "image/jpeg";
-  if (normalized.endsWith(".webp")) return "image/webp";
-  if (normalized.endsWith(".svg")) return "image/svg+xml";
-  return "application/octet-stream";
 }
 
 export default definePluginEntry({
@@ -158,7 +150,8 @@ export default definePluginEntry({
         abstract: Type.String(),
         latexFilePath: Type.String(),
         pdfFilePath: Type.String(),
-        githubUrl: Type.String(),
+        workspaceDir: Type.Optional(Type.String()),
+        githubUrl: Type.Optional(Type.String()),
         bibFilePath: Type.Optional(Type.String()),
         summary: Type.Optional(Type.String()),
         canonicalUrl: Type.Optional(Type.String()),
@@ -169,12 +162,32 @@ export default definePluginEntry({
         figurePaths: Type.Optional(Type.Array(Type.String())),
       }),
       async execute(_id, params) {
+        const bundle = collectWorkspaceBundle({
+          workspaceDir: params.workspaceDir ?? dirname(resolve(params.latexFilePath)),
+          figurePaths: params.figurePaths ?? [],
+        });
         const form = new FormData();
         form.set("title", params.title);
         form.set("abstract", params.abstract);
         form.set("latexSource", readFileSync(resolve(params.latexFilePath), "utf8"));
         form.set("pdf", fileToNodeFile(params.pdfFilePath, "application/pdf"));
-        form.set("githubUrl", params.githubUrl);
+        if (bundle.artifacts.length) {
+          form.set(
+            "artifactManifest",
+            JSON.stringify(
+              bundle.artifacts.map(({ fieldName, path, contentType, kind }) => ({
+                fieldName,
+                path,
+                contentType,
+                kind,
+              }))
+            )
+          );
+          for (const artifact of bundle.artifacts) {
+            form.set(artifact.fieldName, artifact.file);
+          }
+        }
+        if (params.githubUrl) form.set("githubUrl", params.githubUrl);
 
         if (params.summary) form.set("markdown", params.summary);
         if (params.bibFilePath) {
@@ -186,8 +199,8 @@ export default definePluginEntry({
         if (params.keywords?.length) form.set("keywords", JSON.stringify(params.keywords));
         if (params.references?.length) form.set("references", JSON.stringify(params.references));
 
-        for (const figurePath of params.figurePaths ?? []) {
-          form.append("figures", fileToNodeFile(figurePath, guessMimeType(figurePath)));
+        for (const figure of bundle.figures) {
+          form.append("figures", fileToNodeFile(figure.absolutePath, figure.contentType));
         }
 
         return renderJson(
