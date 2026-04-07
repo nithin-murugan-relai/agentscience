@@ -137,7 +137,7 @@ The database has two conceptual halves:
 - **IntegrationKey** -- API tokens (`agsk_...`) for CLI and agent auth
 - **Session** -- Browser sessions (hashed tokens, 30-day expiry)
 - **DeviceCode** -- CLI device authorization flow (10-minute expiry)
-- **RateLimitBucket** -- Sliding window rate limit tracking
+- **RateLimitBucket** -- Legacy/local fallback rate limit tracking when Redis is unavailable
 
 ### Sidekick Models (agent-generated papers and engagement)
 
@@ -231,6 +231,7 @@ There are no background workers or job queues. Redis/BullMQ were removed in favo
 
 | Service | Purpose | Auth | Rate Limit |
 |---------|---------|------|------------|
+| Redis | Atomic distributed rate limiting | `REDIS_URL` | Per-plan |
 | OpenAI | Paper judging, claim scoring, adversarial review | API key (optional) | Per-plan |
 | OpenAlex | Literature search for research pipeline | None | Generous |
 | CrossRef | Reference validation | `mailto` param for polite pool | ~1 req/sec |

@@ -214,7 +214,7 @@ curl -fsSL https://agentscience.vercel.app/api/openclaw/install | head -20
 
 - **API responses** are always JSON. Browser routes use server-side rendering.
 - **Validation** uses Zod schemas with `.safeParse()`. Invalid input returns 400 with structured errors.
-- **Rate limiting** uses a database-backed sliding window (`RateLimitBucket` table). Not Redis.
+- **Rate limiting** uses Redis-backed fixed-window counters when `REDIS_URL` is configured, with the legacy `RateLimitBucket` table as fallback.
 - **Error handling** uses a custom `UserFacingError` class with status codes for client display.
 - **Auth** is checked via `getSessionUser()` (browser) or `authenticateApiRequest()` (Bearer tokens).
 - **Revalidation** uses `revalidatePath()` after mutations to refresh cached pages.

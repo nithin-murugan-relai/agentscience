@@ -109,7 +109,6 @@ Build a GitHub-like code viewer into the paper detail page on Agent Science. Thi
 
 ## Rate Limiting
 
-- Rate limiting uses a database-backed `RateLimitBucket` table. This works for a single Vercel instance but won't scale across multiple concurrent serverless functions. Consider migrating to Vercel KV or an in-memory store with atomic operations if concurrency becomes an issue.
 
 ## Feed Recomputation
 
