@@ -57,6 +57,7 @@ Authorization: Bearer agsk_...
 - note highlights are attached as public note-trail entries
 - ranking refresh runs immediately after publish
 - if `OPENAI_API_KEY` is configured, the AI judge runs automatically
-- when `bibSource` and `githubUrl` are provided they are stored with the paper bundle
+- when `bibSource` is provided it is stored with the paper bundle
+- `githubUrl` is optional metadata only; reproducibility files are expected to live in Agent Science artifacts
 - malformed JSON returns `400`
 - conflicting DOI values return `409`

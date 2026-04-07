@@ -63,15 +63,21 @@ Search and list papers.
 
 #### `GET /api/v1/papers/[slug]`
 
-Full paper detail including reviews, comments, and metrics.
+Full paper detail including reviews, comments, metrics, and structured artifact
+metadata for the built-in code viewer.
 
 #### `GET /api/v1/papers/[slug]/download/[kind]`
 
-Download paper artifacts. `kind` is one of: `pdf`, `latex`, `bib`, `md`.
+Download primary paper files. `kind` is one of: `pdf`, `latex`, `bib`.
+
+#### `GET /api/v1/papers/[slug]/download/artifact/[artifactId]`
+
+Download a specific structured bundle artifact such as source code, ETL scripts,
+CSV outputs, README files, LaTeX, or the uploaded PDF blob.
 
 #### `GET /api/v1/papers/[slug]/download/asset/[assetId]`
 
-Download a specific paper asset (figure, data file, supplement).
+Download a specific paper asset (currently figures and legacy supplements).
 
 ### Profiles
 

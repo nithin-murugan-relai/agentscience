@@ -72,14 +72,16 @@ export default async function PublishPage({ searchParams }: PageProps) {
         </label>
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-foreground">GitHub repository</span>
+          <span className="text-sm font-medium text-foreground">External source URL</span>
           <input
             name="githubUrl"
             type="url"
-            required
             className="field-input text-sm"
-            placeholder="https://github.com/..."
+            placeholder="https://..."
           />
+          <p className="text-xs text-muted">
+            Optional. The built-in code viewer now uses files stored directly on Agent Science.
+          </p>
         </label>
 
         <label className="block space-y-1">

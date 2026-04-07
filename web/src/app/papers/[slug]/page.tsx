@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PaperBundleViewer } from "@/components/code-viewer/paper-bundle-viewer";
 import { AuthGateCard } from "@/components/site-shell";
 import { getCurrentUser } from "@/lib/auth";
 import { getPaperBySlug } from "@/lib/papers";
@@ -42,6 +43,35 @@ export default async function PaperDetailPage({
     reproducibility: viewerReview?.reproducibility ?? 4,
   } as const;
   const figureAssets = paper.assets.filter((asset) => asset.kind === "FIGURE");
+  const bundleArtifacts = paper.artifacts.map((artifact) => ({
+    id: artifact.id,
+    kind: artifact.kind,
+    path: artifact.path,
+    contentType: artifact.contentType,
+    sha256: artifact.sha256,
+    sizeBytes: artifact.sizeBytes,
+    downloadUrl: `/api/v1/papers/${paper.slug}/download/artifact/${artifact.id}`,
+    textContent: artifact.textContent,
+  }));
+  const bundleFigures = figureAssets.map((asset) => ({
+    id: asset.id,
+    fileName: asset.fileName,
+    caption: asset.caption ?? null,
+    downloadUrl: `/api/v1/papers/${paper.slug}/download/asset/${asset.id}`,
+    mimeType: asset.mimeType,
+  }));
+  const requestedTab =
+    typeof resolvedSearchParams.tab === "string" ? resolvedSearchParams.tab : undefined;
+  const initialBundleTab =
+    requestedTab === "code" || requestedTab === "figures" || requestedTab === "pdf"
+      ? requestedTab
+      : bundleArtifacts.length > 0
+        ? "code"
+        : paper.pdfData || paper.pdfUrl
+          ? "pdf"
+          : "figures";
+  const hasBundle =
+    bundleArtifacts.length > 0 || bundleFigures.length > 0 || Boolean(paper.pdfData || paper.pdfUrl);
 
   return (
     <div className="page-enter">
@@ -102,6 +132,11 @@ export default async function PaperDetailPage({
               BibTeX
             </a>
           )}
+          {hasBundle ? (
+            <a href="#bundle" className="btn-secondary text-sm">
+              Code Viewer
+            </a>
+          ) : null}
           {paper.githubUrl && (
             <a
               href={paper.githubUrl}
@@ -109,7 +144,7 @@ export default async function PaperDetailPage({
               rel="noreferrer"
               className="btn-secondary text-sm"
             >
-              GitHub
+              Source
             </a>
           )}
           {paper.canonicalUrl && (
@@ -133,52 +168,19 @@ export default async function PaperDetailPage({
         </div>
       </section>
 
-      {/* PDF viewer */}
-      {(paper.pdfData || paper.pdfUrl) ? (
-        <section className="py-8">
-          <div className="overflow-hidden rounded-2xl border border-border bg-white">
-            <iframe
-              src={`/api/v1/papers/${paper.slug}/download/pdf`}
-              title={`${paper.title} PDF`}
-              className="h-[900px] w-full"
-            />
-          </div>
-        </section>
+      {hasBundle ? (
+        <PaperBundleViewer
+          artifacts={bundleArtifacts}
+          figures={bundleFigures}
+          pdfUrl={
+            paper.pdfData || paper.pdfUrl
+              ? `/api/v1/papers/${paper.slug}/download/pdf`
+              : null
+          }
+          paperTitle={paper.title}
+          initialTab={initialBundleTab}
+        />
       ) : null}
-
-      {/* Figures & reproducibility */}
-      {(figureAssets.length > 0 || paper.githubUrl) && (
-        <section className="border-t border-border py-10">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Files
-          </h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {figureAssets.map((asset) => (
-              <a
-                key={asset.id}
-                href={`/api/v1/papers/${paper.slug}/download/asset/${asset.id}`}
-                className="rounded-xl border border-border px-4 py-3 hover:border-foreground/15"
-              >
-                <div className="text-sm font-medium text-foreground">{asset.fileName}</div>
-                {asset.caption ? (
-                  <p className="mt-1 text-sm text-foreground-soft">{asset.caption}</p>
-                ) : null}
-              </a>
-            ))}
-            {paper.githubUrl ? (
-              <a
-                href={paper.githubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-xl border border-border px-4 py-3 hover:border-foreground/15"
-              >
-                <div className="text-sm font-medium text-foreground">Reproducible code</div>
-                <p className="mt-1 break-all text-sm text-foreground-soft">{paper.githubUrl}</p>
-              </a>
-            ) : null}
-          </div>
-        </section>
-      )}
 
       {/* Agent-readable summary */}
       {paper.markdown && (
