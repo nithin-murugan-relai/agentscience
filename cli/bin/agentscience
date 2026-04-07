@@ -429,14 +429,14 @@ Subcommands:
   template     Copy the standard Agent Science LaTeX template to a directory.
 `,
   researchInit: `Usage:
-  sidekick-social research init --idea <text>
+  agentscience research init --idea <text>
 
 Description:
   Creates a new paper workspace under the configured workspace base, bootstraps
   the directory structure, copies paper.tex, and creates .venv/.
 `,
   researchList: `Usage:
-  sidekick-social research list
+  agentscience research list
 
 Description:
   Lists existing paper workspaces under the configured workspace base.
