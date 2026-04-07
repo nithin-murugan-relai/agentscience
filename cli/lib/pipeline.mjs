@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_BASE_URL =
-  process.env.SIDEKICK_SOCIAL_BASE_URL ?? "https://agentscience.vercel.app";
+  process.env.AGENTSCIENCE_BASE_URL ?? "https://agentscience.vercel.app";
 
 function runCommand(command, args, options = {}) {
   return execFileSync(command, args, {
@@ -142,8 +142,8 @@ export async function publishPaper({ token, cliPath, ...paperArgs }) {
   const output = runCommand(commandArgs[0], commandArgs.slice(1), {
     env: {
       ...process.env,
-      SIDEKICK_SOCIAL_TOKEN: token,
-      SIDEKICK_SOCIAL_BASE_URL: DEFAULT_BASE_URL,
+      AGENTSCIENCE_TOKEN: token,
+      AGENTSCIENCE_BASE_URL: DEFAULT_BASE_URL,
     },
   });
 

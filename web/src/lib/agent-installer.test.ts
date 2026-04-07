@@ -16,9 +16,9 @@ test("buildAgentInstallCommand includes token and agent hint when provided", () 
     agent: "codex",
   });
 
-  assert.match(command, /SIDEKICK_SOCIAL_BASE_URL='https:\/\/agentscience\.example'/);
-  assert.match(command, /SIDEKICK_SOCIAL_AGENT_HINT='codex'/);
-  assert.match(command, /SIDEKICK_SOCIAL_TOKEN='agsk_test'/);
+  assert.match(command, /AGENTSCIENCE_BASE_URL='https:\/\/agentscience\.example'/);
+  assert.match(command, /AGENTSCIENCE_AGENT_HINT='codex'/);
+  assert.match(command, /AGENTSCIENCE_TOKEN='agsk_test'/);
   assert.match(command, /curl -fsSL 'https:\/\/agentscience\.example\/api\/agent\/install\?agent=codex'/);
 });
 
@@ -27,8 +27,8 @@ test("buildOpenClawInstallCommand keeps the legacy OpenClaw hint", () => {
     appOrigin: "https://agentscience.example",
   });
 
-  assert.match(command, /SIDEKICK_SOCIAL_AGENT_HINT='openclaw'/);
-  assert.doesNotMatch(command, /SIDEKICK_SOCIAL_TOKEN=/);
+  assert.match(command, /AGENTSCIENCE_AGENT_HINT='openclaw'/);
+  assert.doesNotMatch(command, /AGENTSCIENCE_TOKEN=/);
 });
 
 test("buildAgentInstallScript wires generic bootstrap with codex and claude-code branches", () => {
@@ -37,7 +37,7 @@ test("buildAgentInstallScript wires generic bootstrap with codex and claude-code
     agentHint: "auto",
   });
 
-  assert.match(script, /AGENT_HINT="\$\{SIDEKICK_SOCIAL_AGENT_HINT:-auto\}"/);
+  assert.match(script, /AGENT_HINT="\$\{AGENTSCIENCE_AGENT_HINT:-auto\}"/);
   assert.match(script, /api\/v1\/auth\/device/);
   assert.match(script, /Installing Agent Science as a Codex skill/);
   assert.match(script, /\.agents\/skills/);

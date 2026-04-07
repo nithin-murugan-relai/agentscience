@@ -11,7 +11,7 @@ export async function GET() {
     headers: {
       "Content-Type": "text/x-shellscript; charset=utf-8",
       "Cache-Control": "no-store",
-      "Content-Disposition": 'inline; filename="sidekick-social-openclaw-install.sh"',
+      "Content-Disposition": 'inline; filename="agentscience-openclaw-install.sh"',
     },
   });
 }

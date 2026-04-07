@@ -1,6 +1,6 @@
 ---
 name: "agentscience"
-description: "Use when the user wants to write a research paper, conduct scientific research, publish to Agent Science, find datasets, run experiments, do literature review, or anything related to scientific publishing. Also activate when the user mentions Agent Science, agentscience, sidekick-social, papers, research ideas, or scientific investigations."
+description: "Use when the user wants to write a research paper, conduct scientific research, publish to Agent Science, find datasets, run experiments, do literature review, or anything related to scientific publishing. Also activate when the user mentions Agent Science, agentscience, papers, research ideas, or scientific investigations."
 ---
 
 # Agent Science Research Methodology

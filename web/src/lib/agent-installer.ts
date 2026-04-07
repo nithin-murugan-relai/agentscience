@@ -30,7 +30,7 @@ export function buildAgentInstallUrl({
 /**
  * Returns a shell command for Claude Code users to run in their terminal.
  * Uses the base installer (no ?agent= param) so it returns the bash script,
- * with SIDEKICK_SOCIAL_AGENT_HINT set to claude-code.
+ * with AGENTSCIENCE_AGENT_HINT set to claude-code.
  */
 export function buildClaudeCodeShellCommand({
   appOrigin,
@@ -39,7 +39,7 @@ export function buildClaudeCodeShellCommand({
 }) {
   const origin = normalizeOrigin(appOrigin);
   const baseUrl = new URL("/api/agent/install", origin).toString();
-  return `curl -fsSL '${baseUrl}' | SIDEKICK_SOCIAL_AGENT_HINT='claude-code' bash`;
+  return `curl -fsSL '${baseUrl}' | AGENTSCIENCE_AGENT_HINT='claude-code' bash`;
 }
 
 export function buildAgentInstallCommand({
@@ -54,9 +54,9 @@ export function buildAgentInstallCommand({
   const origin = normalizeOrigin(appOrigin);
   const installerUrl = buildAgentInstallUrl({ appOrigin: origin, agent });
   const envPrefix = [
-    `SIDEKICK_SOCIAL_BASE_URL=${quoteShell(origin)}`,
-    `SIDEKICK_SOCIAL_AGENT_HINT=${quoteShell(agent)}`,
-    token ? `SIDEKICK_SOCIAL_TOKEN=${quoteShell(token)}` : null,
+    `AGENTSCIENCE_BASE_URL=${quoteShell(origin)}`,
+    `AGENTSCIENCE_AGENT_HINT=${quoteShell(agent)}`,
+    token ? `AGENTSCIENCE_TOKEN=${quoteShell(token)}` : null,
   ]
     .filter(Boolean)
     .join(" ");
@@ -76,8 +76,8 @@ export function buildAgentInstallScript({
   return `#!/usr/bin/env bash
 set -euo pipefail
 
-APP_URL="\${SIDEKICK_SOCIAL_BASE_URL:-${origin}}"
-AGENT_HINT="\${SIDEKICK_SOCIAL_AGENT_HINT:-${agentHint}}"
+APP_URL="\${AGENTSCIENCE_BASE_URL:-${origin}}"
+AGENT_HINT="\${AGENTSCIENCE_AGENT_HINT:-${agentHint}}"
 
 log() {
   printf '==> %s\\n' "$1"
@@ -167,8 +167,8 @@ start_device_flow() {
     POLL_STATUS=$(printf '%s' "$POLL_RESULT" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
 
     if [ "$POLL_STATUS" = "complete" ]; then
-      SIDEKICK_SOCIAL_TOKEN=$(printf '%s' "$POLL_RESULT" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
-      if [ -z "$SIDEKICK_SOCIAL_TOKEN" ]; then
+      AGENTSCIENCE_TOKEN=$(printf '%s' "$POLL_RESULT" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
+      if [ -z "$AGENTSCIENCE_TOKEN" ]; then
         printf 'Approved but token was empty.\\n' >&2
         exit 1
       fi
@@ -182,19 +182,19 @@ start_device_flow() {
     fi
   done
 
-  if [ -z "\${SIDEKICK_SOCIAL_TOKEN:-}" ]; then
+  if [ -z "\${AGENTSCIENCE_TOKEN:-}" ]; then
     printf 'Timed out waiting for approval.\\n' >&2
     exit 1
   fi
 }
 
-if [ -z "\${SIDEKICK_SOCIAL_TOKEN:-}" ]; then
-  if [ -n "\${SIDEKICK_SOCIAL_EMAIL:-}" ] && [ -n "\${SIDEKICK_SOCIAL_PASSWORD:-}" ]; then
+if [ -z "\${AGENTSCIENCE_TOKEN:-}" ]; then
+  if [ -n "\${AGENTSCIENCE_EMAIL:-}" ] && [ -n "\${AGENTSCIENCE_PASSWORD:-}" ]; then
     log "Logging in with email/password"
     TOKEN_RESPONSE=$(curl -fsSL -X POST "$APP_URL/api/v1/auth/token" \\
       -H "Content-Type: application/json" \\
-      -d "{\\"email\\":\\"$SIDEKICK_SOCIAL_EMAIL\\",\\"password\\":\\"$SIDEKICK_SOCIAL_PASSWORD\\",\\"name\\":\\"Bootstrap token\\"}")
-    SIDEKICK_SOCIAL_TOKEN=$(printf '%s' "$TOKEN_RESPONSE" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
+      -d "{\\"email\\":\\"$AGENTSCIENCE_EMAIL\\",\\"password\\":\\"$AGENTSCIENCE_PASSWORD\\",\\"name\\":\\"Bootstrap token\\"}")
+    AGENTSCIENCE_TOKEN=$(printf '%s' "$TOKEN_RESPONSE" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
   else
     log "No token provided; starting device authorization"
     start_device_flow
@@ -204,8 +204,8 @@ fi
 require_cmd node
 require_cmd npm
 
-NPM_PACKAGE_UPDATE_SPEC="\${SIDEKICK_SOCIAL_NPM_SPEC:-agentscience@latest}"
-NPM_PACKAGE_INSTALL_SPEC="\${SIDEKICK_SOCIAL_NPM_SPEC:-agentscience}"
+NPM_PACKAGE_UPDATE_SPEC="\${AGENTSCIENCE_NPM_SPEC:-agentscience@latest}"
+NPM_PACKAGE_INSTALL_SPEC="\${AGENTSCIENCE_NPM_SPEC:-agentscience}"
 
 if command -v agentscience >/dev/null 2>&1; then
   log "Updating agentscience CLI"
@@ -218,7 +218,7 @@ else
 fi
 
 log "Saving credentials"
-agentscience --base-url "$APP_URL" auth use-token --token "$SIDEKICK_SOCIAL_TOKEN"
+agentscience --base-url "$APP_URL" auth use-token --token "$AGENTSCIENCE_TOKEN"
 
 RUNTIME=$(detect_agent)
 case "$RUNTIME" in
@@ -256,7 +256,7 @@ EOF
     ;;
   openclaw)
     log "Configuring OpenClaw integration"
-    agentscience --base-url "$APP_URL" openclaw connect --token "$SIDEKICK_SOCIAL_TOKEN"
+    agentscience --base-url "$APP_URL" openclaw connect --token "$AGENTSCIENCE_TOKEN"
     ;;
   none)
     log "No supported agent runtime detected"

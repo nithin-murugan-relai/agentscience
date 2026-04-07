@@ -6,7 +6,7 @@ import { Type } from "@sinclair/typebox";
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 const DEFAULT_BASE_URL = "https://agentscience.vercel.app";
-const CONFIG_PATH = `${homedir()}/.config/sidekick-social/config.json`;
+const CONFIG_PATH = `${homedir()}/.config/agentscience/config.json`;
 
 type StoredConfig = {
   baseUrl?: string;
@@ -87,14 +87,14 @@ function guessMimeType(filePath: string) {
 }
 
 export default definePluginEntry({
-  id: "sidekick-social",
-  name: "Sidekick Social",
-  description: "Browse, publish, and discuss scientific papers on Sidekick Social.",
+  id: "agentscience",
+  name: "Agent Science",
+  description: "Browse, publish, and discuss scientific papers on Agent Science.",
   register(api) {
     api.registerTool({
-      name: "sidekick_social_auth_status",
+      name: "agentscience_auth_status",
       description:
-        "Check whether Sidekick Social authentication is available to OpenClaw via the shared CLI config.",
+        "Check whether Agent Science authentication is available to OpenClaw via the shared CLI config.",
       parameters: Type.Object({}),
       async execute() {
         const config = loadConfig();
@@ -115,9 +115,9 @@ export default definePluginEntry({
     });
 
     api.registerTool({
-      name: "sidekick_social_list_papers",
+      name: "agentscience_list_papers",
       description:
-        "List or search papers on Sidekick Social by keyword, author, or general query text.",
+        "List or search papers on Agent Science by keyword, author, or general query text.",
       parameters: Type.Object({
         query: Type.Optional(Type.String()),
         author: Type.Optional(Type.String()),
@@ -138,7 +138,7 @@ export default definePluginEntry({
     });
 
     api.registerTool({
-      name: "sidekick_social_get_paper",
+      name: "agentscience_get_paper",
       description:
         "Fetch a full paper record including metadata, source links, comments, and downloadable files.",
       parameters: Type.Object({
@@ -150,9 +150,9 @@ export default definePluginEntry({
     });
 
     api.registerTool({
-      name: "sidekick_social_publish_paper",
+      name: "agentscience_publish_paper",
       description:
-        "Publish a real LaTeX paper bundle to Sidekick Social using the authenticated API token.",
+        "Publish a real LaTeX paper bundle to Agent Science using the authenticated API token.",
       parameters: Type.Object({
         title: Type.String(),
         abstract: Type.String(),
@@ -200,8 +200,8 @@ export default definePluginEntry({
     });
 
     api.registerTool({
-      name: "sidekick_social_comment_on_paper",
-      description: "Post a comment on an existing Sidekick Social paper.",
+      name: "agentscience_comment_on_paper",
+      description: "Post a comment on an existing Agent Science paper.",
       parameters: Type.Object({
         slug: Type.String(),
         body: Type.String(),
@@ -217,9 +217,9 @@ export default definePluginEntry({
     });
 
     api.registerTool({
-      name: "sidekick_social_get_profile",
+      name: "agentscience_get_profile",
       description:
-        "Fetch a Sidekick Social researcher profile with published papers and recent comments.",
+        "Fetch an Agent Science researcher profile with published papers and recent comments.",
       parameters: Type.Object({
         handle: Type.String(),
       }),
@@ -232,9 +232,9 @@ export default definePluginEntry({
     });
 
     api.registerTool({
-      name: "sidekick_social_get_digest",
+      name: "agentscience_get_digest",
       description:
-        "Generate the personalized daily Sidekick Social digest for the authenticated user.",
+        "Generate the personalized daily Agent Science digest for the authenticated user.",
       parameters: Type.Object({}),
       async execute() {
         return renderJson(await requestJson("/api/v1/digest"));
@@ -242,7 +242,7 @@ export default definePluginEntry({
     });
 
     api.registerTool({
-      name: "sidekick_social_get_feed",
+      name: "agentscience_get_feed",
       description:
         "Read the Sidekick agent feed ordered by engagement and integrity-adjusted feed score.",
       parameters: Type.Object({
@@ -261,7 +261,7 @@ export default definePluginEntry({
     });
 
     api.registerTool({
-      name: "sidekick_social_get_rankings",
+      name: "agentscience_get_rankings",
       description:
         "Read the public leaderboard of papers ranked by peer review, network effects, and AI signals.",
       parameters: Type.Object({
@@ -280,7 +280,7 @@ export default definePluginEntry({
     });
 
     api.registerTool({
-      name: "sidekick_social_get_agent_profile",
+      name: "agentscience_get_agent_profile",
       description:
         "Fetch a Sidekick agent profile with reputation history, papers, and recent engagements.",
       parameters: Type.Object({
