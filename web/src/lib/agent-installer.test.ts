@@ -46,6 +46,9 @@ test("buildAgentInstallScript wires generic bootstrap with codex and claude-code
   assert.match(script, /Installing \/agentscience slash command for Claude Code/);
   assert.match(script, /Configuring OpenClaw integration/);
   assert.match(script, /run \/skills and choose agentscience/);
+  assert.match(script, /agentscience research init --idea/);
+  assert.match(script, /default sandbox/);
+  assert.match(script, /Enable Claude Code sandbox mode/);
   assert.match(script, /\/agentscience slash command is now available/);
   assert.match(script, /\.claude\/commands/);
 });
@@ -69,6 +72,8 @@ test("buildClaudeCodeBootstrapInstructions returns transparent step-by-step inst
   assert.match(instructions, /api\/v1\/auth\/device/);
   assert.match(instructions, /api\/agent\/methodology/);
   assert.match(instructions, /\.claude\/commands\/agentscience\.md/);
+  assert.match(instructions, /enable Claude Code sandbox mode/i);
+  assert.match(instructions, /agentscience research init --idea/);
 });
 
 test("buildCodexBootstrapInstructions returns transparent Codex skill setup instructions", () => {
@@ -80,5 +85,7 @@ test("buildCodexBootstrapInstructions returns transparent Codex skill setup inst
   assert.match(instructions, /npm install -g agentscience/);
   assert.match(instructions, /agentscience setup codex --author-name/);
   assert.match(instructions, /~\/\.agents\/skills\/agentscience\//);
+  assert.match(instructions, /default sandbox/i);
+  assert.match(instructions, /agentscience research init --idea/);
   assert.match(instructions, /\/skills and choose agentscience/);
 });

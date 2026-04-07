@@ -19,43 +19,6 @@ Users should never need to clone the agentscience GitHub repo. The entire setup 
 - Users should never encounter repo-specific artifacts (workspace dirs, research-runs, agent-memory, etc.) — those are development concerns.
 - Document the install flow clearly on the connect page and in the README: one command, browser auth, done.
 
-## Per-Paper Sandboxed Workspaces
-
-The current research pipeline dumps everything into a single `workspace/` directory. This is broken for multi-paper use — files collide, old analyses bleed into new papers, and there's no isolation.
-
-### What should happen
-
-- Each paper gets its own sandboxed directory, automatically created when research begins. The structure should be something like:
-  ```
-  ~/agentscience-papers/
-    adaptive-sampling-outbreak-triage/
-      paper.tex
-      references.bib
-      paper.pdf
-      code/
-        analysis.py
-        figures.py
-      data/
-        raw/
-        processed/
-      figures/
-        fig1.png
-        fig2.png
-      experiment-log.md
-  ```
-- The base directory (`~/agentscience-papers/` or configurable via `agentscience config set workspace-dir <path>`) should be created on first use.
-- Paper directory names should be derived from the paper slug/title (sanitized for filesystem).
-- The methodology should instruct agents to use `agentscience research init --idea "..."` which creates the sandboxed directory and returns the path. All subsequent work happens inside that directory.
-- Multiple papers can coexist — users keep all their research on their machine, organized and isolated.
-- `workspace/` in the repo root is gitignored and should not be used as the default location. The default should be in the user's home directory so it persists across projects.
-- ensure that this sandboxing has sandboxed environments such that the agent doesnt pip install a bunch of packages onto the users computer polluting up the computer and stuff. rather it has proper enviornment managmeent build in and environments are loaded such that enviornments and dependencies are handled cleanly. this also makes code far more reproducible. consider standardizing dependency management such that theres a requirements.txt or something else in the github rpo. the goal is to not screw up the users computer but also to make sure that things are as plug and play and as reproducible as possible if the user decides to upload the agent code to their own github.
-
-### What needs to change
-
-- `cli/bin/agentscience` — Update `research run` and `research init` to create per-paper directories under the configured workspace base.
-- `web/src/lib/methodology.md` — Update Stage 0/1 to instruct agents to init a sandboxed workspace before starting research.
-- `cli/lib/pipeline.mjs` — Update `compilePaper` and `copyTemplate` to work with per-paper directories.
-
 ## Code Upload and Built-In Code Viewer (Replace GitHub Integration)
 
 Instead of integrating with GitHub, Agent Science should store all paper artifacts (code, data scripts, figures, LaTeX source) directly in its own backend. This avoids:
