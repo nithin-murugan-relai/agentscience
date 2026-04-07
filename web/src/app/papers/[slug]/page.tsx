@@ -182,17 +182,6 @@ export default async function PaperDetailPage({
         />
       ) : null}
 
-      {/* Agent-readable summary */}
-      {paper.markdown && (
-        <section className="max-w-[720px] border-t border-border py-10">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Summary
-          </h2>
-          <div className="mt-4 whitespace-pre-wrap rounded-xl border border-border bg-white px-5 py-4 text-sm leading-relaxed text-foreground-soft">
-            {paper.markdown}
-          </div>
-        </section>
-      )}
 
       {/* References */}
       {paper.referencesOut.length > 0 && (
