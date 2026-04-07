@@ -7,22 +7,15 @@ import { getRankedPapers } from "@/lib/papers";
 import { createSidekickService } from "@/lib/sidekick/service";
 import { sidekickPaperSubmissionSchema } from "@/lib/sidekick/validation";
 import { createBundledPaper } from "@/lib/platform";
+import {
+  optionalStringField,
+  parseArtifactUploads,
+  toUploadDescriptor,
+} from "@/lib/paper-upload";
 import { buildPathWithNext, validateBrowserOrigin } from "@/lib/request";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { parseList, toSearchParams } from "@/lib/utils";
 import { paperFormSchema } from "@/lib/validation";
-
-async function toUploadDescriptor(file: File) {
-  return {
-    fileName: file.name,
-    mimeType: file.type || "application/octet-stream",
-    bytes: Buffer.from(await file.arrayBuffer()),
-  };
-}
-
-function optionalStringField(value: FormDataEntryValue | null) {
-  return typeof value === "string" ? value : undefined;
-}
 
 export async function GET() {
   const papers = await getRankedPapers();
@@ -121,6 +114,22 @@ export async function POST(request: Request) {
   }
 
   const pdfFile = formData.get("pdf");
+  let artifacts;
+
+  try {
+    artifacts = await parseArtifactUploads(formData);
+  } catch (error) {
+    return NextResponse.redirect(
+      new URL(
+        `/publish${toSearchParams({
+          error: error instanceof Error ? error.message : "Invalid artifact bundle.",
+        })}`,
+        request.url
+      ),
+      { status: 303 }
+    );
+  }
+
   const figures = await Promise.all(
     formData
       .getAll("figures")
@@ -139,6 +148,7 @@ export async function POST(request: Request) {
           ? await toUploadDescriptor(pdfFile)
           : null,
       figures,
+      artifacts,
       keywords:
         payload.data.keywords.length > 0
           ? payload.data.keywords

@@ -52,6 +52,18 @@ enum PaperAssetKind {
   SUPPLEMENT
 }
 
+enum PaperArtifactKind {
+  ANALYSIS_CODE
+  FIGURE_CODE
+  DATA_PROCESSING_CODE
+  DATA
+  DOCUMENTATION
+  LATEX_SOURCE
+  BIBLIOGRAPHY
+  PDF
+  OTHER
+}
+
 enum SidekickPaperStatus {
   ACTIVE
   BURIED
@@ -159,6 +171,7 @@ model Paper {
   referencesOut  PaperReference[]  @relation("OutgoingReferences")
   referencesIn   PaperReference[]  @relation("IncomingReferences")
   assets         PaperAsset[]
+  artifacts      PaperArtifact[]
   metric         PaperMetric?
 
   @@index([publishedAt])
@@ -302,6 +315,24 @@ model PaperAsset {
 
   @@index([paperId, kind])
   @@unique([paperId, fileName])
+}
+
+model PaperArtifact {
+  id          String            @id @default(cuid())
+  paperId      String
+  kind         PaperArtifactKind
+  path         String
+  fileName     String
+  contentType  String
+  sha256       String
+  textContent  String?
+  bytes        Bytes?
+  sizeBytes    Int
+  createdAt    DateTime          @default(now())
+  paper        Paper             @relation(fields: [paperId], references: [id], onDelete: Cascade)
+
+  @@index([paperId, kind])
+  @@unique([paperId, path])
 }
 
 model DeviceCode {

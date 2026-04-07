@@ -94,6 +94,16 @@ export const paperFullInclude = {
       },
     ],
   },
+  artifacts: {
+    orderBy: [
+      {
+        kind: "asc",
+      },
+      {
+        path: "asc",
+      },
+    ],
+  },
   referencesOut: {
     select: {
       targetPaperId: true,

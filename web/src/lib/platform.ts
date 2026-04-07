@@ -1,9 +1,15 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { Prisma, UserRole } from "@prisma/client";
+import { PaperArtifactKind, Prisma, UserRole } from "@prisma/client";
 
 import { hashPassword } from "@/lib/auth";
 import { UserFacingError } from "@/lib/errors";
+import {
+  classifyArtifactKind,
+  guessArtifactContentType,
+  isTextLikeArtifact,
+  normalizeArtifactPath,
+} from "@/lib/paper-artifacts";
 import {
   paperFullInclude,
   paperListInclude,
@@ -42,10 +48,18 @@ export type UploadDescriptor = {
   caption?: string;
 };
 
+export type ArtifactUploadDescriptor = {
+  path: string;
+  contentType?: string;
+  bytes: Buffer;
+  kind?: PaperArtifactKind;
+};
+
 export type BundledPaperInput = Omit<PaperFormInput, "references"> & {
   references: string[];
   pdf?: UploadDescriptor | null;
   figures?: UploadDescriptor[];
+  artifacts?: ArtifactUploadDescriptor[];
 };
 
 function hashSuffix(value: string) {
@@ -54,6 +68,180 @@ function hashSuffix(value: string) {
 
 function toPrismaBytes(bytes: Buffer) {
   return new Uint8Array(bytes);
+}
+
+function sha256Hex(bytes: Buffer) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+function materializeArtifact(
+  descriptor: ArtifactUploadDescriptor,
+  fallbackKind?: PaperArtifactKind
+) {
+  const path = normalizeArtifactPath(descriptor.path);
+  const contentType =
+    descriptor.contentType?.trim() || guessArtifactContentType(path);
+  const kind = descriptor.kind ?? fallbackKind ?? classifyArtifactKind(path);
+  const textContent = isTextLikeArtifact(path, contentType)
+    ? descriptor.bytes.toString("utf8")
+    : null;
+
+  return {
+    kind,
+    path,
+    fileName: path.split("/").at(-1) ?? path,
+    contentType,
+    sha256: sha256Hex(descriptor.bytes),
+    textContent,
+    bytes: textContent ? null : descriptor.bytes,
+    sizeBytes: descriptor.bytes.length,
+  };
+}
+
+function dedupeArtifactsByPath(artifacts: ArtifactUploadDescriptor[]) {
+  const byPath = new Map<string, ArtifactUploadDescriptor>();
+
+  for (const artifact of artifacts) {
+    byPath.set(normalizeArtifactPath(artifact.path), artifact);
+  }
+
+  return [...byPath.values()];
+}
+
+function buildPrimaryArtifacts(
+  input: BundledPaperInput | PaperUpdateInput,
+  existingArtifacts: ArtifactUploadDescriptor[] = [],
+  slugOrFileName = "paper.pdf"
+) {
+  const primaryArtifacts = [...existingArtifacts];
+  const existingKinds = new Set(
+    existingArtifacts.map((artifact) => artifact.kind ?? classifyArtifactKind(artifact.path))
+  );
+
+  if (typeof input.latexSource === "string" && !existingKinds.has(PaperArtifactKind.LATEX_SOURCE)) {
+    primaryArtifacts.push({
+      path: "paper.tex",
+      contentType: "application/x-latex",
+      bytes: Buffer.from(input.latexSource, "utf8"),
+      kind: PaperArtifactKind.LATEX_SOURCE,
+    });
+  }
+
+  if (typeof input.bibSource === "string" && !existingKinds.has(PaperArtifactKind.BIBLIOGRAPHY)) {
+    primaryArtifacts.push({
+      path: "references.bib",
+      contentType: "application/x-bibtex",
+      bytes: Buffer.from(input.bibSource, "utf8"),
+      kind: PaperArtifactKind.BIBLIOGRAPHY,
+    });
+  }
+
+  if (input.pdf && !existingKinds.has(PaperArtifactKind.PDF)) {
+    primaryArtifacts.push({
+      path: input.pdf.fileName || slugOrFileName,
+      contentType: input.pdf.mimeType || "application/pdf",
+      bytes: input.pdf.bytes,
+      kind: PaperArtifactKind.PDF,
+    });
+  }
+
+  return dedupeArtifactsByPath(primaryArtifacts);
+}
+
+async function syncPrimaryArtifacts(
+  transaction: Prisma.TransactionClient,
+  paperId: string,
+  input: PaperUpdateInput
+) {
+  if (typeof input.latexSource === "string") {
+    const artifact = materializeArtifact(
+      {
+        path: "paper.tex",
+        contentType: "application/x-latex",
+        bytes: Buffer.from(input.latexSource, "utf8"),
+        kind: PaperArtifactKind.LATEX_SOURCE,
+      },
+      PaperArtifactKind.LATEX_SOURCE
+    );
+
+    await transaction.paperArtifact.upsert({
+      where: {
+        paperId_path: {
+          paperId,
+          path: artifact.path,
+        },
+      },
+      update: {
+        ...artifact,
+        bytes: artifact.bytes ? toPrismaBytes(artifact.bytes) : null,
+      },
+      create: {
+        paperId,
+        ...artifact,
+        bytes: artifact.bytes ? toPrismaBytes(artifact.bytes) : null,
+      },
+    });
+  }
+
+  if (typeof input.bibSource === "string") {
+    const artifact = materializeArtifact(
+      {
+        path: "references.bib",
+        contentType: "application/x-bibtex",
+        bytes: Buffer.from(input.bibSource, "utf8"),
+        kind: PaperArtifactKind.BIBLIOGRAPHY,
+      },
+      PaperArtifactKind.BIBLIOGRAPHY
+    );
+
+    await transaction.paperArtifact.upsert({
+      where: {
+        paperId_path: {
+          paperId,
+          path: artifact.path,
+        },
+      },
+      update: {
+        ...artifact,
+        bytes: artifact.bytes ? toPrismaBytes(artifact.bytes) : null,
+      },
+      create: {
+        paperId,
+        ...artifact,
+        bytes: artifact.bytes ? toPrismaBytes(artifact.bytes) : null,
+      },
+    });
+  }
+
+  if (input.pdf) {
+    const artifact = materializeArtifact(
+      {
+        path: input.pdf.fileName || "paper.pdf",
+        contentType: input.pdf.mimeType,
+        bytes: input.pdf.bytes,
+        kind: PaperArtifactKind.PDF,
+      },
+      PaperArtifactKind.PDF
+    );
+
+    await transaction.paperArtifact.upsert({
+      where: {
+        paperId_path: {
+          paperId,
+          path: artifact.path,
+        },
+      },
+      update: {
+        ...artifact,
+        bytes: artifact.bytes ? toPrismaBytes(artifact.bytes) : null,
+      },
+      create: {
+        paperId,
+        ...artifact,
+        bytes: artifact.bytes ? toPrismaBytes(artifact.bytes) : null,
+      },
+    });
+  }
 }
 
 async function ensureUniqueSlug(baseSlug: string) {
@@ -301,6 +489,17 @@ export function serializePaperDetail(paper: PaperDetail) {
       doi: reference.referenceDoi,
       targetPaperId: reference.targetPaperId,
     })),
+    artifacts: paper.artifacts.map((artifact) => ({
+      id: artifact.id,
+      kind: artifact.kind,
+      path: artifact.path,
+      fileName: artifact.fileName,
+      contentType: artifact.contentType,
+      sha256: artifact.sha256,
+      sizeBytes: artifact.sizeBytes,
+      isText: Boolean(artifact.textContent),
+      downloadUrl: `/api/v1/papers/${paper.slug}/download/artifact/${artifact.id}`,
+    })),
     figures: paper.assets.map((asset) => ({
       id: asset.id,
       kind: asset.kind,
@@ -331,15 +530,21 @@ export async function createBundledPaper(userId: string, input: BundledPaperInpu
     throw new UserFacingError("Provide a compiled PDF file or PDF URL.", 400);
   }
 
-  if (!input.githubUrl?.trim()) {
-    throw new UserFacingError("A GitHub repository URL is required.", 400);
-  }
-
   const slug = await ensureUniqueSlug(slugify(input.title));
   const keywords = normalizeKeywords(input);
   const referenceRecords = await resolveReferenceRecords(input.references);
   const markdown = buildPaperMarkdown(input);
   const latexSource = input.latexSource.trim();
+  const artifacts = buildPrimaryArtifacts(
+    {
+      ...input,
+      latexSource,
+      bibSource: input.bibSource?.trim(),
+      artifacts: undefined,
+    },
+    input.artifacts ?? [],
+    input.pdf?.fileName ?? `${slug}.pdf`
+  ).map((artifact) => materializeArtifact(artifact));
 
   const paper = await prisma.$transaction(async (transaction) => {
     const createdPaper = await transaction.paper.create({
@@ -382,29 +587,15 @@ export async function createBundledPaper(userId: string, input: BundledPaperInpu
       });
     }
 
-    if (input.bibSource?.trim()) {
-      await transaction.paperAsset.create({
-        data: {
+    if (artifacts.length > 0) {
+      await transaction.paperArtifact.createMany({
+        data: artifacts.map((artifact) => ({
           paperId: createdPaper.id,
-          kind: "SUPPLEMENT",
-          fileName: "references.bib",
-          mimeType: "application/x-bibtex",
-          textContent: input.bibSource.trim(),
-          sizeBytes: Buffer.byteLength(input.bibSource.trim(), "utf8"),
-        },
+          ...artifact,
+          bytes: artifact.bytes ? toPrismaBytes(artifact.bytes) : null,
+        })),
       });
     }
-
-    await transaction.paperAsset.create({
-        data: {
-          paperId: createdPaper.id,
-          kind: "SUPPLEMENT",
-          fileName: "paper.tex",
-          mimeType: "application/x-latex",
-          textContent: latexSource,
-          sizeBytes: Buffer.byteLength(latexSource, "utf8"),
-        },
-      });
 
     if (input.figures?.length) {
       await transaction.paperAsset.createMany({
@@ -655,9 +846,13 @@ export async function updatePaper(slug: string, userId: string, input: PaperUpda
     data.pdfFileName = input.pdf.fileName;
   }
 
-  await prisma.paper.update({
-    where: { id: paper.id },
-    data,
+  await prisma.$transaction(async (transaction) => {
+    await transaction.paper.update({
+      where: { id: paper.id },
+      data,
+    });
+
+    await syncPrimaryArtifacts(transaction, paper.id, input);
   });
 
   const detail = await getPaperDetail(slug);

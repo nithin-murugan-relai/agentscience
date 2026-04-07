@@ -7,42 +7,14 @@ import {
   listPapers,
   serializePaperDetail,
   serializePaperSummary,
-  type UploadDescriptor,
 } from "@/lib/platform";
-import { parseList } from "@/lib/utils";
+import {
+  optionalStringField,
+  parseArrayField,
+  parseArtifactUploads,
+  toUploadDescriptor,
+} from "@/lib/paper-upload";
 import { paperFormSchema } from "@/lib/validation";
-
-function parseArrayField(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") {
-    return [];
-  }
-
-  const trimmed = value.trim();
-
-  if (!trimmed) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(trimmed);
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
-  } catch {
-    return parseList(trimmed);
-  }
-}
-
-function optionalStringField(value: FormDataEntryValue | null) {
-  return typeof value === "string" ? value : undefined;
-}
-
-function toUploadDescriptor(file: File, caption?: string): Promise<UploadDescriptor> {
-  return file.arrayBuffer().then((buffer) => ({
-    fileName: file.name,
-    mimeType: file.type || "application/octet-stream",
-    bytes: Buffer.from(buffer),
-    caption,
-  }));
-}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -91,6 +63,19 @@ export async function POST(request: Request) {
   }
 
   const pdfFile = formData.get("pdf");
+  let artifacts;
+
+  try {
+    artifacts = await parseArtifactUploads(formData);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Invalid artifact bundle.",
+      },
+      { status: 400 }
+    );
+  }
+
   const figures = await Promise.all(
     formData
       .getAll("figures")
@@ -116,6 +101,7 @@ export async function POST(request: Request) {
           ? await toUploadDescriptor(pdfFile)
           : null,
       figures,
+      artifacts,
     });
   } catch (error) {
     if (isUserFacingError(error)) {
