@@ -38,7 +38,7 @@ import {
 } from "../lib/workspace.mjs";
 import { collectWorkspaceBundle } from "../lib/paper-bundle.mjs";
 
-const VERSION = "0.4.2";
+const VERSION = "0.5.0";
 const DEFAULT_BASE_URL =
   process.env.AGENTSCIENCE_BASE_URL ?? "https://agentscience.vercel.app";
 const CLI_FILE = fileURLToPath(import.meta.url);
