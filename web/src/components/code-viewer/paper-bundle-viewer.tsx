@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 type BundleTab = "code" | "figures" | "pdf";
 
@@ -162,7 +162,7 @@ function fileIcon(filePath: string) {
     case "json":
     case "jsonl":
       return (
-        <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-[#f5a623]" fill="currentColor">
+        <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-[#cb8a04]" fill="currentColor">
           <path d="M4.5 3C3.12 3 2 4.12 2 5.5v1c0 .83-.67 1.5-1.5 1.5v1c.83 0 1.5.67 1.5 1.5v1C2 12.88 3.12 14 4.5 14h1v-1.5h-1a1 1 0 01-1-1V10a2 2 0 00-.75-1.56L2.5 8.25l.25-.19A2 2 0 003.5 6.5V5a1 1 0 011-1h1V2.5h-1zM11.5 3C12.88 3 14 4.12 14 5.5v1c0 .83.67 1.5 1.5 1.5v1c-.83 0-1.5.67-1.5 1.5v1c0 1.38-1.12 2.5-2.5 2.5h-1v-1.5h1a1 1 0 001-1V10a2 2 0 01.75-1.56l.25-.19-.25-.19A2 2 0 0112.5 6.5V5a1 1 0 00-1-1h-1V2.5h1z" />
         </svg>
       );
@@ -195,7 +195,7 @@ function fileIcon(filePath: string) {
       );
     default:
       return (
-        <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-white/40" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-foreground/30" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M4 2h5l3 3v9H4V2z" />
         </svg>
       );
@@ -222,7 +222,7 @@ function DirectoryGroup({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-1.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/40 transition-colors hover:text-white/60"
+        className="flex w-full items-center gap-1.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-foreground/40 transition-colors hover:text-foreground/60"
         style={{ paddingLeft: `${depth * 12 + 12}px` }}
       >
         <svg
@@ -232,7 +232,7 @@ function DirectoryGroup({
         >
           <path d="M3 1l4 4-4 4z" />
         </svg>
-        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 text-white/30" fill="currentColor">
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 text-foreground/25" fill="currentColor">
           <path d="M1.5 2A1.5 1.5 0 000 3.5v9A1.5 1.5 0 001.5 14h13a1.5 1.5 0 001.5-1.5V5.5A1.5 1.5 0 0014.5 4H8L6.5 2z" />
         </svg>
         {name}
@@ -276,8 +276,8 @@ function renderTree(
         onClick={() => onSelect(artifact.id)}
         className={`group flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-left text-[13px] transition-colors ${
           selected
-            ? "bg-white/10 text-white"
-            : "text-white/60 hover:bg-white/[0.05] hover:text-white/90"
+            ? "bg-foreground/8 font-medium text-foreground"
+            : "text-foreground/60 hover:bg-foreground/4 hover:text-foreground/90"
         }`}
         style={{ paddingLeft: `${depth * 12 + 12}px` }}
       >
@@ -316,6 +316,11 @@ export function PaperBundleViewer({
     { id: "figures", label: "Figures", disabled: figures.length === 0 },
     { id: "pdf", label: "PDF", disabled: !pdfUrl },
   ];
+
+  /* close sidebar on small screens by default */
+  useEffect(() => {
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  }, []);
 
   const handleSelectArtifact = useCallback((artifactId: string) => {
     setSelectedArtifactId(artifactId);
@@ -369,16 +374,16 @@ export function PaperBundleViewer({
             No code artifacts were uploaded with this paper.
           </div>
         ) : (
-          <div className="mt-6 overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f172a]">
+          <div className="mt-6 overflow-hidden rounded-xl border border-border bg-white">
             {/* toolbar */}
-            <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#0f172a] px-1 py-1">
-              <div className="flex items-center gap-1">
+            <div className="flex items-center justify-between border-b border-border bg-[#f6f8fa] px-2 py-1.5">
+              <div className="flex min-w-0 items-center gap-1">
                 {/* sidebar toggle */}
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/70"
-                  title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+                  className="shrink-0 rounded-md p-1.5 text-foreground/50 transition-colors hover:bg-foreground/8 hover:text-foreground/80"
+                  title={sidebarOpen ? "Hide file explorer" : "Show file explorer"}
                 >
                   <svg viewBox="0 0 16 16" className="h-4 w-4" fill="currentColor">
                     <path d="M1 3.5A1.5 1.5 0 012.5 2h11A1.5 1.5 0 0115 3.5v9a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 011 12.5v-9zM2.5 3a.5.5 0 00-.5.5v9a.5.5 0 00.5.5H6V3H2.5zM7 3v10h6.5a.5.5 0 00.5-.5v-9a.5.5 0 00-.5-.5H7z" />
@@ -387,11 +392,11 @@ export function PaperBundleViewer({
 
                 {/* breadcrumb path */}
                 {selectedArtifact && (
-                  <div className="flex items-center gap-1 px-2 text-[13px]">
+                  <div className="flex min-w-0 items-center gap-0.5 px-1 text-[13px]">
                     {selectedArtifact.path.split("/").map((segment, i, arr) => (
-                      <span key={i} className="flex items-center gap-1">
-                        {i > 0 && <span className="text-white/20">/</span>}
-                        <span className={i === arr.length - 1 ? "text-white/90" : "text-white/40"}>
+                      <span key={i} className="flex shrink-0 items-center gap-0.5">
+                        {i > 0 && <span className="text-foreground/20">/</span>}
+                        <span className={i === arr.length - 1 ? "font-medium text-foreground" : "text-foreground/50"}>
                           {segment}
                         </span>
                       </span>
@@ -400,14 +405,14 @@ export function PaperBundleViewer({
                 )}
               </div>
 
-              <div className="flex items-center gap-3 pr-2">
-                <span className="text-[11px] text-white/30">
+              <div className="flex shrink-0 items-center gap-2 pl-2">
+                <span className="text-[11px] text-foreground/40">
                   {selectedArtifact ? formatBytes(selectedArtifact.sizeBytes) : null}
                 </span>
                 {selectedArtifact && (
                   <a
                     href={selectedArtifact.downloadUrl}
-                    className="flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white"
+                    className="flex items-center gap-1.5 rounded-md border border-border bg-white px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-foreground/4"
                   >
                     <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
@@ -421,90 +426,90 @@ export function PaperBundleViewer({
             <div className="flex" style={{ height: "clamp(480px, 70vh, 800px)" }}>
               {/* sidebar */}
               {sidebarOpen && (
-                <aside className="flex w-56 shrink-0 flex-col border-r border-white/[0.06] bg-[#0c1322] lg:w-60">
-                  <div className="flex-1 overflow-y-auto overscroll-contain px-1 py-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+                <aside
+                  className="flex w-56 shrink-0 flex-col border-r border-border bg-[#f6f8fa] lg:w-60"
+                >
+                  <div className="flex-1 overflow-y-auto overscroll-contain px-1.5 py-2">
                     {renderTree(tree, "", selectedArtifact?.id ?? "", handleSelectArtifact)}
                   </div>
                 </aside>
               )}
 
               {/* code pane */}
-              <div className="flex min-w-0 flex-1 flex-col">
-                <div className="flex-1 overflow-auto overscroll-contain">
-                  {selectedArtifact?.textContent ? (
-                    looksLikeCsv(selectedArtifact) ? (
-                      <div className="p-4">
-                        <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-white/30">
-                          CSV preview (first 12 rows)
-                        </div>
-                        <div className="overflow-x-auto rounded-lg border border-white/[0.06]">
-                          <table className="min-w-full text-left text-[13px]">
-                            <tbody>
-                              {parseCsvPreview(selectedArtifact.textContent).map((row, rowIndex) => (
-                                <tr
-                                  key={`${selectedArtifact.id}-${rowIndex}`}
-                                  className={
-                                    rowIndex === 0
-                                      ? "bg-white/[0.04] font-medium text-white/80"
-                                      : "border-t border-white/[0.04] text-white/60"
-                                  }
-                                >
-                                  {row.map((cell, cellIndex) => (
-                                    <td key={`${rowIndex}-${cellIndex}`} className="whitespace-nowrap px-3 py-2 font-mono text-xs">
-                                      {cell}
-                                    </td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+              <div className="flex min-w-0 flex-1 flex-col overflow-auto">
+                {selectedArtifact?.textContent ? (
+                  looksLikeCsv(selectedArtifact) ? (
+                    <div className="p-4">
+                      <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-foreground/35">
+                        CSV preview (first 12 rows)
                       </div>
-                    ) : (
-                      <SyntaxHighlighter
-                        language={artifactLanguageFromPath(selectedArtifact.path)}
-                        style={oneDark}
-                        showLineNumbers
-                        wrapLongLines={shouldWrap}
-                        customStyle={{
-                          margin: 0,
-                          padding: "12px 0",
-                          background: "transparent",
-                          fontSize: "13px",
-                          lineHeight: "1.6",
-                          minHeight: "100%",
-                        }}
-                        lineNumberStyle={{
-                          minWidth: "3rem",
-                          paddingRight: "1rem",
-                          color: "rgba(255,255,255,0.15)",
-                          textAlign: "right",
-                          userSelect: "none",
-                        }}
-                        codeTagProps={{
-                          style: {
-                            fontFamily:
-                              "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-                            ...(shouldWrap
-                              ? { whiteSpace: "pre-wrap", wordBreak: "break-word" }
-                              : {}),
-                          },
-                        }}
-                      >
-                        {selectedArtifact.textContent}
-                      </SyntaxHighlighter>
-                    )
-                  ) : (
-                    <div className="flex h-full items-center justify-center px-6 text-center text-sm text-white/40">
-                      <div>
-                        <svg viewBox="0 0 24 24" className="mx-auto mb-3 h-8 w-8 text-white/20" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <path d="M12 16v-4m0-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Binary file — download to view locally
+                      <div className="overflow-x-auto rounded-lg border border-border">
+                        <table className="min-w-full text-left text-[13px]">
+                          <tbody>
+                            {parseCsvPreview(selectedArtifact.textContent).map((row, rowIndex) => (
+                              <tr
+                                key={`${selectedArtifact.id}-${rowIndex}`}
+                                className={
+                                  rowIndex === 0
+                                    ? "bg-[#f6f8fa] font-medium text-foreground"
+                                    : "border-t border-border text-foreground/70"
+                                }
+                              >
+                                {row.map((cell, cellIndex) => (
+                                  <td key={`${rowIndex}-${cellIndex}`} className="whitespace-nowrap px-3 py-2 font-mono text-xs">
+                                    {cell}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
-                  )}
-                </div>
+                  ) : (
+                    <SyntaxHighlighter
+                      language={artifactLanguageFromPath(selectedArtifact.path)}
+                      style={oneLight}
+                      showLineNumbers
+                      wrapLongLines={shouldWrap}
+                      customStyle={{
+                        margin: 0,
+                        padding: "12px 0",
+                        background: "#ffffff",
+                        fontSize: "13px",
+                        lineHeight: "1.6",
+                        minHeight: "100%",
+                      }}
+                      lineNumberStyle={{
+                        minWidth: "3rem",
+                        paddingRight: "1rem",
+                        color: "#b0b8c4",
+                        textAlign: "right",
+                        userSelect: "none",
+                      }}
+                      codeTagProps={{
+                        style: {
+                          fontFamily:
+                            "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                          ...(shouldWrap
+                            ? { whiteSpace: "pre-wrap", wordBreak: "break-word" }
+                            : {}),
+                        },
+                      }}
+                    >
+                      {selectedArtifact.textContent}
+                    </SyntaxHighlighter>
+                  )
+                ) : (
+                  <div className="flex h-full items-center justify-center px-6 text-center text-sm text-foreground/40">
+                    <div>
+                      <svg viewBox="0 0 24 24" className="mx-auto mb-3 h-8 w-8 text-foreground/20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M12 16v-4m0-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Binary file — download to view locally
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -568,7 +573,7 @@ export function PaperBundleViewer({
                       <a
                         href={figure.downloadUrl}
                         download
-                        className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground/5"
+                        className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground/4"
                       >
                         <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
