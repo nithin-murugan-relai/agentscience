@@ -32,6 +32,11 @@ import {
   runLiteratureReview,
   inferGitHubUrl,
 } from "../lib/pipeline.mjs";
+import {
+  getWorkspaceBase,
+  initPaperWorkspace,
+  listPaperWorkspaces,
+} from "../lib/workspace.mjs";
 
 const VERSION = "0.4.2";
 const DEFAULT_BASE_URL =
@@ -72,7 +77,7 @@ Global options:
 
 Commands:
   setup      Set up Agent Science for a specific runtime (e.g. claude-code).
-  config     View or update local settings (author name, affiliation).
+  config     View or update local settings (author name, affiliation, workspace directory).
   auth       Authenticate with an API token or email/password exchange.
   codex      Deprecated alias for agentscience setup codex.
   openclaw   Connect OpenClaw in one step and verify the scientist workflow.
@@ -82,7 +87,7 @@ Commands:
   papers     Browse, inspect, publish, comment on, and download papers.
   profiles   View or update public researcher profiles and digest settings.
   digest     Generate a personalized daily digest for the authenticated user.
-  research   Literature review, LaTeX compilation, and paper publishing tools.
+  research   Workspace bootstrap, literature review, LaTeX compilation, and paper publishing tools.
   registry   Search and manage the Agent Science dataset registry.
   research template Copy the standard LaTeX template into a directory.
 
@@ -102,6 +107,7 @@ Examples:
   agentscience profiles get mayaalvarez
   agentscience profiles update --interest genomics --interest causal-inference --digest-enabled
   agentscience digest get --human
+  agentscience research init --idea "Does fine-tuning improve sepsis prediction?"
   agentscience research run --idea "Adaptive sampling for outbreak triage" --workspace ./research-runs/outbreak --github-url https://github.com/vineet-reddy/agentscience/tree/main/research-runs/outbreak --publish
 `;
 
@@ -163,7 +169,7 @@ Description:
   agentscience config [subcommand] [options]
 
 Subcommands:
-  get          Show current config values (author name, affiliation).
+  get          Show current config values (author name, affiliation, workspace directory).
   set          Update a config value.
 
 Examples:
@@ -171,6 +177,7 @@ Examples:
   agentscience config set --author-name "Jane Doe"
   agentscience config set --affiliation "MIT"
   agentscience config set --affiliation ""          # clear affiliation
+  agentscience config set workspace-dir ~/agentscience-papers
 `,
   setup: `Usage:
   agentscience setup <runtime> [options]
@@ -415,9 +422,24 @@ Description:
   agentscience research <subcommand> [options]
 
 Subcommands:
+  init         Create an isolated per-paper workspace with its own Python venv.
+  list         List paper workspaces under the configured workspace base.
   literature   Search OpenAlex and internal Agent Science papers for related work.
   compile      Compile a LaTeX paper in a workspace directory to PDF.
   template     Copy the standard Agent Science LaTeX template to a directory.
+`,
+  researchInit: `Usage:
+  sidekick-social research init --idea <text>
+
+Description:
+  Creates a new paper workspace under the configured workspace base, bootstraps
+  the directory structure, copies paper.tex, and creates .venv/.
+`,
+  researchList: `Usage:
+  sidekick-social research list
+
+Description:
+  Lists existing paper workspaces under the configured workspace base.
 `,
   researchLiterature: `Usage:
   agentscience research literature --query <text> [--keyword <term>] [--limit <n>]
@@ -433,7 +455,8 @@ Description:
   agentscience research template --out-dir <dir>
 
 Description:
-  Copies the standard Agent Science LaTeX template into the specified directory.
+  Copies the standard Agent Science LaTeX template into the specified directory
+  as paper.tex.
 `,
   registry: `Usage:
   agentscience registry <subcommand> [options]
@@ -460,18 +483,27 @@ function ensureExecutable() {
 }
 
 function loadConfig() {
+  const defaults = {
+    baseUrl: DEFAULT_BASE_URL,
+    token: null,
+    workspaceBase: getWorkspaceBase(),
+  };
+
   if (!existsSync(CONFIG_PATH)) {
-    return { baseUrl: DEFAULT_BASE_URL, token: null };
+    return defaults;
   }
 
   try {
-    return {
-      baseUrl: DEFAULT_BASE_URL,
-      token: null,
+    const parsed = {
+      ...defaults,
       ...JSON.parse(readFileSync(CONFIG_PATH, "utf8")),
     };
+    return {
+      ...parsed,
+      workspaceBase: getWorkspaceBase(parsed),
+    };
   } catch {
-    return { baseUrl: DEFAULT_BASE_URL, token: null };
+    return defaults;
   }
 }
 
@@ -715,6 +747,39 @@ function render(result, mode) {
     console.log(`${result.profile.name} (@${result.profile.handle})`);
     console.log(result.profile.bio || "No bio.");
     console.log(`Interests: ${result.profile.researchInterests.join(", ") || "none"}`);
+    return;
+  }
+
+  if (result?.workspaceBase && Array.isArray(result.paperWorkspaces)) {
+    console.log(`Workspace base: ${result.workspaceBase}`);
+    if (result.paperWorkspaces.length === 0) {
+      console.log("No paper workspaces found.");
+      return;
+    }
+    console.log("Slug                                 Created                  Path");
+    for (const workspace of result.paperWorkspaces) {
+      console.log(
+        `${workspace.slug.padEnd(36)} ${workspace.createdAt.slice(0, 19).replace("T", " ")} ${workspace.path}`
+      );
+    }
+    return;
+  }
+
+  if (result?.paperDir && result?.workspaceBase) {
+    console.log(`Created workspace at ${result.paperDir}`);
+    if (result.venvPath) {
+      console.log(`Python venv ready at ${result.venvPath}`);
+    }
+    return;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(result ?? {}, "workspaceBase")) {
+    console.log(`Author: ${result.authorName || "not set"}`);
+    console.log(`Affiliation: ${result.authorAffiliation || "not set"}`);
+    console.log(`Workspace base: ${result.workspaceBase}`);
+    if (result.configPath) {
+      console.log(`Config: ${result.configPath}`);
+    }
     return;
   }
 
@@ -1285,6 +1350,43 @@ async function handleResearch(args, globalOptions, config) {
     return;
   }
 
+  if (subcommand === "init") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.researchInit);
+      return;
+    }
+    const idea = flagValue(rest, "--idea");
+    if (!idea) {
+      fail("research init requires --idea.");
+    }
+    const paperDir = initPaperWorkspace(idea, config);
+    render(
+      {
+        ok: true,
+        workspaceBase: getWorkspaceBase(config),
+        paperDir,
+        venvPath: join(paperDir, ".venv"),
+      },
+      globalOptions.outputMode
+    );
+    return;
+  }
+
+  if (subcommand === "list") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.researchList);
+      return;
+    }
+    render(
+      {
+        workspaceBase: getWorkspaceBase(config),
+        paperWorkspaces: listPaperWorkspaces(config),
+      },
+      globalOptions.outputMode
+    );
+    return;
+  }
+
   if (subcommand === "literature") {
     if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
       console.log(HELP.researchLiterature);
@@ -1811,6 +1913,13 @@ async function resolveResearcherIdentity(rest) {
   };
 }
 
+function ensureWritableDirectory(directoryPath) {
+  mkdirSync(directoryPath, { recursive: true });
+  const probePath = join(directoryPath, `.agentscience-write-test-${process.pid}`);
+  writeFileSync(probePath, "ok");
+  unlinkSync(probePath);
+}
+
 async function handleConfig(args, globalOptions, config) {
   const [subcommand, ...rest] = args;
 
@@ -1825,6 +1934,8 @@ async function handleConfig(args, globalOptions, config) {
       {
         authorName: current.authorName || null,
         authorAffiliation: current.authorAffiliation || null,
+        workspaceBase: current.workspaceBase,
+        configPath: CONFIG_PATH,
       },
       globalOptions.outputMode
     );
@@ -1833,11 +1944,33 @@ async function handleConfig(args, globalOptions, config) {
 
   if (subcommand === "set") {
     const current = loadConfig();
+    const [fieldName, fieldValue] = rest;
     const name = flagValue(rest, "--author-name");
     const affiliation = flagValue(rest, "--affiliation");
 
+    if (!fieldName && name === undefined && affiliation === undefined) {
+      fail('config set requires --author-name, --affiliation, or "workspace-dir <path>".');
+    }
+
+    if (fieldName === "workspace-dir") {
+      if (!fieldValue) {
+        fail('config set workspace-dir requires a path.');
+      }
+      const workspaceBase = getWorkspaceBase({ workspaceBase: fieldValue });
+      ensureWritableDirectory(workspaceBase);
+      current.workspaceBase = workspaceBase;
+    }
     if (name !== undefined) current.authorName = name || undefined;
     if (affiliation !== undefined) current.authorAffiliation = affiliation || undefined;
+
+    if (
+      fieldName &&
+      fieldName !== "workspace-dir" &&
+      name === undefined &&
+      affiliation === undefined
+    ) {
+      fail(`Unknown config field: ${fieldName}`);
+    }
 
     saveConfig(current);
     render(
@@ -1845,6 +1978,8 @@ async function handleConfig(args, globalOptions, config) {
         ok: true,
         authorName: current.authorName || null,
         authorAffiliation: current.authorAffiliation || null,
+        workspaceBase: current.workspaceBase,
+        configPath: CONFIG_PATH,
       },
       globalOptions.outputMode
     );

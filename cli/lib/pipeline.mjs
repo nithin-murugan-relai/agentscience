@@ -48,13 +48,13 @@ const TEMPLATE_DIR = join(__dirname, "..", "resources", "latex-template");
 /**
  * Copy the standard Agent Science LaTeX template into a workspace directory.
  */
-export function copyTemplate(outDir) {
+export function copyTemplate(outDir, outputFileName = "paper.tex") {
   const templatePath = join(TEMPLATE_DIR, "agentscience.tex");
   if (!existsSync(templatePath)) {
     throw new Error(`LaTeX template not found at ${templatePath}`);
   }
   mkdirSync(outDir, { recursive: true });
-  const destPath = join(outDir, "agentscience-template.tex");
+  const destPath = join(outDir, outputFileName);
   copyFileSync(templatePath, destPath);
   return destPath;
 }
@@ -80,9 +80,9 @@ export function compilePaper(workspaceDir, texFileName = "paper.tex") {
     cwd: workspaceDir,
   });
 
-  // Only run bibtex if a .bib file exists
+  // Only run bibtex if a non-empty .bib file exists
   const bibPath = join(workspaceDir, "references.bib");
-  if (existsSync(bibPath)) {
+  if (existsSync(bibPath) && readFileSync(bibPath, "utf8").trim().length > 0) {
     runCommand("bibtex", [slug], { cwd: workspaceDir });
     runCommand("pdflatex", ["-interaction=nonstopmode", texFileName], {
       cwd: workspaceDir,
