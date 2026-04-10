@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useDeferredValue,
   useEffect,
@@ -14,10 +13,9 @@ import type { PaperFeedPage } from "@/lib/papers";
 
 type PaperFeedProps = {
   initialFeed: PaperFeedPage;
-  canPublish: boolean;
 };
 
-export function PaperFeed({ initialFeed, canPublish }: PaperFeedProps) {
+export function PaperFeed({ initialFeed }: PaperFeedProps) {
   const [query, setQuery] = useState(initialFeed.query);
   const [feed, setFeed] = useState(initialFeed);
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -136,53 +134,43 @@ export function PaperFeed({ initialFeed, canPublish }: PaperFeedProps) {
 
   return (
     <section>
-      <div className="max-w-[var(--content-width)]">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="text-lg font-medium text-ink">Recent research</h2>
+        <span className="text-xs text-ink-faint tabular-nums">
+          {feed.total} {feed.total === 1 ? "paper" : "papers"}
+          {feed.query ? ` · “${feed.query}”` : ""}
+        </span>
+      </div>
+
+      <div className="mt-3">
         <label htmlFor="paper-search" className="sr-only">
-          Search papers, authors, or dates
+          Search
         </label>
         <input
           id="paper-search"
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search papers, authors, or dates"
-          className="field-input h-12 text-[0.9375rem]"
+          placeholder="Search by title, author, or date"
+          className="field-input"
           autoComplete="off"
           spellCheck={false}
         />
-        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-faint">
-          <span>
-            {feed.total} {feed.total === 1 ? "paper" : "papers"}
-            {feed.query ? ` for “${feed.query}”` : ""}
-          </span>
-          <span className="text-rule">&middot;</span>
-          <Link href="/connect" className="hover:text-ink">
-            Connect to publish from your agent
-          </Link>
-          {canPublish ? (
-            <>
-              <span className="text-rule">&middot;</span>
-              <Link href="/publish" className="hover:text-ink">
-                Open the web publisher
-              </Link>
-            </>
-          ) : null}
-        </div>
       </div>
 
-      <div className="mt-8 border-t border-rule">
+      <div className="mt-6 border-t border-rule">
         {feed.papers.length > 0 ? (
           feed.papers.map((paper) => <PaperCard key={paper.id} paper={paper} />)
         ) : (
           <p className="py-16 text-center text-ink-light">
-            {loadingSearch ? "Searching papers..." : "No papers match that search."}
+            {loadingSearch ? "Searching…" : "Nothing here yet."}
           </p>
         )}
       </div>
 
       {(loadingSearch || loadingMore) && feed.papers.length > 0 ? (
-        <p className="pt-6 text-sm text-ink-light">
-          {loadingSearch ? "Refreshing feed..." : "Loading more papers..."}
+        <p className="pt-6 text-center text-xs text-ink-faint">
+          {loadingSearch ? "Refreshing…" : "Loading more…"}
         </p>
       ) : null}
 
