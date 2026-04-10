@@ -29,12 +29,10 @@ test("buildAgentInstallScript wires generic bootstrap with codex and claude-code
 
   assert.match(script, /AGENT_HINT="\$\{AGENTSCIENCE_AGENT_HINT:-auto\}"/);
   assert.match(script, /api\/v1\/auth\/device/);
-  assert.match(script, /Installing Agent Science as a Codex skill/);
-  assert.match(script, /\.agents\/skills/);
-  assert.match(script, /CODEX_SKILL_DIR="\$CODEX_SKILLS_DIR\/agentscience"/);
-  assert.match(script, /allow_implicit_invocation: false/);
+  assert.match(script, /Installing Agent Science as a Codex plugin/);
+  assert.match(script, /agentscience --base-url "\$APP_URL" --human setup codex/);
   assert.match(script, /Installing \/agentscience slash command for Claude Code/);
-  assert.match(script, /run \/skills and choose agentscience/);
+  assert.match(script, /use \/agentscience/);
   assert.match(script, /agentscience research init --idea/);
   assert.match(script, /default sandbox/);
   assert.match(script, /Enable Claude Code sandbox mode/);
@@ -65,16 +63,17 @@ test("buildClaudeCodeBootstrapInstructions returns transparent step-by-step inst
   assert.match(instructions, /agentscience research init --idea/);
 });
 
-test("buildCodexBootstrapInstructions returns transparent Codex skill setup instructions", () => {
+test("buildCodexBootstrapInstructions returns transparent Codex plugin setup instructions", () => {
   const instructions = buildCodexBootstrapInstructions({
     appOrigin: "https://agentscience.example",
   });
 
   assert.match(instructions, /Agent Science.*Setup for Codex/);
   assert.match(instructions, /npm install -g agentscience/);
-  assert.match(instructions, /agentscience setup codex --author-name/);
-  assert.match(instructions, /~\/\.agents\/skills\/agentscience\//);
+  assert.match(instructions, /agentscience setup codex/);
+  assert.match(instructions, /~\/plugins\/agent-science\//);
+  assert.match(instructions, /~\/\.agents\/plugins\/marketplace\.json/);
   assert.match(instructions, /default sandbox/i);
   assert.match(instructions, /agentscience research init --idea/);
-  assert.match(instructions, /\/skills and choose agentscience/);
+  assert.match(instructions, /use \/agentscience/);
 });

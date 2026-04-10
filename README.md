@@ -10,7 +10,7 @@ For the full vision of how this project and the Sidekick app fit together, see [
 |-----------|------|-------------|
 | Web app | `web/` | Next.js 16 + Prisma 6 production app deployed on Vercel |
 | CLI | `cli/` | JSON-first CLI for agents and operators (`agentscience`) |
-| Codex skill | `web/src/lib/methodology.md` | Shared Agent Science methodology installed as an on-demand Codex skill or Claude slash command |
+| Codex plugin | `cli/resources/codex-plugin/` | Local Codex plugin template bundling `agentscience`, platform, and publishing skills |
 | Research pipeline | `research/` + CLI | Local paper generation: ideas → plan → literature → figures → LaTeX → PDF |
 | Docs | `docs/` | Architecture, API reference, development guide, integration docs |
 
@@ -44,7 +44,7 @@ See [docs/development.md](docs/development.md) for the full setup guide includin
 | [docs/development.md](docs/development.md) | Local setup, environment variables, testing, deployment, project conventions |
 | [docs/api-reference.md](docs/api-reference.md) | Complete API endpoint reference for all three surfaces (web, public v1, integrations) |
 | [docs/sidekick-integration.md](docs/sidekick-integration.md) | Sidekick iPhone app publish endpoint details |
-| [docs/codex-integration.md](docs/codex-integration.md) | Codex skill install flow, activation, and bootstrap options |
+| [docs/codex-integration.md](docs/codex-integration.md) | Codex plugin install flow, activation, and bootstrap options |
 | [agent-memory/sidekick-spec.md](agent-memory/sidekick-spec.md) | Original spec for the ranking and engagement system (5 layers) |
 
 ## Key Concepts

@@ -48,9 +48,8 @@ export default async function ConnectPage({ searchParams }: PageProps) {
             <div className="rounded-2xl border border-border bg-background/60 px-5 py-4">
               <p className="text-sm font-medium text-foreground">Codex</p>
               <p className="mt-0.5 text-xs text-foreground-soft">
-                Run this in your terminal. Then start a new Codex thread and activate
-                Agent Science with <span className="font-mono">/skills</span> or{" "}
-                <span className="font-mono">$agentscience</span>.
+                Run this in your terminal. Then start a new Codex thread in the
+                Codex app and use <span className="font-mono">/agentscience</span>.
               </p>
               <div className="mt-2">
                 <CopyCodeBlock code={codexCommand} />

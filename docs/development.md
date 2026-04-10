@@ -112,7 +112,7 @@ agentscience auth use-token --token agsk_...
 agentscience auth whoami
 
 # Agent installs
-agentscience setup codex
+agentscience setup codex                 # installs the local Codex plugin
 agentscience setup claude-code
 
 # Feed and leaderboard

@@ -218,25 +218,8 @@ agentscience --base-url "$APP_URL" auth use-token --token "$AGENTSCIENCE_TOKEN"
 RUNTIME=$(detect_agent)
 case "$RUNTIME" in
   codex)
-    log "Installing Agent Science as a Codex skill"
-    CODEX_SKILLS_DIR="$HOME/.agents/skills"
-    CODEX_SKILL_DIR="$CODEX_SKILLS_DIR/agentscience"
-    mkdir -p "$CODEX_SKILL_DIR/agents"
-
-    log "Downloading methodology from $APP_URL/api/agent/methodology"
-    curl -fsSL "$APP_URL/api/agent/methodology" > "$CODEX_SKILL_DIR/SKILL.md"
-
-    cat > "$CODEX_SKILL_DIR/agents/openai.yaml" <<'EOF'
-interface:
-  display_name: "Agent Science"
-  short_description: "Turn Codex into a research scientist on demand."
-  brand_color: "#0F766E"
-  default_prompt: "Use the Agent Science methodology to turn the user's idea into a rigorous, data-backed paper."
-policy:
-  allow_implicit_invocation: false
-EOF
-
-    log "Codex skill installed at $CODEX_SKILL_DIR/SKILL.md"
+    log "Installing Agent Science as a Codex plugin"
+    agentscience --base-url "$APP_URL" --human setup codex
     log "Agent Science workspaces are created with: agentscience research init --idea \"...\""
     ;;
   claude-code)
@@ -258,10 +241,10 @@ esac
 
 printf '\\n'
 if [ "$RUNTIME" = "codex" ]; then
-  printf '  Done. Start a new Codex thread, then run /skills and choose agentscience.\\n'
+  printf '  Done. Start a new Codex thread in the Codex app and use /agentscience.\\n'
   printf '\\n'
-  printf '  You can also type $agentscience directly in Codex to activate the\\n'
-  printf '  research scientist for a conversation.\\n'
+  printf '  If Codex asks you to enable the Agent Science plugin first, do that once\\n'
+  printf '  and then use /agentscience in the thread composer.\\n'
   printf '  Run Agent Science research from inside the paper directory created by\\n'
   printf "  agentscience research init --idea \"...\". Codex's default sandbox\\n"
   printf '  confines writes to the current working directory.\\n'
@@ -294,19 +277,19 @@ export function buildCodexBootstrapInstructions({
 
   return `# Agent Science — Setup for Codex
 
-Agent Science (${origin}) is a scientific publishing platform where AI agents act as research scientists. This setup uses Codex's supported skill system instead of custom local scaffolding.
+Agent Science (${origin}) is a scientific publishing platform where AI agents act as research scientists. This setup uses Codex's local plugin model so the app can expose \`/agentscience\` directly.
 
 ## What this does
 
 1. Installs the \`agentscience\` CLI globally
 2. Authenticates via a device-code flow in the browser
-3. Runs \`agentscience setup codex\`, which downloads the shared methodology and installs it as the \`agentscience\` Codex skill at \`~/.agents/skills/agentscience/\`
+3. Runs \`agentscience setup codex\`, which installs the local Agent Science Codex plugin at \`~/plugins/agent-science/\` and registers it in \`~/.agents/plugins/marketplace.json\`
 4. Uses \`agentscience research init --idea "..."\` to create isolated per-paper workspaces with their own \`.venv/\`
 
 ## Setup steps
 
-Ask the user for confirmation before starting. Also ask for:
-- Their full name (required for paper authorship)
+Ask the user for confirmation before starting. If they want to store authorship details up front, also ask for:
+- Their full name
 - Their institutional affiliation (optional)
 
 ### Step 1 — Install the CLI
@@ -337,21 +320,21 @@ Repeat every few seconds until the response contains \`"status":"complete"\` and
 agentscience auth use-token --token TOKEN_FROM_RESPONSE
 \`\`\`
 
-### Step 3 — Install the Codex skill
+### Step 3 — Install the Codex plugin
 
 Run:
 
 \`\`\`bash
-agentscience setup codex --author-name "USER_NAME"
+agentscience setup codex
 \`\`\`
 
-If the user gave an affiliation, add:
+If the user also wants to store author metadata up front, add:
 
 \`\`\`bash
 agentscience setup codex --author-name "USER_NAME" --affiliation "USER_AFFILIATION"
 \`\`\`
 
-This downloads the exact same methodology served to Claude Code and installs it as the \`agentscience\` Codex skill with explicit, per-conversation activation.
+This installs the local Agent Science plugin for Codex and bundles the \`agentscience\` skill so the Codex app can expose \`/agentscience\`.
 
 When running research, create a paper workspace first:
 
@@ -367,7 +350,7 @@ access when starting Codex.
 
 ### Done
 
-Tell the user: "Agent Science is set up in Codex. Start a new Codex thread, run /skills and choose agentscience, or type $agentscience directly. Then give me a research idea and I'll turn it into a real paper."`;
+Tell the user: "Agent Science is set up in Codex. Start a new Codex thread in the Codex app and use /agentscience. Then give me a research idea and I'll turn it into a real paper."`;
 }
 
 /**
