@@ -159,7 +159,7 @@ export interface PaperFeedPage {
 const DOI_PATTERN = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
 const MAX_ACTIVE_INTEGRATION_KEYS = 12;
 
-function summarizeIdea(content: string) {
+export function summarizeIdea(content: string) {
   return content.length > 140 ? `${content.slice(0, 140)}…` : content;
 }
 
@@ -382,6 +382,10 @@ async function ensureUniqueSlug(baseSlug: string) {
   return slug;
 }
 
+export async function ensureUniquePaperSlug(baseSlug: string) {
+  return ensureUniqueSlug(baseSlug);
+}
+
 async function ensureUniqueHandle(baseHandle: string) {
   const root = slugify(baseHandle).replace(/-/g, "") || "researcher";
   let handle = root;
@@ -496,7 +500,7 @@ function normalizeTextReference(reference: string): NormalizedReference {
   };
 }
 
-async function resolveReferenceRecords(references: NormalizedReference[]) {
+async function resolveNormalizedReferenceRecords(references: NormalizedReference[]) {
   const filtered = references.filter(
     (reference) => reference.referenceTitle || reference.referenceDoi || reference.targetSlug
   );
@@ -544,6 +548,12 @@ async function resolveReferenceRecords(references: NormalizedReference[]) {
       referenceTitle: reference.referenceTitle || matchedPaper?.title,
     };
   });
+}
+
+export async function resolveTextReferenceRecords(references: string[]) {
+  return resolveNormalizedReferenceRecords(
+    uniqueStrings(references).map((reference) => normalizeTextReference(reference))
+  );
 }
 
 async function getPaperForAiReview(paperId: string) {
@@ -934,7 +944,7 @@ export async function getIntegrationKeys(userId: string) {
 }
 
 export async function createManualPaper(userId: string, input: PaperFormInput) {
-  const slug = await ensureUniqueSlug(slugify(input.title));
+  const slug = await ensureUniquePaperSlug(slugify(input.title));
   const markdown =
     input.markdown?.trim() ||
     [input.abstract.trim(), input.latexSource?.trim()].filter(Boolean).join("\n\n");
@@ -942,9 +952,7 @@ export async function createManualPaper(userId: string, input: PaperFormInput) {
     input.keywords.length > 0
       ? uniqueStrings(input.keywords.map((keyword) => keyword.toLowerCase()))
       : extractKeywords(input.title, input.abstract, markdown, input.latexSource, input.bibSource);
-  const referenceRecords = await resolveReferenceRecords(
-    uniqueStrings(input.references).map((reference) => normalizeTextReference(reference))
-  );
+  const referenceRecords = await resolveTextReferenceRecords(input.references);
 
   const paper = await prisma.$transaction(async (transaction) => {
     const createdPaper = await transaction.paper.create({
@@ -1219,7 +1227,7 @@ export async function upsertSidekickPaper(input: SidekickPublishInput) {
     input.keywords.length > 0
       ? uniqueStrings(input.keywords.map((keyword) => keyword.toLowerCase()))
       : extractKeywords(input.title, input.abstract, input.markdown);
-  const references = await resolveReferenceRecords(
+  const references = await resolveNormalizedReferenceRecords(
     input.references
       .map((reference) => ({
         referenceTitle: reference.title?.trim(),

@@ -11,7 +11,7 @@ For the full vision of how this project and the Sidekick app fit together, see [
 | Web app | `web/` | Next.js 16 + Prisma 6 production app deployed on Vercel |
 | CLI | `cli/` | JSON-first CLI for agents and operators (`agentscience`) |
 | Codex plugin | `cli/resources/codex-plugin/` | Local Codex plugin template bundling `agentscience`, platform, and publishing skills |
-| Research pipeline | `research/` + CLI | Local paper generation: ideas → plan → literature → figures → LaTeX → PDF |
+| Research pipeline | `cli/lib/pipeline.mjs` + CLI | Local paper generation: ideas → plan → literature → figures → LaTeX → PDF |
 | Docs | `docs/` | Architecture, API reference, development guide, integration docs |
 
 ## Tech Stack

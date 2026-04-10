@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { PaperArtifactKind, Prisma, UserRole } from "@prisma/client";
 
 import { hashPassword } from "@/lib/auth";
+import { buildPaperBundleView } from "@/lib/paper-bundle";
 import { UserFacingError } from "@/lib/errors";
 import {
   classifyArtifactKind,
@@ -11,10 +12,13 @@ import {
   normalizeArtifactPath,
 } from "@/lib/paper-artifacts";
 import {
+  ensureUniquePaperSlug,
   paperFullInclude,
   paperListInclude,
   publicUserSelect,
   refreshPaperMetrics,
+  resolveTextReferenceRecords,
+  summarizeIdea,
   syncAiReviewForPaper,
 } from "@/lib/papers";
 import { prisma } from "@/lib/prisma";
@@ -29,8 +33,6 @@ import {
   formatDate,
   slugify,
 } from "@/lib/utils";
-
-const DOI_PATTERN = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
 
 export type PaperDetail = Prisma.PaperGetPayload<{
   include: typeof paperFullInclude;
@@ -243,19 +245,6 @@ async function syncPrimaryArtifacts(
   }
 }
 
-async function ensureUniqueSlug(baseSlug: string) {
-  const root = baseSlug || "paper";
-  let slug = root;
-  let index = 1;
-
-  while (await prisma.paper.findUnique({ where: { slug }, select: { id: true } })) {
-    slug = `${root}-${index}`;
-    index += 1;
-  }
-
-  return slug;
-}
-
 async function ensureImportedUser(name: string, email?: string, institution?: string) {
   const normalizedEmail = email?.trim().toLowerCase();
   if (normalizedEmail) {
@@ -285,77 +274,6 @@ async function ensureImportedUser(name: string, email?: string, institution?: st
       role: name.toLowerCase().includes("agent") ? UserRole.BOT : UserRole.RESEARCHER,
       passwordHash: await hashPassword(randomBytes(24).toString("hex")),
     },
-  });
-}
-
-function normalizeReference(reference: string) {
-  const trimmed = reference.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  const doi = trimmed.match(DOI_PATTERN)?.[0]?.toLowerCase();
-  const slug =
-    !doi && /^[a-z0-9-]{3,}$/i.test(trimmed) ? trimmed.toLowerCase() : undefined;
-
-  return {
-    referenceTitle: trimmed,
-    referenceDoi: doi,
-    targetSlug: slug,
-  };
-}
-
-async function resolveReferenceRecords(references: string[]) {
-  const normalized = references
-    .map(normalizeReference)
-    .filter((value): value is NonNullable<ReturnType<typeof normalizeReference>> =>
-      Boolean(value)
-    );
-
-  if (normalized.length === 0) {
-    return [];
-  }
-
-  const candidates = await prisma.paper.findMany({
-    where: {
-      OR: [
-        {
-          doi: {
-            in: normalized
-              .map((reference) => reference.referenceDoi)
-              .filter((value): value is string => Boolean(value)),
-          },
-        },
-        {
-          slug: {
-            in: normalized
-              .map((reference) => reference.targetSlug)
-              .filter((value): value is string => Boolean(value)),
-          },
-        },
-      ],
-    },
-    select: {
-      id: true,
-      slug: true,
-      doi: true,
-      title: true,
-    },
-  });
-
-  return normalized.map((reference) => {
-    const match =
-      candidates.find((candidate) =>
-        reference.referenceDoi
-          ? candidate.doi?.toLowerCase() === reference.referenceDoi
-          : candidate.slug === reference.targetSlug
-      ) ?? null;
-
-    return {
-      targetPaperId: match?.id,
-      referenceTitle: reference.referenceTitle || match?.title,
-      referenceDoi: reference.referenceDoi,
-    };
   });
 }
 
@@ -469,6 +387,8 @@ export function serializePaperSummary(paper: PaperSummary) {
 }
 
 export function serializePaperDetail(paper: PaperDetail) {
+  const bundle = buildPaperBundleView(paper);
+
   return {
     ...serializePaperSummary(paper),
     markdown: paper.markdown,
@@ -488,25 +408,8 @@ export function serializePaperDetail(paper: PaperDetail) {
       doi: reference.referenceDoi,
       targetPaperId: reference.targetPaperId,
     })),
-    artifacts: paper.artifacts.map((artifact) => ({
-      id: artifact.id,
-      kind: artifact.kind,
-      path: artifact.path,
-      fileName: artifact.fileName,
-      contentType: artifact.contentType,
-      sha256: artifact.sha256,
-      sizeBytes: artifact.sizeBytes,
-      isText: Boolean(artifact.textContent),
-      downloadUrl: `/api/v1/papers/${paper.slug}/download/artifact/${artifact.id}`,
-    })),
-    figures: paper.assets.map((asset) => ({
-      id: asset.id,
-      kind: asset.kind,
-      fileName: asset.fileName,
-      mimeType: asset.mimeType,
-      caption: asset.caption,
-      downloadUrl: `/api/v1/papers/${paper.slug}/download/asset/${asset.id}`,
-    })),
+    artifacts: bundle.artifacts,
+    figures: bundle.figures,
   };
 }
 
@@ -519,16 +422,17 @@ export async function createBundledPaper(userId: string, input: BundledPaperInpu
     throw new UserFacingError("Provide a compiled PDF file or PDF URL.", 400);
   }
 
-  const slug = await ensureUniqueSlug(slugify(input.title));
+  const slug = await ensureUniquePaperSlug(slugify(input.title));
   const keywords = normalizeKeywords(input);
-  const referenceRecords = await resolveReferenceRecords(input.references);
+  const referenceRecords = await resolveTextReferenceRecords(input.references);
   const markdown = buildPaperMarkdown(input);
   const latexSource = input.latexSource.trim();
+  const bibSource = input.bibSource?.trim();
   const artifacts = buildPrimaryArtifacts(
     {
       ...input,
       latexSource,
-      bibSource: input.bibSource?.trim(),
+      bibSource,
       artifacts: undefined,
     },
     input.artifacts ?? [],
@@ -543,7 +447,7 @@ export async function createBundledPaper(userId: string, input: BundledPaperInpu
         abstract: input.abstract,
         markdown,
         latexSource,
-        bibSource: input.bibSource,
+        bibSource,
         pdfUrl: input.pdfUrl?.trim(),
         pdfData: input.pdf ? toPrismaBytes(input.pdf.bytes) : null,
         pdfMimeType: input.pdf?.mimeType ?? (input.pdfUrl ? "application/pdf" : null),
@@ -571,7 +475,7 @@ export async function createBundledPaper(userId: string, input: BundledPaperInpu
           authorId: userId,
           paperId: createdPaper.id,
           content: input.ideaNote,
-          summary: excerpt(input.ideaNote, 140),
+          summary: summarizeIdea(input.ideaNote),
         },
       });
     }

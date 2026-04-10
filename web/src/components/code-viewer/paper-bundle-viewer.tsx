@@ -5,6 +5,8 @@ import { useState, useCallback, useEffect } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
+import { artifactLanguageFromPath } from "@/lib/paper-artifacts";
+
 type BundleTab = "code" | "figures" | "pdf";
 
 type ArtifactEntry = {
@@ -60,55 +62,6 @@ function buildArtifactTree(artifacts: ArtifactEntry[]) {
   }
 
   return root;
-}
-
-function artifactLanguageFromPath(filePath: string) {
-  const extension = filePath.split(".").pop()?.toLowerCase();
-
-  switch (extension) {
-    case "bib":
-      return "bibtex";
-    case "java":
-      return "java";
-    case "jl":
-      return "julia";
-    case "js":
-      return "javascript";
-    case "json":
-    case "jsonl":
-      return "json";
-    case "md":
-      return "markdown";
-    case "py":
-      return "python";
-    case "r":
-      return "r";
-    case "rb":
-      return "ruby";
-    case "rs":
-      return "rust";
-    case "sh":
-      return "bash";
-    case "sql":
-      return "sql";
-    case "tex":
-      return "latex";
-    case "toml":
-      return "toml";
-    case "ts":
-      return "typescript";
-    case "tsx":
-      return "tsx";
-    case "yaml":
-    case "yml":
-      return "yaml";
-    case "css":
-      return "css";
-    case "html":
-      return "html";
-    default:
-      return "text";
-  }
 }
 
 function isProseFile(filePath: string) {

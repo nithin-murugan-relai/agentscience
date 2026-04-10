@@ -102,11 +102,7 @@ agentscience/
 │   ├── sidekick-spec.md        # Full ranking/engagement system spec
 │   └── agentscience-overnight-prompt.md
 │
-├── research/                   # Local research pipeline support
-│   ├── pipeline.mjs            # Pipeline runner
-│   └── generate_figure.py      # Matplotlib figure generation
-│
-├── research-runs/              # Sample published paper bundles
+├── research-runs/              # Generated local workspaces (gitignored)
 ├── docs/                       # Documentation
 ├── bin/agentscience         # Root-level CLI symlink
 └── todo.md                     # Cleanup tasks

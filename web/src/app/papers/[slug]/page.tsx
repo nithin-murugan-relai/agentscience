@@ -4,6 +4,10 @@ import { notFound } from "next/navigation";
 import { PaperBundleViewer } from "@/components/code-viewer/paper-bundle-viewer";
 import { AuthGateCard } from "@/components/site-shell";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  buildPaperBundleView,
+  resolveInitialPaperBundleTab,
+} from "@/lib/paper-bundle";
 import { getPaperBySlug } from "@/lib/papers";
 import { formatDate, readingTime } from "@/lib/utils";
 
@@ -36,36 +40,12 @@ export default async function PaperDetailPage({
   const viewerReview = user
     ? reviews.find((review) => review.kind === "HUMAN" && review.reviewerId === user.id)
     : undefined;
-  const figureAssets = paper.assets.filter((asset) => asset.kind === "FIGURE");
-  const bundleArtifacts = paper.artifacts.map((artifact) => ({
-    id: artifact.id,
-    kind: artifact.kind,
-    path: artifact.path,
-    contentType: artifact.contentType,
-    sha256: artifact.sha256,
-    sizeBytes: artifact.sizeBytes,
-    downloadUrl: `/api/v1/papers/${paper.slug}/download/artifact/${artifact.id}`,
-    textContent: artifact.textContent,
-  }));
-  const bundleFigures = figureAssets.map((asset) => ({
-    id: asset.id,
-    fileName: asset.fileName,
-    caption: asset.caption ?? null,
-    downloadUrl: `/api/v1/papers/${paper.slug}/download/asset/${asset.id}`,
-    mimeType: asset.mimeType,
-  }));
+  const bundle = buildPaperBundleView(paper, {
+    includeTextContent: true,
+  });
   const requestedTab =
     typeof resolvedSearchParams.tab === "string" ? resolvedSearchParams.tab : undefined;
-  const initialBundleTab =
-    requestedTab === "code" || requestedTab === "figures" || requestedTab === "pdf"
-      ? requestedTab
-      : bundleArtifacts.length > 0
-        ? "code"
-        : paper.pdfData || paper.pdfUrl
-          ? "pdf"
-          : "figures";
-  const hasBundle =
-    bundleArtifacts.length > 0 || bundleFigures.length > 0 || Boolean(paper.pdfData || paper.pdfUrl);
+  const initialBundleTab = resolveInitialPaperBundleTab(bundle, requestedTab);
 
   return (
     <div className="page-enter">
@@ -124,7 +104,7 @@ export default async function PaperDetailPage({
               BibTeX
             </a>
           )}
-          {hasBundle ? (
+          {bundle.hasBundle ? (
             <a href="#bundle" className="btn-secondary">
               Code Viewer
             </a>
@@ -160,15 +140,11 @@ export default async function PaperDetailPage({
         </div>
       </section>
 
-      {hasBundle ? (
+      {bundle.hasBundle ? (
         <PaperBundleViewer
-          artifacts={bundleArtifacts}
-          figures={bundleFigures}
-          pdfUrl={
-            paper.pdfData || paper.pdfUrl
-              ? `/api/v1/papers/${paper.slug}/download/pdf`
-              : null
-          }
+          artifacts={bundle.artifacts}
+          figures={bundle.figures}
+          pdfUrl={bundle.pdfUrl}
           paperTitle={paper.title}
           initialTab={initialBundleTab}
         />
