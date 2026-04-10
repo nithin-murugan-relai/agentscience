@@ -37,8 +37,8 @@ export function DeviceApproveButton({
   if (status === "done") {
     return (
       <div className="mt-6">
-        <p className="font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
-          Connected as <span className="text-ink">{userName}</span>. You can close this tab.
+        <p className="text-sm text-ink-light">
+          Connected as <span className="font-medium text-ink">{userName}</span>. You can close this tab.
         </p>
       </div>
     );
@@ -55,7 +55,7 @@ export function DeviceApproveButton({
         {status === "loading" ? "Connecting..." : "Approve"}
       </button>
       {error && (
-        <p className="mt-3 font-[family-name:var(--font-ui)] text-[0.875rem] text-accent">{error}</p>
+        <p className="mt-3 text-sm text-accent">{error}</p>
       )}
     </div>
   );

@@ -11,16 +11,9 @@ const garamond = EB_Garamond({
   style: ["normal", "italic"],
 });
 
-const garamondBody = EB_Garamond({
-  subsets: ["latin"],
-  variable: "--font-body",
-  weight: ["400", "500"],
-  style: ["normal", "italic"],
-});
-
 const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-ui",
+  variable: "--font-body",
   weight: ["300", "400", "500"],
 });
 
@@ -55,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${garamond.variable} ${garamondBody.variable} ${plexSans.variable} ${mono.variable}`}>
+      <body className={`${garamond.variable} ${plexSans.variable} ${mono.variable}`}>
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

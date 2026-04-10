@@ -30,17 +30,15 @@ export default async function SettingsPage() {
 
   return (
     <div className="page-enter max-w-[var(--content-width)]">
-      <h1 className="text-[2.25rem] leading-[1.2] text-ink">
-        Settings
-      </h1>
+      <h1 className="text-3xl text-ink">Settings</h1>
 
       <form action="/api/settings/profile" method="post" className="mt-8 space-y-4">
         <label className="block space-y-1">
-          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Name</span>
+          <span className="text-sm text-ink">Name</span>
           <input name="name" defaultValue={user.name} className="field-input" />
         </label>
         <label className="block space-y-1">
-          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Institution</span>
+          <span className="text-sm text-ink">Institution</span>
           <input
             name="institution"
             defaultValue={user.institution ?? ""}
@@ -48,7 +46,7 @@ export default async function SettingsPage() {
           />
         </label>
         <label className="block space-y-1">
-          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Bio</span>
+          <span className="text-sm text-ink">Bio</span>
           <textarea
             name="bio"
             defaultValue={user.bio ?? ""}
@@ -56,7 +54,7 @@ export default async function SettingsPage() {
           />
         </label>
         <label className="block space-y-1">
-          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Research interests</span>
+          <span className="text-sm text-ink">Research interests</span>
           <input
             name="researchInterests"
             defaultValue={user.researchInterests.join(", ")}
@@ -65,11 +63,11 @@ export default async function SettingsPage() {
           />
         </label>
         <div className="flex gap-5">
-          <label className="flex items-center gap-2 font-[family-name:var(--font-ui)] text-[0.875rem]">
+          <label className="flex items-center gap-2 text-sm">
             <input name="digestEnabled" type="checkbox" defaultChecked={user.digestEnabled} />
             <span className="text-ink">Daily digest</span>
           </label>
-          <label className="flex items-center gap-2 font-[family-name:var(--font-ui)] text-[0.875rem]">
+          <label className="flex items-center gap-2 text-sm">
             <input
               name="digestEmailEnabled"
               type="checkbox"
@@ -81,30 +79,30 @@ export default async function SettingsPage() {
         <button type="submit" className="btn-primary">Save</button>
       </form>
 
-      <div className="mt-3 font-[family-name:var(--font-ui)] text-[0.8125rem] text-ink-faint">
+      <div className="mt-3 text-xs text-ink-faint">
         {user.email} &middot; @{user.handle}
       </div>
 
-      <section className="mt-10 border-t border-rule pt-10">
-        <h2 className="text-[1.25rem] leading-[1.3] text-ink">Connect an agent</h2>
-        <p className="mt-2 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
+      <section className="mt-8 border-t border-rule pt-8">
+        <h2 className="text-base font-medium text-ink">Connect an agent</h2>
+        <p className="mt-1 text-sm text-ink-light">
           Paste the link for your runtime to install Agent Science and connect your account.
         </p>
-        <div className="mt-4 space-y-4">
+        <div className="mt-3 space-y-3">
           <div>
-            <p className="mb-1 font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-faint">Codex</p>
+            <p className="mb-1 text-xs text-ink-faint">Codex</p>
             <CopyCodeBlock code={buildAgentInstallUrl({ appOrigin: resolvedOrigin, agent: "codex" })} />
           </div>
           <div>
-            <p className="mb-1 font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-faint">Claude Code</p>
+            <p className="mb-1 text-xs text-ink-faint">Claude Code</p>
             <CopyCodeBlock code={buildAgentInstallUrl({ appOrigin: resolvedOrigin, agent: "claude-code" })} />
           </div>
         </div>
       </section>
 
-      <section className="mt-10 border-t border-rule pt-10">
-        <h2 className="text-[1.25rem] leading-[1.3] text-ink">API tokens</h2>
-        <p className="mt-2 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
+      <section className="mt-8 border-t border-rule pt-8">
+        <h2 className="text-base font-medium text-ink">API tokens</h2>
+        <p className="mt-1 text-sm text-ink-light">
           Create a token if you want to wire Agent Science into another runtime or drive the CLI manually.
         </p>
         <IntegrationKeyPanel

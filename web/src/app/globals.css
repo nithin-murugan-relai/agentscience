@@ -15,24 +15,13 @@
   --code-bg:           #F0EDE7;
   --danger:            #C03E2A;
 
-  --radius-sm:         3px;
-  --radius-md:         6px;
-  --radius-lg:         10px;
-
-  --space-xs:          0.25rem;
-  --space-sm:          0.5rem;
-  --space-md:          1rem;
-  --space-lg:          1.5rem;
-  --space-xl:          2.5rem;
-  --space-2xl:         4rem;
-  --space-3xl:         6rem;
+  --radius-sm:         4px;
+  --radius-md:         8px;
+  --radius-lg:         12px;
 
   --content-width:     680px;
   --page-width:        1080px;
-  --nav-height:        56px;
-
-  --tracking-display:  0.02em;
-  --tracking-ui:       0.04em;
+  --nav-height:        52px;
 }
 
 @theme inline {
@@ -49,7 +38,6 @@
   --color-danger: var(--danger);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
-  --font-ui: var(--font-ui);
   --font-mono: var(--font-mono);
 }
 
@@ -61,9 +49,9 @@ body {
   min-height: 100vh;
   background: var(--surface);
   color: var(--ink);
-  font-family: var(--font-body), 'Garamond', 'Georgia', serif;
-  font-size: 1.125rem;
-  line-height: 1.65;
+  font-family: var(--font-body), 'Helvetica Neue', sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -74,10 +62,10 @@ input,
 textarea,
 select {
   transition:
-    color 180ms ease,
-    background-color 180ms ease,
-    border-color 180ms ease,
-    opacity 180ms ease;
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
 }
 
 a {
@@ -85,13 +73,17 @@ a {
   text-decoration: none;
 }
 
-h1,
+/* Only h1 gets the serif display font — the brand voice */
+h1 {
+  font-family: var(--font-display), 'Garamond', 'Georgia', serif;
+  font-weight: 400;
+  color: var(--ink);
+}
+
 h2,
 h3,
 h4 {
-  font-family: var(--font-display), 'Garamond', 'Georgia', serif;
-  letter-spacing: var(--tracking-display);
-  font-weight: 400;
+  font-weight: 500;
   color: var(--ink);
 }
 
@@ -117,11 +109,9 @@ select {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  padding: 10px 20px;
-  font-size: 0.875rem;
-  font-weight: 400;
-  font-family: var(--font-ui), 'Helvetica Neue', sans-serif;
-  letter-spacing: var(--tracking-ui);
+  padding: 8px 18px;
+  font-size: 0.8125rem;
+  font-weight: 500;
   background: var(--ink);
   color: var(--snow-white);
 }
@@ -135,11 +125,9 @@ select {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  padding: 10px 20px;
-  font-size: 0.875rem;
-  font-weight: 400;
-  font-family: var(--font-ui), 'Helvetica Neue', sans-serif;
-  letter-spacing: var(--tracking-ui);
+  padding: 8px 18px;
+  font-size: 0.8125rem;
+  font-weight: 500;
   background: transparent;
   color: var(--ink);
   border: 1px solid var(--rule);
@@ -160,23 +148,21 @@ select {
   background: var(--snow-white);
   color: var(--ink);
   font-size: 0.875rem;
-  font-family: var(--font-ui), 'Helvetica Neue', sans-serif;
 }
 
 .field-input,
 .field-select {
-  height: 42px;
-  padding: 0 14px;
+  height: 40px;
+  padding: 0 12px;
 }
 
 .field-textarea {
-  padding: 10px 14px;
+  padding: 10px 12px;
 }
 
 .field-input::placeholder,
 .field-textarea::placeholder {
   color: var(--ink-faint);
-  font-style: italic;
 }
 
 .field-input:focus,
@@ -198,7 +184,7 @@ select {
 }
 
 .page-enter {
-  animation: page-enter 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: page-enter 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes page-enter {
@@ -214,9 +200,8 @@ select {
 
 .prose-paper {
   color: var(--ink-light);
-  font-family: var(--font-body), 'Garamond', 'Georgia', serif;
-  font-size: 1.125rem;
-  line-height: 1.65;
+  font-size: 0.9375rem;
+  line-height: 1.6;
 }
 
 .prose-paper h1,
@@ -224,8 +209,7 @@ select {
 .prose-paper h3,
 .prose-paper h4 {
   color: var(--ink);
-  font-family: var(--font-display), 'Garamond', 'Georgia', serif;
-  font-weight: 400;
+  font-weight: 500;
   margin-top: 2rem;
   margin-bottom: 0.5rem;
 }
@@ -273,7 +257,6 @@ details summary::before {
   width: 1em;
   font-weight: 400;
   color: var(--ink-faint);
-  font-family: var(--font-ui), 'Helvetica Neue', sans-serif;
 }
 
 details[open] summary::before {

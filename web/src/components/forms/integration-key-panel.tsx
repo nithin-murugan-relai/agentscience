@@ -125,11 +125,11 @@ export function IntegrationKeyPanel({
       {token && (
         <div className="rounded-[var(--radius-md)] border border-rule bg-snow-white-dark p-4">
           <div className="flex items-center justify-between gap-4">
-            <span className="font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">Copy now — shown only once.</span>
+            <span className="text-sm text-ink-light">Copy now — shown only once.</span>
             <button
               type="button"
               onClick={handleCopyToken}
-              className="font-[family-name:var(--font-ui)] text-[0.875rem] text-ink hover:text-accent"
+              className="text-sm text-ink hover:text-accent"
             >
               {copied ? "Copied" : "Copy"}
             </button>
@@ -141,7 +141,7 @@ export function IntegrationKeyPanel({
       )}
 
       {error && (
-        <div className="rounded-[var(--radius-md)] border border-rule px-4 py-3 font-[family-name:var(--font-ui)] text-sm text-accent">
+        <div className="rounded-[var(--radius-md)] border border-rule px-4 py-3 text-sm text-accent">
           {error}
         </div>
       )}
@@ -155,14 +155,14 @@ export function IntegrationKeyPanel({
               className="flex items-center justify-between gap-4 border-b border-rule py-3"
             >
               <div className="min-w-0">
-                <span className="font-[family-name:var(--font-ui)] text-[0.875rem] text-ink">{key.name}</span>
-                <span className="ml-2 font-[family-name:var(--font-mono)] text-[0.8125rem] text-ink-faint">{key.tokenPrefix}...</span>
+                <span className="text-sm text-ink">{key.name}</span>
+                <span className="ml-2 font-[family-name:var(--font-mono)] text-xs text-ink-faint">{key.tokenPrefix}...</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleDeleteKey(key.id)}
                 disabled={deletingKeyId === key.id}
-                className="shrink-0 font-[family-name:var(--font-ui)] text-[0.8125rem] text-ink-faint hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                className="shrink-0 text-xs text-ink-faint hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deletingKeyId === key.id ? "..." : "Revoke"}
               </button>

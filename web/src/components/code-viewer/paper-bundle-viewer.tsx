@@ -222,7 +222,7 @@ function DirectoryGroup({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-1.5 py-1 font-[family-name:var(--font-ui)] text-[11px] uppercase tracking-[0.06em] text-ink-faint transition-colors hover:text-ink-light"
+        className="flex w-full items-center gap-1.5 py-1 text-[11px] uppercase tracking-[0.06em] text-ink-faint transition-colors hover:text-ink-light"
         style={{ paddingLeft: `${depth * 12 + 12}px` }}
       >
         <svg
@@ -274,7 +274,7 @@ function renderTree(
         key={artifact.id}
         type="button"
         onClick={() => onSelect(artifact.id)}
-        className={`group flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-[5px] text-left font-[family-name:var(--font-ui)] text-[13px] transition-colors ${
+        className={`group flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-[5px] text-left text-[13px] transition-colors ${
           selected
             ? "bg-snow-white-dark text-ink"
             : "text-ink-light hover:bg-snow-white-dark/60 hover:text-ink"
@@ -332,15 +332,15 @@ export function PaperBundleViewer({
     <section id="bundle" className="border-t border-rule py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-[1.25rem] leading-[1.3] text-ink">
+          <h2 className="text-base font-medium text-ink">
             Research Bundle
           </h2>
-          <p className="mt-2 max-w-2xl font-[family-name:var(--font-ui)] text-[0.875rem] leading-relaxed text-ink-light">
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-light">
             Browse the uploaded workspace directly on Agent Science. Code, figures, and the compiled
             paper stay attached to the publication instead of living in an external repo.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 font-[family-name:var(--font-mono)] text-[0.8125rem] text-ink-faint">
+        <div className="flex flex-wrap gap-2 font-[family-name:var(--font-mono)] text-xs text-ink-faint">
           <span className="rounded-[var(--radius-sm)] border border-rule px-3 py-1">
             {artifacts.length} code artifacts
           </span>
@@ -357,7 +357,7 @@ export function PaperBundleViewer({
             type="button"
             disabled={tab.disabled}
             onClick={() => setActiveTab(tab.id)}
-            className={`rounded-[var(--radius-sm)] px-4 py-2 font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] ${
+            className={`rounded-[var(--radius-sm)] px-4 py-2 text-sm ${
               activeTab === tab.id
                 ? "bg-ink text-snow-white"
                 : "border border-rule text-ink-light hover:border-ink-faint hover:text-ink"
@@ -370,7 +370,7 @@ export function PaperBundleViewer({
 
       {activeTab === "code" ? (
         artifacts.length === 0 ? (
-          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
+          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
             No code artifacts were uploaded with this paper.
           </div>
         ) : (
@@ -392,7 +392,7 @@ export function PaperBundleViewer({
 
                 {/* breadcrumb path */}
                 {selectedArtifact && (
-                  <div className="flex min-w-0 items-center gap-0.5 px-1 font-[family-name:var(--font-ui)] text-[13px]">
+                  <div className="flex min-w-0 items-center gap-0.5 px-1 text-[13px]">
                     {selectedArtifact.path.split("/").map((segment, i, arr) => (
                       <span key={i} className="flex shrink-0 items-center gap-0.5">
                         {i > 0 && <span className="text-ink-faint">/</span>}
@@ -406,13 +406,13 @@ export function PaperBundleViewer({
               </div>
 
               <div className="flex shrink-0 items-center gap-2 pl-2">
-                <span className="font-[family-name:var(--font-mono)] text-[11px] text-ink-faint">
+                <span className="font-[family-name:var(--font-mono)] text-[10px] text-ink-faint">
                   {selectedArtifact ? formatBytes(selectedArtifact.sizeBytes) : null}
                 </span>
                 {selectedArtifact && (
                   <a
                     href={selectedArtifact.downloadUrl}
-                    className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-rule bg-snow-white px-2.5 py-1 font-[family-name:var(--font-ui)] text-xs text-ink transition-colors hover:bg-snow-white-dark"
+                    className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-rule bg-snow-white px-2.5 py-1 text-xs text-ink transition-colors hover:bg-snow-white-dark"
                   >
                     <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
@@ -440,7 +440,7 @@ export function PaperBundleViewer({
                 {selectedArtifact?.textContent ? (
                   looksLikeCsv(selectedArtifact) ? (
                     <div className="p-4">
-                      <div className="mb-2 font-[family-name:var(--font-ui)] text-[11px] uppercase tracking-[0.08em] text-ink-faint">
+                      <div className="mb-2 text-[11px] uppercase tracking-[0.08em] text-ink-faint">
                         CSV preview (first 12 rows)
                       </div>
                       <div className="overflow-x-auto rounded-[var(--radius-sm)] border border-rule">
@@ -501,7 +501,7 @@ export function PaperBundleViewer({
                     </SyntaxHighlighter>
                   )
                 ) : (
-                  <div className="flex h-full items-center justify-center px-6 text-center font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-faint">
+                  <div className="flex h-full items-center justify-center px-6 text-center text-sm text-ink-faint">
                     <div>
                       <svg viewBox="0 0 24 24" className="mx-auto mb-3 h-8 w-8 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M12 16v-4m0-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -518,7 +518,7 @@ export function PaperBundleViewer({
 
       {activeTab === "figures" ? (
         figures.length === 0 ? (
-          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
+          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
             No figures were uploaded with this paper.
           </div>
         ) : (
@@ -543,12 +543,12 @@ export function PaperBundleViewer({
                   />
                   <div className="flex items-center justify-between bg-snow-white px-4 py-3">
                     <div>
-                      <div className="font-[family-name:var(--font-ui)] text-[0.875rem] text-ink">{figure.fileName}</div>
+                      <div className="text-sm text-ink">{figure.fileName}</div>
                       {figure.caption ? (
-                        <p className="mt-0.5 font-[family-name:var(--font-body)] text-[0.875rem] text-ink-light">{figure.caption}</p>
+                        <p className="mt-0.5 text-sm text-ink-light">{figure.caption}</p>
                       ) : null}
                     </div>
-                    <span className="font-[family-name:var(--font-ui)] text-[0.8125rem] text-ink-faint opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="text-xs text-ink-faint opacity-0 transition-opacity group-hover:opacity-100">
                       Click to expand
                     </span>
                   </div>
@@ -564,16 +564,16 @@ export function PaperBundleViewer({
                 <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule">
                   <div className="flex items-center justify-between border-b border-rule bg-snow-white px-5 py-3">
                     <div>
-                      <div className="font-[family-name:var(--font-ui)] text-[0.875rem] text-ink">{figure.fileName}</div>
+                      <div className="text-sm text-ink">{figure.fileName}</div>
                       {figure.caption && (
-                        <p className="mt-0.5 font-[family-name:var(--font-body)] text-[0.875rem] text-ink-light">{figure.caption}</p>
+                        <p className="mt-0.5 text-sm text-ink-light">{figure.caption}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
                       <a
                         href={figure.downloadUrl}
                         download
-                        className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-rule bg-snow-white px-3 py-1.5 font-[family-name:var(--font-ui)] text-xs text-ink transition-colors hover:bg-snow-white-dark"
+                        className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-rule bg-snow-white px-3 py-1.5 text-xs text-ink transition-colors hover:bg-snow-white-dark"
                       >
                         <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
@@ -612,7 +612,7 @@ export function PaperBundleViewer({
             <iframe src={pdfUrl} title={`${paperTitle} PDF`} className="h-[900px] w-full" />
           </div>
         ) : (
-          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
+          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
             No compiled PDF is available for this paper.
           </div>
         )

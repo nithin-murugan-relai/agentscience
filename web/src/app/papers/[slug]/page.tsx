@@ -70,8 +70,8 @@ export default async function PaperDetailPage({
   return (
     <div className="page-enter">
       {/* Header */}
-      <section className="pb-10 max-w-[var(--content-width)]">
-        <div className="flex items-center gap-2.5 font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-faint">
+      <section className="pb-8 max-w-[var(--content-width)]">
+        <div className="flex items-center gap-2 text-xs text-ink-faint">
           <span>{formatDate(paper.publishedAt)}</span>
           <span className="text-rule">&middot;</span>
           <span>{readingTime(paper.markdown)} min read</span>
@@ -85,15 +85,15 @@ export default async function PaperDetailPage({
           )}
         </div>
 
-        <h1 className="mt-4 text-[2.25rem] leading-[1.2] text-ink md:text-[2.75rem]">
+        <h1 className="mt-3 text-3xl leading-[1.15] text-ink md:text-4xl">
           {paper.title}
         </h1>
 
-        <p className="mt-4 text-ink-light leading-relaxed font-[family-name:var(--font-body)]">
+        <p className="mt-3 text-ink-light leading-relaxed">
           {paper.abstract}
         </p>
 
-        <div className="mt-4 flex flex-wrap gap-2 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
+        <div className="mt-3 flex flex-wrap gap-2 text-sm text-ink-light">
           {paper.authors.map((author) => (
             <Link
               key={author.user.handle}
@@ -105,7 +105,7 @@ export default async function PaperDetailPage({
           ))}
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center gap-2">
+        <div className="mt-5 flex flex-wrap items-center gap-2">
           {(paper.pdfData || paper.pdfUrl) && (
             <a
               href={`/api/v1/papers/${paper.slug}/download/pdf`}
@@ -179,15 +179,13 @@ export default async function PaperDetailPage({
 
       {/* References */}
       {paper.referencesOut.length > 0 && (
-        <section className="max-w-[var(--content-width)] border-t border-rule py-10">
-          <h2 className="text-[1.25rem] leading-[1.3] text-ink">
-            References
-          </h2>
-          <div className="mt-4 space-y-2">
+        <section className="max-w-[var(--content-width)] border-t border-rule py-8">
+          <h2 className="text-base font-medium text-ink">References</h2>
+          <div className="mt-3 space-y-1.5">
             {paper.referencesOut.map((reference, index) => (
               <div
                 key={`${reference.referenceTitle ?? reference.referenceDoi}-${index}`}
-                className="font-[family-name:var(--font-ui)] text-[0.875rem] leading-relaxed text-ink-light"
+                className="text-sm leading-relaxed text-ink-light"
               >
                 <span className="font-[family-name:var(--font-mono)] text-ink-faint">{index + 1}.</span>{" "}
                 {reference.referenceTitle ?? reference.referenceDoi ?? "Untitled reference"}
@@ -199,15 +197,13 @@ export default async function PaperDetailPage({
       )}
 
       {/* Reviews */}
-      <section className="border-t border-rule py-10">
-        <h2 className="text-[1.25rem] leading-[1.3] text-ink">
-          Reviews
-        </h2>
+      <section className="border-t border-rule py-8">
+        <h2 className="text-base font-medium text-ink">Reviews</h2>
 
         {reviews.length === 0 ? (
-          <p className="mt-3 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">No reviews yet.</p>
+          <p className="mt-3 text-sm text-ink-light">No reviews yet.</p>
         ) : (
-          <div className="mt-5 space-y-0">
+          <div className="mt-4">
             {reviews.map((review) => {
               const isAi = review.kind === "AI";
               const name = isAi
@@ -220,24 +216,24 @@ export default async function PaperDetailPage({
                   ? "text-emerald-700"
                   : "text-amber-700";
               return (
-                <div key={review.id} className="border-b border-rule py-5">
-                  <div className="flex items-center justify-between gap-4 font-[family-name:var(--font-ui)] text-[0.875rem]">
+                <div key={review.id} className="border-b border-rule py-4">
+                  <div className="flex items-center justify-between gap-4 text-sm">
                     <div className="flex items-center gap-2">
                       {handle ? (
                         <Link
                           href={`/profiles/${handle}`}
-                          className="text-ink hover:text-accent"
+                          className="font-medium text-ink hover:text-accent"
                         >
                           {name}
                         </Link>
                       ) : (
-                        <span className="text-ink">{name}</span>
+                        <span className="font-medium text-ink">{name}</span>
                       )}
-                      <span className={`text-[0.8125rem] ${verdictClass}`}>{verdictLabel}</span>
+                      <span className={`text-xs ${verdictClass}`}>{verdictLabel}</span>
                     </div>
-                    <span className="text-[0.8125rem] text-ink-faint">{formatDate(review.createdAt)}</span>
+                    <span className="text-xs text-ink-faint">{formatDate(review.createdAt)}</span>
                   </div>
-                  <p className="mt-2 whitespace-pre-wrap font-[family-name:var(--font-body)] text-[1rem] leading-relaxed text-ink-light">
+                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-ink-light">
                     {review.summary}
                   </p>
                 </div>
@@ -254,7 +250,7 @@ export default async function PaperDetailPage({
           >
             <input type="hidden" name="redirectTo" value={`/papers/${paper.slug}`} />
             {error && (
-              <div className="mb-3 rounded-[var(--radius-md)] border border-rule px-4 py-3 font-[family-name:var(--font-ui)] text-sm text-accent">
+              <div className="mb-3 rounded-[var(--radius-md)] border border-rule px-4 py-3 text-sm text-accent">
                 {error}
               </div>
             )}
@@ -263,7 +259,7 @@ export default async function PaperDetailPage({
               required
               minLength={1}
               maxLength={2000}
-              className="field-textarea min-h-[80px] leading-relaxed font-[family-name:var(--font-body)]"
+              className="field-textarea min-h-[80px] leading-relaxed"
               placeholder="what'd you think?"
               defaultValue={viewerReview?.summary ?? ""}
             />
@@ -272,7 +268,7 @@ export default async function PaperDetailPage({
                 type="submit"
                 name="verdict"
                 value="ENDORSE"
-                className={`rounded-[var(--radius-sm)] border px-3 py-1.5 font-[family-name:var(--font-ui)] text-[0.875rem] transition ${
+                className={`rounded-[var(--radius-sm)] border px-3 py-1.5 text-sm transition ${
                   viewerReview?.verdict === "ENDORSE"
                     ? "border-emerald-600 bg-emerald-50 text-emerald-700"
                     : "border-rule text-ink-light hover:border-emerald-600 hover:text-emerald-700"
@@ -284,7 +280,7 @@ export default async function PaperDetailPage({
                 type="submit"
                 name="verdict"
                 value="CONCERN"
-                className={`rounded-[var(--radius-sm)] border px-3 py-1.5 font-[family-name:var(--font-ui)] text-[0.875rem] transition ${
+                className={`rounded-[var(--radius-sm)] border px-3 py-1.5 text-sm transition ${
                   viewerReview?.verdict === "CONCERN"
                     ? "border-amber-600 bg-amber-50 text-amber-700"
                     : "border-rule text-ink-light hover:border-amber-600 hover:text-amber-700"
@@ -295,7 +291,7 @@ export default async function PaperDetailPage({
             </div>
           </form>
         ) : user && isAuthor ? (
-          <p className="mt-6 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
+          <p className="mt-6 text-sm text-ink-light">
             You can&apos;t review your own paper.
           </p>
         ) : (

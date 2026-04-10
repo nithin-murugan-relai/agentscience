@@ -14,52 +14,40 @@ export async function SiteShell({
   return (
     <div className="relative min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 bg-snow-white/90 backdrop-blur-sm border-b border-rule">
-        <div className="mx-auto max-w-[var(--page-width)] px-10 flex items-center justify-between" style={{ height: "var(--nav-height)" }}>
+        <div className="mx-auto max-w-[var(--page-width)] px-6 md:px-10 flex items-center justify-between" style={{ height: "var(--nav-height)" }}>
           <Link
             href="/"
-            className="font-[family-name:var(--font-display)] text-[1.125rem] text-ink tracking-[0.02em]"
+            className="font-[family-name:var(--font-display)] text-lg text-ink"
           >
             Agent Science
           </Link>
 
-          <nav className="flex items-center gap-6">
-            <Link
-              href="/"
-              className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-light hover:text-ink"
-            >
+          <nav className="flex items-center gap-5">
+            <Link href="/" className="text-[0.8125rem] text-ink-light hover:text-ink">
               Papers
             </Link>
-            <Link
-              href="/rankings"
-              className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-light hover:text-ink"
-            >
+            <Link href="/rankings" className="text-[0.8125rem] text-ink-light hover:text-ink">
               Rankings
             </Link>
-            <Link
-              href="/connect"
-              className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-light hover:text-ink"
-            >
+            <Link href="/connect" className="text-[0.8125rem] text-ink-light hover:text-ink">
               Connect
             </Link>
             {user ? (
               <>
-                <Link
-                  href="/publish"
-                  className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-light hover:text-ink"
-                >
+                <Link href="/publish" className="text-[0.8125rem] text-ink-light hover:text-ink">
                   Publish
                 </Link>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <Link
                     href="/settings"
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] text-snow-white font-[family-name:var(--font-ui)]"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-snow-white"
                   >
                     {initials(user.name)}
                   </Link>
                   <form action="/api/auth/sign-out" method="post">
                     <button
                       type="submit"
-                      className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-faint hover:text-ink"
+                      className="text-[0.8125rem] text-ink-faint hover:text-ink"
                     >
                       Sign out
                     </button>
@@ -67,10 +55,7 @@ export async function SiteShell({
                 </div>
               </>
             ) : (
-              <Link
-                href="/sign-in"
-                className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink hover:text-ink-light"
-              >
+              <Link href="/sign-in" className="text-[0.8125rem] text-ink hover:text-ink-light">
                 Sign in
               </Link>
             )}
@@ -78,14 +63,12 @@ export async function SiteShell({
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-[var(--page-width)] px-10 py-16 md:py-24">{children}</main>
+      <main className="flex-1 mx-auto w-full max-w-[var(--page-width)] px-6 md:px-10 py-12 md:py-20">{children}</main>
 
       <footer className="border-t border-rule">
-        <div className="mx-auto max-w-[var(--page-width)] px-10 py-6 flex items-center justify-between">
-          <span className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-faint">
-            Agent Science
-          </span>
-          <div className="flex items-center gap-6 font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-faint">
+        <div className="mx-auto max-w-[var(--page-width)] px-6 md:px-10 py-5 flex items-center justify-between">
+          <span className="text-xs text-ink-faint">Agent Science</span>
+          <div className="flex items-center gap-5 text-xs text-ink-faint">
             <Link href="/method" className="hover:text-ink-light">How it works</Link>
             <Link href="/connect" className="hover:text-ink-light">Connect</Link>
             <Link
@@ -96,7 +79,7 @@ export async function SiteShell({
             </Link>
           </div>
         </div>
-        <div className="pb-12" />
+        <div className="pb-8" />
       </footer>
     </div>
   );
@@ -113,11 +96,9 @@ export function SectionHeading({
 }) {
   return (
     <div className="max-w-[var(--content-width)]">
-      <h2 className="text-[1.625rem] leading-[1.25] text-ink">
-        {title}
-      </h2>
+      <h2 className="text-xl font-medium text-ink">{title}</h2>
       {subtitle ? (
-        <p className="mt-3 text-lg text-ink-light font-[family-name:var(--font-body)]">{subtitle}</p>
+        <p className="mt-2 text-ink-light">{subtitle}</p>
       ) : null}
     </div>
   );
@@ -134,9 +115,7 @@ export function AuthGateCard({
 }) {
   return (
     <div className="page-enter text-center py-16">
-      <h1 className="text-[2.25rem] leading-[1.2] text-ink">
-        {title}
-      </h1>
+      <h1 className="text-3xl text-ink">{title}</h1>
       <p className="mt-3 text-ink-light">
         {description ?? "Sign in to continue."}
       </p>

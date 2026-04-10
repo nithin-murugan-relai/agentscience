@@ -19,7 +19,7 @@ export function CopyCodeBlock({ code }: { code: string }) {
         <button
           type="button"
           onClick={handleCopy}
-          className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-light hover:text-ink mb-1"
+          className="text-xs text-ink-light hover:text-ink mb-1"
         >
           {copied ? "Copied" : "Copy"}
         </button>
