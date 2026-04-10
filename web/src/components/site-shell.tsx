@@ -17,9 +17,9 @@ export async function SiteShell({
         <div className="mx-auto max-w-[var(--page-width)] px-6 md:px-10 flex items-center justify-between" style={{ height: "var(--nav-height)" }}>
           <Link
             href="/"
-            className="font-[family-name:var(--font-display)] text-lg text-ink"
+            className="font-[family-name:var(--font-display)] text-lg text-ink flex items-center gap-1.5"
           >
-            Agent Science
+            Agent Science<span className="inline-block w-[5px] h-[5px] rounded-full bg-accent" />
           </Link>
 
           <nav className="flex items-center gap-5">

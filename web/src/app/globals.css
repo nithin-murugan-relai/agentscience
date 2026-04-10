@@ -3,16 +3,16 @@
 /* ── Snow White Design Tokens ──────────────────────────────── */
 
 :root {
-  --snow-white:        #F5F2ED;
-  --snow-white-dark:   #EBE7E0;
+  --snow-white:        #F7F7F5;
+  --snow-white-dark:   #F0F0EE;
   --ink:               #1A1A1A;
-  --ink-light:         #6B6560;
-  --ink-faint:         #B5AFA8;
-  --rule:              #D4CFC8;
+  --ink-light:         #6E6E6E;
+  --ink-faint:         #ABABAB;
+  --rule:              #E2E2E0;
   --accent:            #D64832;
   --accent-hover:      #C03E2A;
-  --surface:           #FAFAF7;
-  --code-bg:           #F0EDE7;
+  --surface:           #FCFCFB;
+  --code-bg:           #F3F3F1;
   --danger:            #C03E2A;
 
   --radius-sm:         4px;

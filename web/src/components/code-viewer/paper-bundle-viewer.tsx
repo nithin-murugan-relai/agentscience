@@ -475,7 +475,7 @@ export function PaperBundleViewer({
                       customStyle={{
                         margin: 0,
                         padding: "12px 0",
-                        background: "#F5F2ED",
+                        background: "#F7F7F5",
                         fontSize: "13px",
                         lineHeight: "1.6",
                         minHeight: "100%",
@@ -483,7 +483,7 @@ export function PaperBundleViewer({
                       lineNumberStyle={{
                         minWidth: "3rem",
                         paddingRight: "1rem",
-                        color: "#B5AFA8",
+                        color: "#ABABAB",
                         textAlign: "right",
                         userSelect: "none",
                       }}
