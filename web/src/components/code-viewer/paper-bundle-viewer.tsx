@@ -336,7 +336,7 @@ export function PaperBundleViewer({
             Research Bundle
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-light">
-            Browse the uploaded workspace directly on Agent Science. Code, figures, and the compiled
+            Browse the uploaded workspace directly on AgentScience. Code, figures, and the compiled
             paper stay attached to the publication instead of living in an external repo.
           </p>
         </div>
@@ -475,7 +475,7 @@ export function PaperBundleViewer({
                       customStyle={{
                         margin: 0,
                         padding: "12px 0",
-                        background: "#F7F7F5",
+                        background: "#F5F5F5",
                         fontSize: "13px",
                         lineHeight: "1.6",
                         minHeight: "100%",

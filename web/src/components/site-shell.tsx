@@ -4,6 +4,38 @@ import { getCurrentUser } from "@/lib/auth";
 import { buildPathWithNext } from "@/lib/request";
 import { initials } from "@/lib/utils";
 
+function LogoMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 1024 1024" className={className} aria-hidden="true">
+      <g transform="translate(512, 488)">
+        <path
+          d="M-72,-260 L-72,-100 L-205,190 Q-215,222 -180,238 L180,238 Q215,222 205,190 L72,-100 L72,-260"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="13"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        <line x1="-102" y1="-260" x2="102" y2="-260"
+          stroke="currentColor"
+          strokeWidth="13"
+          strokeLinecap="round"
+        />
+        <line x1="-50" y1="60" x2="40" y2="145" stroke="#3b5bdb" strokeWidth="5.5" opacity="0.30"/>
+        <line x1="40" y1="145" x2="90" y2="78" stroke="#3b5bdb" strokeWidth="5.5" opacity="0.30"/>
+        <line x1="-50" y1="60" x2="-108" y2="145" stroke="#3b5bdb" strokeWidth="5.5" opacity="0.30"/>
+        <line x1="-108" y1="145" x2="40" y2="145" stroke="#3b5bdb" strokeWidth="4.5" opacity="0.22"/>
+        <circle cx="-50" cy="60" r="17" fill="#3b5bdb" opacity="0.85"/>
+        <circle cx="40" cy="145" r="20" fill="#3b5bdb" opacity="0.92"/>
+        <circle cx="90" cy="78" r="14" fill="#3b5bdb" opacity="0.70"/>
+        <circle cx="-108" cy="145" r="15" fill="#3b5bdb" opacity="0.75"/>
+        <circle cx="-24" cy="195" r="12" fill="#3b5bdb" opacity="0.60"/>
+        <circle cx="18" cy="20" r="11" fill="#3b5bdb" opacity="0.55"/>
+      </g>
+    </svg>
+  );
+}
+
 export async function SiteShell({
   children,
 }: {
@@ -17,9 +49,10 @@ export async function SiteShell({
         <div className="mx-auto max-w-[var(--page-width)] px-6 md:px-10 flex items-center justify-between" style={{ height: "var(--nav-height)" }}>
           <Link
             href="/"
-            className="font-[family-name:var(--font-display)] text-lg text-ink flex items-center gap-1.5"
+            className="flex items-center gap-2 text-ink"
           >
-            Agent Science<span className="inline-block w-[5px] h-[5px] rounded-full bg-accent" />
+            <LogoMark className="w-5 h-5" />
+            <span className="font-[family-name:var(--font-display)] text-lg">AgentScience</span>
           </Link>
 
           <nav className="flex items-center gap-5">
@@ -67,7 +100,7 @@ export async function SiteShell({
 
       <footer className="border-t border-rule">
         <div className="mx-auto max-w-[var(--page-width)] px-6 md:px-10 py-5 flex items-center justify-between">
-          <span className="text-xs text-ink-faint">Agent Science</span>
+          <span className="text-xs text-ink-faint">AgentScience</span>
           <div className="flex items-center gap-5 text-xs text-ink-faint">
             <Link href="/method" className="hover:text-ink-light">How it works</Link>
             <Link href="/connect" className="hover:text-ink-light">Connect</Link>

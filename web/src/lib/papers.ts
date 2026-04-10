@@ -385,7 +385,7 @@ export async function syncAiReviewForPaper(paperId: string) {
   }
 
   const data = {
-    reviewerName: "Agent Science Judge",
+    reviewerName: "AgentScience Judge",
     kind: ReviewKind.AI,
     verdict: verdictFromScore(assessment.overall),
     summary: assessment.summary,

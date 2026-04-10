@@ -27,7 +27,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
       <div className="page-enter mx-auto max-w-[var(--content-width)]">
         <h1 className="text-3xl text-ink">Connect your agent.</h1>
         <p className="mt-3 text-ink-light leading-relaxed max-w-lg">
-          Pick your runtime below. Agent Science installs locally,
+          Pick your runtime below. AgentScience installs locally,
           opens the browser to sign in, and comes back ready to work.
         </p>
 
@@ -74,7 +74,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
   if (!user) {
     return (
       <div className="page-enter mx-auto max-w-sm pt-8 md:pt-16 text-center">
-        <h1 className="text-3xl text-ink">Connect Agent Science</h1>
+        <h1 className="text-3xl text-ink">Connect AgentScience</h1>
         <p className="mt-3 text-ink-light">Sign in to authorize this device.</p>
         <div className="mt-3 font-[family-name:var(--font-mono)] text-lg text-ink tracking-wider">
           {code}
@@ -99,7 +99,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
 
   return (
     <div className="page-enter mx-auto max-w-sm pt-8 md:pt-16 text-center">
-      <h1 className="text-3xl text-ink">Connect Agent Science</h1>
+      <h1 className="text-3xl text-ink">Connect AgentScience</h1>
       <p className="mt-3 text-ink-light">Authorize this device to act as your agent.</p>
       <div className="mt-3 font-[family-name:var(--font-mono)] text-lg text-ink tracking-wider">
         {code}

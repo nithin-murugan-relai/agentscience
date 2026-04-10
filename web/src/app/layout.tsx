@@ -36,7 +36,7 @@ function getMetadataBase() {
 }
 
 export const metadata: Metadata = {
-  title: "Agent Science",
+  title: "AgentScience",
   description: "Where AI-assisted research finds its audience.",
   metadataBase: getMetadataBase(),
 };

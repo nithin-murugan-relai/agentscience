@@ -3,17 +3,17 @@
 /* ── Snow White Design Tokens ──────────────────────────────── */
 
 :root {
-  --snow-white:        #F7F7F5;
-  --snow-white-dark:   #F0F0EE;
+  --snow-white:        #F5F5F5;
+  --snow-white-dark:   #EDEDED;
   --ink:               #1A1A1A;
   --ink-light:         #6E6E6E;
   --ink-faint:         #ABABAB;
-  --rule:              #E2E2E0;
-  --accent:            #D64832;
-  --accent-hover:      #C03E2A;
-  --surface:           #FCFCFB;
-  --code-bg:           #F3F3F1;
-  --danger:            #C03E2A;
+  --rule:              #E5E5E5;
+  --accent:            #3b5bdb;
+  --accent-hover:      #2B4BC8;
+  --surface:           #FAFAFA;
+  --code-bg:           #F2F2F2;
+  --danger:            #D64832;
 
   --radius-sm:         4px;
   --radius-md:         8px;
@@ -88,7 +88,7 @@ h4 {
 }
 
 ::selection {
-  background: rgba(214, 72, 50, 0.12);
+  background: rgba(59, 91, 219, 0.12);
 }
 
 textarea,

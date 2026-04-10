@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/agent/methodology
  *
- * Serves the canonical Agent Science research methodology document as plain
+ * Serves the canonical AgentScience research methodology document as plain
  * text. Any agent can fetch this to learn the full research pipeline, quality
  * standards, and personality.
  */

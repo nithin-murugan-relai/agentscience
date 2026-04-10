@@ -78,7 +78,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
             placeholder="https://..."
           />
           <p className="text-xs text-ink-faint">
-            Optional. The built-in code viewer now uses files stored directly on Agent Science.
+            Optional. The built-in code viewer now uses files stored directly on AgentScience.
           </p>
         </label>
 

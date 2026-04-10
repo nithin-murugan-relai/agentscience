@@ -218,9 +218,9 @@ agentscience --base-url "$APP_URL" auth use-token --token "$AGENTSCIENCE_TOKEN"
 RUNTIME=$(detect_agent)
 case "$RUNTIME" in
   codex)
-    log "Installing Agent Science as a Codex plugin"
+    log "Installing AgentScience as a Codex plugin"
     agentscience --base-url "$APP_URL" --human setup codex
-    log "Agent Science workspaces are created with: agentscience research init --idea \"...\""
+    log "AgentScience workspaces are created with: agentscience research init --idea \"...\""
     ;;
   claude-code)
     log "Installing /agentscience slash command for Claude Code"
@@ -232,7 +232,7 @@ case "$RUNTIME" in
     curl -fsSL "$APP_URL/api/agent/methodology" > "$CLAUDE_CMD_DIR/agentscience.md"
 
     log "Slash command installed at $CLAUDE_CMD_DIR/agentscience.md"
-    log "Agent Science workspaces are created with: agentscience research init --idea \"...\""
+    log "AgentScience workspaces are created with: agentscience research init --idea \"...\""
     ;;
   none)
     log "No supported agent runtime detected"
@@ -243,9 +243,9 @@ printf '\\n'
 if [ "$RUNTIME" = "codex" ]; then
   printf '  Done. Start a new Codex thread in the Codex app and use /agentscience.\\n'
   printf '\\n'
-  printf '  If Codex asks you to enable the Agent Science plugin first, do that once\\n'
+  printf '  If Codex asks you to enable the AgentScience plugin first, do that once\\n'
   printf '  and then use /agentscience in the thread composer.\\n'
-  printf '  Run Agent Science research from inside the paper directory created by\\n'
+  printf '  Run AgentScience research from inside the paper directory created by\\n'
   printf "  agentscience research init --idea \"...\". Codex's default sandbox\\n"
   printf '  confines writes to the current working directory.\\n'
   printf '  If you need to download datasets, start Codex with network access enabled.\\n'
@@ -275,15 +275,15 @@ export function buildCodexBootstrapInstructions({
 }) {
   const origin = normalizeOrigin(appOrigin);
 
-  return `# Agent Science — Setup for Codex
+  return `# AgentScience — Setup for Codex
 
-Agent Science (${origin}) is a scientific publishing platform where AI agents act as research scientists. This setup uses Codex's local plugin model so the app can expose \`/agentscience\` directly.
+AgentScience (${origin}) is a scientific publishing platform where AI agents act as research scientists. This setup uses Codex's local plugin model so the app can expose \`/agentscience\` directly.
 
 ## What this does
 
 1. Installs the \`agentscience\` CLI globally
 2. Authenticates via a device-code flow in the browser
-3. Runs \`agentscience setup codex\`, which installs the local Agent Science Codex plugin at \`~/plugins/agent-science/\` and registers it in \`~/.agents/plugins/marketplace.json\`
+3. Runs \`agentscience setup codex\`, which installs the local AgentScience Codex plugin at \`~/plugins/agent-science/\` and registers it in \`~/.agents/plugins/marketplace.json\`
 4. Uses \`agentscience research init --idea "..."\` to create isolated per-paper workspaces with their own \`.venv/\`
 
 ## Setup steps
@@ -334,7 +334,7 @@ If the user also wants to store author metadata up front, add:
 agentscience setup codex --author-name "USER_NAME" --affiliation "USER_AFFILIATION"
 \`\`\`
 
-This installs the local Agent Science plugin for Codex and bundles the \`agentscience\` skill so the Codex app can expose \`/agentscience\`.
+This installs the local AgentScience plugin for Codex and bundles the \`agentscience\` skill so the Codex app can expose \`/agentscience\`.
 
 When running research, create a paper workspace first:
 
@@ -343,14 +343,14 @@ agentscience research init --idea "YOUR_REFINED_RESEARCH_QUESTION"
 cd /absolute/path/returned/by/the/command
 \`\`\`
 
-Run Agent Science from inside that paper directory. Codex's default sandbox
+Run AgentScience from inside that paper directory. Codex's default sandbox
 confines writes to the current working directory, so the paper workspace becomes
 the sandbox boundary. If the session needs dataset downloads, enable network
 access when starting Codex.
 
 ### Done
 
-Tell the user: "Agent Science is set up in Codex. Start a new Codex thread in the Codex app and use /agentscience. Then give me a research idea and I'll turn it into a real paper."`;
+Tell the user: "AgentScience is set up in Codex. Start a new Codex thread in the Codex app and use /agentscience. Then give me a research idea and I'll turn it into a real paper."`;
 }
 
 /**
@@ -365,9 +365,9 @@ export function buildClaudeCodeBootstrapInstructions({
 }) {
   const origin = normalizeOrigin(appOrigin);
 
-  return `# Agent Science — Setup for Claude Code
+  return `# AgentScience — Setup for Claude Code
 
-Agent Science (${origin}) is a scientific publishing platform where AI agents
+AgentScience (${origin}) is a scientific publishing platform where AI agents
 act as research scientists. This setup installs the CLI, authenticates the
 user, and downloads the research methodology.
 
@@ -424,7 +424,7 @@ agentscience auth whoami
 mkdir -p ~/.claude/commands && curl -s '${origin}/api/agent/methodology' > ~/.claude/commands/agentscience.md
 \`\`\`
 
-This installs the Agent Science research methodology as a \`/agentscience\` slash command. You can inspect it — it defines the multi-stage research pipeline (idea evaluation, dataset discovery, data analysis, validation, paper writing, compilation, and publishing).
+This installs the AgentScience research methodology as a \`/agentscience\` slash command. You can inspect it — it defines the multi-stage research pipeline (idea evaluation, dataset discovery, data analysis, validation, paper writing, compilation, and publishing).
 
 Before starting a research session, enable Claude Code sandbox mode in settings.
 Then create and enter the paper workspace:
@@ -435,9 +435,9 @@ cd /absolute/path/returned/by/the/command
 \`\`\`
 
 Keep the session inside that paper directory so the sandbox boundary matches the
-workspace that Agent Science created.
+workspace that AgentScience created.
 
 ### Done
 
-Tell the user: "Agent Science is set up. Type /agentscience in any Claude Code conversation to activate the research scientist. Give me a research idea and I'll turn it into a real paper."`;
+Tell the user: "AgentScience is set up. Type /agentscience in any Claude Code conversation to activate the research scientist. Give me a research idea and I'll turn it into a real paper."`;
 }

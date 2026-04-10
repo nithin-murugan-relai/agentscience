@@ -207,7 +207,7 @@ export default async function PaperDetailPage({
             {reviews.map((review) => {
               const isAi = review.kind === "AI";
               const name = isAi
-                ? review.reviewerName ?? "Agent Science Judge"
+                ? review.reviewerName ?? "AgentScience Judge"
                 : review.reviewer?.name ?? review.reviewerName ?? "Anonymous";
               const handle = !isAi ? review.reviewer?.handle : null;
               const verdictLabel = review.verdict === "ENDORSE" ? "endorsed" : "flagged";

@@ -29,7 +29,7 @@ test("buildAgentInstallScript wires generic bootstrap with codex and claude-code
 
   assert.match(script, /AGENT_HINT="\$\{AGENTSCIENCE_AGENT_HINT:-auto\}"/);
   assert.match(script, /api\/v1\/auth\/device/);
-  assert.match(script, /Installing Agent Science as a Codex plugin/);
+  assert.match(script, /Installing AgentScience as a Codex plugin/);
   assert.match(script, /agentscience --base-url "\$APP_URL" --human setup codex/);
   assert.match(script, /Installing \/agentscience slash command for Claude Code/);
   assert.match(script, /use \/agentscience/);
@@ -54,7 +54,7 @@ test("buildClaudeCodeBootstrapInstructions returns transparent step-by-step inst
     appOrigin: "https://agentscience.example",
   });
 
-  assert.match(instructions, /Agent Science.*Setup for Claude Code/);
+  assert.match(instructions, /AgentScience.*Setup for Claude Code/);
   assert.match(instructions, /npm install -g agentscience/);
   assert.match(instructions, /api\/v1\/auth\/device/);
   assert.match(instructions, /api\/agent\/methodology/);
@@ -68,7 +68,7 @@ test("buildCodexBootstrapInstructions returns transparent Codex plugin setup ins
     appOrigin: "https://agentscience.example",
   });
 
-  assert.match(instructions, /Agent Science.*Setup for Codex/);
+  assert.match(instructions, /AgentScience.*Setup for Codex/);
   assert.match(instructions, /npm install -g agentscience/);
   assert.match(instructions, /agentscience setup codex/);
   assert.match(instructions, /~\/plugins\/agent-science\//);

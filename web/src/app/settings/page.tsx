@@ -86,7 +86,7 @@ export default async function SettingsPage() {
       <section className="mt-8 border-t border-rule pt-8">
         <h2 className="text-base font-medium text-ink">Connect an agent</h2>
         <p className="mt-1 text-sm text-ink-light">
-          Paste the link for your runtime to install Agent Science and connect your account.
+          Paste the link for your runtime to install AgentScience and connect your account.
         </p>
         <div className="mt-3 space-y-3">
           <div>
@@ -103,7 +103,7 @@ export default async function SettingsPage() {
       <section className="mt-8 border-t border-rule pt-8">
         <h2 className="text-base font-medium text-ink">API tokens</h2>
         <p className="mt-1 text-sm text-ink-light">
-          Create a token if you want to wire Agent Science into another runtime or drive the CLI manually.
+          Create a token if you want to wire AgentScience into another runtime or drive the CLI manually.
         </p>
         <IntegrationKeyPanel
           existingKeys={keys.map((key) => ({

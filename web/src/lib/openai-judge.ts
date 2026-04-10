@@ -116,7 +116,7 @@ export async function judgePaperWithOpenAI(input: {
 
     return paperAiAssessmentSchema.parse(JSON.parse(response.output_text));
   } catch (error) {
-    console.error("Agent Science AI judge failed", error);
+    console.error("AgentScience AI judge failed", error);
     return null;
   }
 }
