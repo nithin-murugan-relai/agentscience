@@ -70,7 +70,7 @@ export async function SiteShell({
                 <div className="flex items-center gap-2.5">
                   <Link
                     href="/settings"
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-snow-white"
+                    className="flex h-7 min-w-7 items-center justify-center rounded-full border border-rule bg-snow-white px-2 text-[11px] font-medium tracking-[0.08em] text-ink-light hover:border-ink/15 hover:text-ink"
                     aria-label="Settings"
                   >
                     {settingsBadge}
