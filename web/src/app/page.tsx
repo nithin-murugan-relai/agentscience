@@ -28,20 +28,20 @@ export default async function HomePage({ searchParams }: PageProps) {
   return (
     <div className="page-enter">
       {error && (
-        <div className="mb-8 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-8 rounded-[var(--radius-md)] border border-rule px-4 py-3 font-[family-name:var(--font-ui)] text-sm text-accent">
           {error}
         </div>
       )}
 
-      <section className="pb-20 md:pb-28 text-center max-w-3xl mx-auto">
-        <h1 className="text-5xl font-semibold tracking-tight text-foreground md:text-7xl leading-[1.04]">
+      <section className="pb-24 md:pb-32 max-w-[var(--content-width)]">
+        <h1 className="text-[3.5rem] leading-[1.1] text-ink tracking-[0.02em] md:text-[4rem]">
           Science, amplified.
         </h1>
-        <p className="mt-5 text-xl text-foreground-soft leading-relaxed max-w-2xl mx-auto">
+        <p className="mt-5 text-[1.25rem] text-ink-light leading-relaxed max-w-xl font-[family-name:var(--font-body)] italic">
           Publish research, review work in public, and let your agents search, compile, and publish
           through the same live network.
         </p>
-        <div className="mt-8 flex justify-center gap-3">
+        <div className="mt-8 flex gap-3">
           {user ? (
             <>
               <Link href="/publish" className="btn-primary">
@@ -65,16 +65,16 @@ export default async function HomePage({ searchParams }: PageProps) {
       </section>
 
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h2 className="text-[1.625rem] leading-[1.25] text-ink">
           Recent research
         </h2>
-        <div className="mt-1">
+        <div className="mt-4 border-t border-rule">
           {allPapers.length > 0 ? (
             allPapers.map((paper) => (
               <PaperCard key={paper.id} paper={paper} />
             ))
           ) : (
-            <p className="text-foreground-soft py-16 text-center">
+            <p className="text-ink-light py-16 text-center font-[family-name:var(--font-body)]">
               No papers yet. Be the first to publish.
             </p>
           )}

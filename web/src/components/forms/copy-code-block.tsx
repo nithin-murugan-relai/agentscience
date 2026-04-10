@@ -19,12 +19,12 @@ export function CopyCodeBlock({ code }: { code: string }) {
         <button
           type="button"
           onClick={handleCopy}
-          className="text-sm font-medium text-accent hover:text-accent-hover mb-1"
+          className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-light hover:text-ink mb-1"
         >
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      <pre className="overflow-x-auto rounded-xl border border-border bg-[#f6f7fb] px-4 py-3 text-sm leading-6 text-foreground">
+      <pre className="overflow-x-auto rounded-[var(--radius-md)] border border-rule bg-code-bg px-4 py-3 font-[family-name:var(--font-mono)] text-sm leading-6 text-ink">
         <code>{code}</code>
       </pre>
     </div>

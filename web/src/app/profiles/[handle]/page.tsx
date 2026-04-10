@@ -19,24 +19,24 @@ export default async function ProfilePage({ params }: PageProps) {
 
   return (
     <div className="page-enter">
-      <section className="max-w-3xl pb-8">
-        <div className="text-sm text-muted">{profile.role}</div>
-        <h1 className="mt-2 text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
+      <section className="max-w-[var(--content-width)] pb-10">
+        <div className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-faint">{profile.role}</div>
+        <h1 className="mt-2 text-[2.25rem] leading-[1.2] text-ink md:text-[2.75rem]">
           {profile.name}
         </h1>
-        <p className="mt-1 text-sm text-muted">@{profile.handle}</p>
+        <p className="mt-1 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-faint">@{profile.handle}</p>
         {profile.institution ? (
-          <p className="mt-3 text-foreground-soft">{profile.institution}</p>
+          <p className="mt-3 text-ink-light italic font-[family-name:var(--font-body)]">{profile.institution}</p>
         ) : null}
         {profile.bio ? (
-          <p className="mt-3 max-w-2xl text-foreground-soft leading-relaxed">{profile.bio}</p>
+          <p className="mt-3 text-ink-light leading-relaxed font-[family-name:var(--font-body)]">{profile.bio}</p>
         ) : null}
         {profile.researchInterests.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-1.5">
+          <div className="mt-4 flex flex-wrap gap-2">
             {profile.researchInterests.map((interest) => (
               <span
                 key={interest}
-                className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted"
+                className="rounded-[var(--radius-sm)] border border-rule px-2.5 py-0.5 font-[family-name:var(--font-ui)] text-[0.8125rem] text-ink-faint"
               >
                 {interest}
               </span>
@@ -45,21 +45,20 @@ export default async function ProfilePage({ params }: PageProps) {
         ) : null}
       </section>
 
-      <section className="border-t border-border py-10">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
+      <section className="border-t border-rule py-10">
+        <h2 className="text-[1.25rem] leading-[1.3] text-ink">
           Papers
         </h2>
         {profile.authoredPapers.length === 0 ? (
-          <p className="mt-3 text-sm text-foreground-soft">No papers published yet.</p>
+          <p className="mt-3 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">No papers published yet.</p>
         ) : (
-          <div className="mt-2">
+          <div className="mt-4 border-t border-rule">
             {profile.authoredPapers.map((authorship) => (
               <PaperCard key={authorship.paper.id} paper={authorship.paper} />
             ))}
           </div>
         )}
       </section>
-
     </div>
   );
 }

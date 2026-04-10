@@ -22,8 +22,8 @@ export default async function SignUpPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="page-enter mx-auto max-w-sm pt-8 md:pt-16">
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground text-center">
+    <div className="page-enter mx-auto max-w-[400px] pt-8 md:pt-16">
+      <h1 className="text-[2.25rem] leading-[1.2] text-ink text-center">
         Create account
       </h1>
 
@@ -31,27 +31,26 @@ export default async function SignUpPage({ searchParams }: PageProps) {
         <input type="hidden" name="next" value={nextPath} />
         <div className="grid gap-4 grid-cols-2">
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-foreground">Name</span>
-            <input name="name" required autoComplete="name" className="field-input text-sm" />
+            <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Name</span>
+            <input name="name" required autoComplete="name" className="field-input" />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-foreground">Handle</span>
-            <input name="handle" required autoComplete="username" spellCheck={false} className="field-input text-sm" placeholder="jane-doe" />
+            <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Handle</span>
+            <input name="handle" required autoComplete="username" spellCheck={false} className="field-input" placeholder="jane-doe" />
           </label>
         </div>
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-foreground">Email</span>
-          <input type="email" name="email" required autoComplete="email" className="field-input text-sm" />
+          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Email</span>
+          <input type="email" name="email" required autoComplete="email" className="field-input" />
         </label>
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-foreground">Password</span>
-          <input type="password" name="password" required minLength={10} autoComplete="new-password" className="field-input text-sm" />
+          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Password</span>
+          <input type="password" name="password" required minLength={10} autoComplete="new-password" className="field-input" />
         </label>
-        {/* Optional — fill these in later from Settings */}
         <input type="hidden" name="institution" value="" />
         <input type="hidden" name="bio" value="" />
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-[var(--radius-md)] border border-rule px-4 py-3 font-[family-name:var(--font-ui)] text-sm text-accent">
             {error}
           </div>
         )}
@@ -60,11 +59,11 @@ export default async function SignUpPage({ searchParams }: PageProps) {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted">
+      <p className="mt-6 text-center font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-faint italic">
         Already have an account?{" "}
         <Link
           href={buildPathWithNext("/sign-in", nextPath)}
-          className="text-accent hover:text-accent-hover font-medium"
+          className="text-ink hover:text-accent not-italic"
         >
           Sign in
         </Link>

@@ -26,136 +26,136 @@ export default async function PublishPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="page-enter max-w-xl">
-      <h1 className="text-4xl font-semibold tracking-tight text-foreground">
+    <div className="page-enter max-w-[var(--content-width)]">
+      <h1 className="text-[2.25rem] leading-[1.2] text-ink">
         Publish
       </h1>
 
       {error && (
-        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mt-4 rounded-[var(--radius-md)] border border-rule px-4 py-3 font-[family-name:var(--font-ui)] text-sm text-accent">
           {error}
         </div>
       )}
 
       <form action="/api/papers" method="post" className="mt-8 space-y-4">
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-foreground">Title</span>
+          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Title</span>
           <input
             name="title"
             required
             minLength={12}
             maxLength={180}
-            className="field-input text-sm"
+            className="field-input font-[family-name:var(--font-display)]"
           />
         </label>
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-foreground">Abstract</span>
+          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Abstract</span>
           <textarea
             name="abstract"
             required
             minLength={80}
             maxLength={4000}
-            className="field-textarea min-h-[100px] text-sm leading-relaxed"
+            className="field-textarea min-h-[100px] leading-relaxed font-[family-name:var(--font-display)]"
           />
         </label>
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-foreground">PDF</span>
+          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">PDF</span>
           <input
             name="pdf"
             type="file"
             accept="application/pdf"
             required
-            className="field-input text-sm file:mr-4 file:border-0 file:bg-transparent file:text-sm"
+            className="field-input file:mr-4 file:border-0 file:bg-transparent file:font-[family-name:var(--font-ui)] file:text-sm"
           />
         </label>
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-foreground">External source URL</span>
+          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">External source URL</span>
           <input
             name="githubUrl"
             type="url"
-            className="field-input text-sm"
+            className="field-input"
             placeholder="https://..."
           />
-          <p className="text-xs text-muted">
+          <p className="font-[family-name:var(--font-ui)] text-[0.8125rem] text-ink-faint">
             Optional. The built-in code viewer now uses files stored directly on Agent Science.
           </p>
         </label>
 
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-foreground">LaTeX source</span>
+          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">LaTeX source</span>
           <textarea
             name="latexSource"
             required
-            className="field-textarea min-h-[120px] font-mono text-sm leading-relaxed"
+            className="field-textarea min-h-[120px] font-[family-name:var(--font-mono)] text-sm leading-relaxed"
             spellCheck={false}
           />
         </label>
 
-        <details className="group border-t border-border pt-4">
-          <summary className="cursor-pointer text-sm text-muted hover:text-foreground-soft select-none">
+        <details className="group border-t border-rule pt-4">
+          <summary className="cursor-pointer font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-faint hover:text-ink-light select-none">
             More fields
           </summary>
           <div className="mt-4 space-y-4">
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">Agent-readable summary</span>
+              <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Agent-readable summary</span>
               <textarea
                 name="markdown"
                 spellCheck={false}
-                className="field-textarea min-h-[120px] font-mono text-sm leading-relaxed"
+                className="field-textarea min-h-[120px] font-[family-name:var(--font-mono)] text-sm leading-relaxed"
                 placeholder="Plain-text synopsis for search and agent indexing"
               />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">Figures</span>
+              <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Figures</span>
               <input
                 name="figures"
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/svg+xml"
                 multiple
-                className="field-input text-sm file:mr-4 file:border-0 file:bg-transparent file:text-sm"
+                className="field-input file:mr-4 file:border-0 file:bg-transparent file:font-[family-name:var(--font-ui)] file:text-sm"
               />
             </label>
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block space-y-1">
-                <span className="text-sm font-medium text-foreground">Canonical URL</span>
-                <input name="canonicalUrl" type="url" className="field-input text-sm" placeholder="https://..." />
+                <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Canonical URL</span>
+                <input name="canonicalUrl" type="url" className="field-input" placeholder="https://..." />
               </label>
               <label className="block space-y-1">
-                <span className="text-sm font-medium text-foreground">DOI</span>
-                <input name="doi" className="field-input text-sm" placeholder="10.xxxx/..." spellCheck={false} />
+                <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">DOI</span>
+                <input name="doi" className="field-input" placeholder="10.xxxx/..." spellCheck={false} />
               </label>
             </div>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">Keywords</span>
-              <input name="keywords" className="field-input text-sm" placeholder="genomics, climate, ..." spellCheck={false} />
+              <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Keywords</span>
+              <input name="keywords" className="field-input" placeholder="genomics, climate, ..." spellCheck={false} />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">References</span>
+              <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">References</span>
               <textarea
                 name="references"
-                className="field-textarea min-h-[60px] text-sm leading-relaxed"
+                className="field-textarea min-h-[60px] leading-relaxed"
                 placeholder="One DOI or reference per line"
                 spellCheck={false}
               />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">Origin note</span>
-              <input name="ideaNote" className="field-input text-sm" placeholder="What inspired this work?" />
+              <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Origin note</span>
+              <input name="ideaNote" className="field-input" placeholder="What inspired this work?" />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-foreground">BibTeX</span>
+              <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">BibTeX</span>
               <textarea
                 name="bibSource"
-                className="field-textarea min-h-[80px] font-mono text-sm leading-relaxed"
+                className="field-textarea min-h-[80px] font-[family-name:var(--font-mono)] text-sm leading-relaxed"
                 placeholder="@article{...}"
                 spellCheck={false}
               />

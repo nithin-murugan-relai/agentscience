@@ -1,17 +1,27 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Inter } from "next/font/google";
+import { EB_Garamond, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 
 import "@/app/globals.css";
 import { SiteShell } from "@/components/site-shell";
 
-const display = Inter({
+const garamond = EB_Garamond({
   subsets: ["latin"],
   variable: "--font-display",
+  weight: ["400", "500"],
+  style: ["normal", "italic"],
 });
 
-const body = Inter({
+const garamondBody = EB_Garamond({
   subsets: ["latin"],
   variable: "--font-body",
+  weight: ["400", "500"],
+  style: ["normal", "italic"],
+});
+
+const plexSans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  variable: "--font-ui",
+  weight: ["300", "400", "500"],
 });
 
 const mono = IBM_Plex_Mono({
@@ -45,7 +55,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${display.variable} ${body.variable} ${mono.variable}`}>
+      <body className={`${garamond.variable} ${garamondBody.variable} ${plexSans.variable} ${mono.variable}`}>
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

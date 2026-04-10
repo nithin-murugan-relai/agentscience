@@ -195,7 +195,7 @@ function fileIcon(filePath: string) {
       );
     default:
       return (
-        <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-foreground/30" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d="M4 2h5l3 3v9H4V2z" />
         </svg>
       );
@@ -222,7 +222,7 @@ function DirectoryGroup({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-1.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-foreground/40 transition-colors hover:text-foreground/60"
+        className="flex w-full items-center gap-1.5 py-1 font-[family-name:var(--font-ui)] text-[11px] uppercase tracking-[0.06em] text-ink-faint transition-colors hover:text-ink-light"
         style={{ paddingLeft: `${depth * 12 + 12}px` }}
       >
         <svg
@@ -232,7 +232,7 @@ function DirectoryGroup({
         >
           <path d="M3 1l4 4-4 4z" />
         </svg>
-        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 text-foreground/25" fill="currentColor">
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 text-ink-faint" fill="currentColor">
           <path d="M1.5 2A1.5 1.5 0 000 3.5v9A1.5 1.5 0 001.5 14h13a1.5 1.5 0 001.5-1.5V5.5A1.5 1.5 0 0014.5 4H8L6.5 2z" />
         </svg>
         {name}
@@ -274,10 +274,10 @@ function renderTree(
         key={artifact.id}
         type="button"
         onClick={() => onSelect(artifact.id)}
-        className={`group flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-left text-[13px] transition-colors ${
+        className={`group flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-[5px] text-left font-[family-name:var(--font-ui)] text-[13px] transition-colors ${
           selected
-            ? "bg-foreground/8 font-medium text-foreground"
-            : "text-foreground/60 hover:bg-foreground/4 hover:text-foreground/90"
+            ? "bg-snow-white-dark text-ink"
+            : "text-ink-light hover:bg-snow-white-dark/60 hover:text-ink"
         }`}
         style={{ paddingLeft: `${depth * 12 + 12}px` }}
       >
@@ -329,22 +329,22 @@ export function PaperBundleViewer({
   const shouldWrap = selectedArtifact ? isProseFile(selectedArtifact.path) : false;
 
   return (
-    <section id="bundle" className="border-t border-border py-10">
+    <section id="bundle" className="border-t border-rule py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+          <h2 className="text-[1.25rem] leading-[1.3] text-ink">
             Research Bundle
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-foreground-soft">
+          <p className="mt-2 max-w-2xl font-[family-name:var(--font-ui)] text-[0.875rem] leading-relaxed text-ink-light">
             Browse the uploaded workspace directly on Agent Science. Code, figures, and the compiled
             paper stay attached to the publication instead of living in an external repo.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs text-muted">
-          <span className="rounded-full border border-border px-3 py-1">
+        <div className="flex flex-wrap gap-2 font-[family-name:var(--font-mono)] text-[0.8125rem] text-ink-faint">
+          <span className="rounded-[var(--radius-sm)] border border-rule px-3 py-1">
             {artifacts.length} code artifacts
           </span>
-          <span className="rounded-full border border-border px-3 py-1">
+          <span className="rounded-[var(--radius-sm)] border border-rule px-3 py-1">
             {figures.length} figures
           </span>
         </div>
@@ -357,10 +357,10 @@ export function PaperBundleViewer({
             type="button"
             disabled={tab.disabled}
             onClick={() => setActiveTab(tab.id)}
-            className={`rounded-full px-4 py-2 text-sm ${
+            className={`rounded-[var(--radius-sm)] px-4 py-2 font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] ${
               activeTab === tab.id
-                ? "bg-foreground text-background"
-                : "border border-border text-foreground-soft hover:border-foreground/20 hover:text-foreground"
+                ? "bg-ink text-snow-white"
+                : "border border-rule text-ink-light hover:border-ink-faint hover:text-ink"
             } ${tab.disabled ? "cursor-not-allowed opacity-40" : ""}`}
           >
             {tab.label}
@@ -370,19 +370,19 @@ export function PaperBundleViewer({
 
       {activeTab === "code" ? (
         artifacts.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-border px-6 py-12 text-sm text-foreground-soft">
+          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
             No code artifacts were uploaded with this paper.
           </div>
         ) : (
-          <div className="mt-6 overflow-hidden rounded-xl border border-border bg-white">
+          <div className="mt-6 overflow-hidden rounded-[var(--radius-md)] border border-rule bg-snow-white">
             {/* toolbar */}
-            <div className="flex items-center justify-between border-b border-border bg-[#f6f8fa] px-2 py-1.5">
+            <div className="flex items-center justify-between border-b border-rule bg-snow-white-dark px-2 py-1.5">
               <div className="flex min-w-0 items-center gap-1">
                 {/* sidebar toggle */}
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="shrink-0 rounded-md p-1.5 text-foreground/50 transition-colors hover:bg-foreground/8 hover:text-foreground/80"
+                  className="shrink-0 rounded-[var(--radius-sm)] p-1.5 text-ink-faint transition-colors hover:bg-snow-white hover:text-ink-light"
                   title={sidebarOpen ? "Hide file explorer" : "Show file explorer"}
                 >
                   <svg viewBox="0 0 16 16" className="h-4 w-4" fill="currentColor">
@@ -392,11 +392,11 @@ export function PaperBundleViewer({
 
                 {/* breadcrumb path */}
                 {selectedArtifact && (
-                  <div className="flex min-w-0 items-center gap-0.5 px-1 text-[13px]">
+                  <div className="flex min-w-0 items-center gap-0.5 px-1 font-[family-name:var(--font-ui)] text-[13px]">
                     {selectedArtifact.path.split("/").map((segment, i, arr) => (
                       <span key={i} className="flex shrink-0 items-center gap-0.5">
-                        {i > 0 && <span className="text-foreground/20">/</span>}
-                        <span className={i === arr.length - 1 ? "font-medium text-foreground" : "text-foreground/50"}>
+                        {i > 0 && <span className="text-ink-faint">/</span>}
+                        <span className={i === arr.length - 1 ? "text-ink" : "text-ink-faint"}>
                           {segment}
                         </span>
                       </span>
@@ -406,13 +406,13 @@ export function PaperBundleViewer({
               </div>
 
               <div className="flex shrink-0 items-center gap-2 pl-2">
-                <span className="text-[11px] text-foreground/40">
+                <span className="font-[family-name:var(--font-mono)] text-[11px] text-ink-faint">
                   {selectedArtifact ? formatBytes(selectedArtifact.sizeBytes) : null}
                 </span>
                 {selectedArtifact && (
                   <a
                     href={selectedArtifact.downloadUrl}
-                    className="flex items-center gap-1.5 rounded-md border border-border bg-white px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-foreground/4"
+                    className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-rule bg-snow-white px-2.5 py-1 font-[family-name:var(--font-ui)] text-xs text-ink transition-colors hover:bg-snow-white-dark"
                   >
                     <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
@@ -427,7 +427,7 @@ export function PaperBundleViewer({
               {/* sidebar */}
               {sidebarOpen && (
                 <aside
-                  className="flex w-56 shrink-0 flex-col border-r border-border bg-[#f6f8fa] lg:w-60"
+                  className="flex w-56 shrink-0 flex-col border-r border-rule bg-snow-white-dark lg:w-60"
                 >
                   <div className="flex-1 overflow-y-auto overscroll-contain px-1.5 py-2">
                     {renderTree(tree, "", selectedArtifact?.id ?? "", handleSelectArtifact)}
@@ -440,23 +440,23 @@ export function PaperBundleViewer({
                 {selectedArtifact?.textContent ? (
                   looksLikeCsv(selectedArtifact) ? (
                     <div className="p-4">
-                      <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-foreground/35">
+                      <div className="mb-2 font-[family-name:var(--font-ui)] text-[11px] uppercase tracking-[0.08em] text-ink-faint">
                         CSV preview (first 12 rows)
                       </div>
-                      <div className="overflow-x-auto rounded-lg border border-border">
-                        <table className="min-w-full text-left text-[13px]">
+                      <div className="overflow-x-auto rounded-[var(--radius-sm)] border border-rule">
+                        <table className="min-w-full text-left font-[family-name:var(--font-mono)] text-[13px]">
                           <tbody>
                             {parseCsvPreview(selectedArtifact.textContent).map((row, rowIndex) => (
                               <tr
                                 key={`${selectedArtifact.id}-${rowIndex}`}
                                 className={
                                   rowIndex === 0
-                                    ? "bg-[#f6f8fa] font-medium text-foreground"
-                                    : "border-t border-border text-foreground/70"
+                                    ? "bg-snow-white-dark text-ink"
+                                    : "border-t border-rule text-ink-light"
                                 }
                               >
                                 {row.map((cell, cellIndex) => (
-                                  <td key={`${rowIndex}-${cellIndex}`} className="whitespace-nowrap px-3 py-2 font-mono text-xs">
+                                  <td key={`${rowIndex}-${cellIndex}`} className="whitespace-nowrap px-3 py-2 text-xs">
                                     {cell}
                                   </td>
                                 ))}
@@ -475,7 +475,7 @@ export function PaperBundleViewer({
                       customStyle={{
                         margin: 0,
                         padding: "12px 0",
-                        background: "#ffffff",
+                        background: "#F5F2ED",
                         fontSize: "13px",
                         lineHeight: "1.6",
                         minHeight: "100%",
@@ -483,14 +483,14 @@ export function PaperBundleViewer({
                       lineNumberStyle={{
                         minWidth: "3rem",
                         paddingRight: "1rem",
-                        color: "#b0b8c4",
+                        color: "#B5AFA8",
                         textAlign: "right",
                         userSelect: "none",
                       }}
                       codeTagProps={{
                         style: {
                           fontFamily:
-                            "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                            "var(--font-mono), 'IBM Plex Mono', 'Menlo', monospace",
                           ...(shouldWrap
                             ? { whiteSpace: "pre-wrap", wordBreak: "break-word" }
                             : {}),
@@ -501,9 +501,9 @@ export function PaperBundleViewer({
                     </SyntaxHighlighter>
                   )
                 ) : (
-                  <div className="flex h-full items-center justify-center px-6 text-center text-sm text-foreground/40">
+                  <div className="flex h-full items-center justify-center px-6 text-center font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-faint">
                     <div>
-                      <svg viewBox="0 0 24 24" className="mx-auto mb-3 h-8 w-8 text-foreground/20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <svg viewBox="0 0 24 24" className="mx-auto mb-3 h-8 w-8 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M12 16v-4m0-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       Binary file — download to view locally
@@ -518,7 +518,7 @@ export function PaperBundleViewer({
 
       {activeTab === "figures" ? (
         figures.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-border px-6 py-12 text-sm text-foreground-soft">
+          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
             No figures were uploaded with this paper.
           </div>
         ) : (
@@ -529,10 +529,10 @@ export function PaperBundleViewer({
                   key={figure.id}
                   type="button"
                   onClick={() => setExpandedFigureId(expandedFigureId === figure.id ? null : figure.id)}
-                  className={`group overflow-hidden rounded-xl border bg-white text-left transition-all ${
+                  className={`group overflow-hidden rounded-[var(--radius-md)] border text-left transition-all ${
                     expandedFigureId === figure.id
-                      ? "border-foreground/20 ring-2 ring-foreground/10"
-                      : "border-border hover:border-foreground/10 hover:shadow-md"
+                      ? "border-ink-faint"
+                      : "border-rule hover:border-ink-faint"
                   }`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -541,14 +541,14 @@ export function PaperBundleViewer({
                     alt={figure.caption ?? figure.fileName}
                     className="h-56 w-full object-cover"
                   />
-                  <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center justify-between bg-snow-white px-4 py-3">
                     <div>
-                      <div className="text-sm font-medium text-foreground">{figure.fileName}</div>
+                      <div className="font-[family-name:var(--font-ui)] text-[0.875rem] text-ink">{figure.fileName}</div>
                       {figure.caption ? (
-                        <p className="mt-0.5 text-sm text-foreground-soft">{figure.caption}</p>
+                        <p className="mt-0.5 font-[family-name:var(--font-body)] text-[0.875rem] text-ink-light">{figure.caption}</p>
                       ) : null}
                     </div>
-                    <span className="text-xs text-muted opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="font-[family-name:var(--font-ui)] text-[0.8125rem] text-ink-faint opacity-0 transition-opacity group-hover:opacity-100">
                       Click to expand
                     </span>
                   </div>
@@ -561,19 +561,19 @@ export function PaperBundleViewer({
               const figure = figures.find((f) => f.id === expandedFigureId);
               if (!figure) return null;
               return (
-                <div className="mt-4 overflow-hidden rounded-xl border border-border bg-white">
-                  <div className="flex items-center justify-between border-b border-border px-5 py-3">
+                <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule">
+                  <div className="flex items-center justify-between border-b border-rule bg-snow-white px-5 py-3">
                     <div>
-                      <div className="text-sm font-medium text-foreground">{figure.fileName}</div>
+                      <div className="font-[family-name:var(--font-ui)] text-[0.875rem] text-ink">{figure.fileName}</div>
                       {figure.caption && (
-                        <p className="mt-0.5 text-sm text-foreground-soft">{figure.caption}</p>
+                        <p className="mt-0.5 font-[family-name:var(--font-body)] text-[0.875rem] text-ink-light">{figure.caption}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
                       <a
                         href={figure.downloadUrl}
                         download
-                        className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground/4"
+                        className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-rule bg-snow-white px-3 py-1.5 font-[family-name:var(--font-ui)] text-xs text-ink transition-colors hover:bg-snow-white-dark"
                       >
                         <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
@@ -583,7 +583,7 @@ export function PaperBundleViewer({
                       <button
                         type="button"
                         onClick={() => setExpandedFigureId(null)}
-                        className="rounded-md p-1.5 text-muted transition-colors hover:bg-foreground/5 hover:text-foreground"
+                        className="rounded-[var(--radius-sm)] p-1.5 text-ink-faint transition-colors hover:bg-snow-white-dark hover:text-ink"
                       >
                         <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M4 4l8 8M12 4l-8 8" />
@@ -591,7 +591,7 @@ export function PaperBundleViewer({
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-center justify-center bg-[#fafafa] p-6">
+                  <div className="flex items-center justify-center bg-snow-white-dark p-6">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={figure.downloadUrl}
@@ -608,11 +608,11 @@ export function PaperBundleViewer({
 
       {activeTab === "pdf" ? (
         pdfUrl ? (
-          <div className="mt-6 overflow-hidden rounded-xl border border-border bg-white">
+          <div className="mt-6 overflow-hidden rounded-[var(--radius-md)] border border-rule">
             <iframe src={pdfUrl} title={`${paperTitle} PDF`} className="h-[900px] w-full" />
           </div>
         ) : (
-          <div className="mt-6 rounded-2xl border border-dashed border-border px-6 py-12 text-sm text-foreground-soft">
+          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
             No compiled PDF is available for this paper.
           </div>
         )

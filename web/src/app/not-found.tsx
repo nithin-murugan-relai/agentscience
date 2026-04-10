@@ -3,10 +3,10 @@ import Link from "next/link";
 export default function NotFound() {
   return (
     <div className="page-enter text-center py-24">
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+      <h1 className="text-[2.25rem] leading-[1.2] text-ink">
         Not found
       </h1>
-      <p className="mt-3 text-foreground-soft">
+      <p className="mt-3 text-ink-light font-[family-name:var(--font-body)]">
         This page does not exist.
       </p>
       <div className="mt-8">

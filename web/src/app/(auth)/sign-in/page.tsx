@@ -22,35 +22,35 @@ export default async function SignInPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="page-enter mx-auto max-w-sm pt-8 md:pt-16">
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground text-center">
+    <div className="page-enter mx-auto max-w-[400px] pt-8 md:pt-16">
+      <h1 className="text-[2.25rem] leading-[1.2] text-ink text-center">
         Sign in
       </h1>
 
       <form action="/api/auth/sign-in" method="post" className="mt-8 space-y-4">
         <input type="hidden" name="next" value={nextPath} />
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium text-foreground">Email</span>
+          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Email</span>
           <input
             type="email"
             name="email"
             required
             autoComplete="email"
-            className="field-input text-sm"
+            className="field-input"
           />
         </label>
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium text-foreground">Password</span>
+          <span className="font-[family-name:var(--font-ui)] text-[0.875rem] tracking-[0.04em] text-ink">Password</span>
           <input
             type="password"
             name="password"
             required
             autoComplete="current-password"
-            className="field-input text-sm"
+            className="field-input"
           />
         </label>
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-[var(--radius-md)] border border-rule px-4 py-3 font-[family-name:var(--font-ui)] text-sm text-accent">
             {error}
           </div>
         )}
@@ -59,11 +59,11 @@ export default async function SignInPage({ searchParams }: PageProps) {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted">
+      <p className="mt-6 text-center font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-faint italic">
         No account?{" "}
         <Link
           href={buildPathWithNext("/sign-up", nextPath)}
-          className="text-accent hover:text-accent-hover font-medium"
+          className="text-ink hover:text-accent not-italic"
         >
           Create one
         </Link>

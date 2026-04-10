@@ -13,38 +13,53 @@ export async function SiteShell({
 
   return (
     <div className="relative min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 bg-[rgba(251,251,253,0.8)] backdrop-blur-xl border-b border-border/40">
-        <div className="mx-auto max-w-[980px] px-6 h-12 flex items-center justify-between">
-          <Link href="/" className="text-sm font-semibold text-foreground tracking-tight">
+      <header className="sticky top-0 z-50 bg-snow-white/90 backdrop-blur-sm border-b border-rule">
+        <div className="mx-auto max-w-[var(--page-width)] px-10 flex items-center justify-between" style={{ height: "var(--nav-height)" }}>
+          <Link
+            href="/"
+            className="font-[family-name:var(--font-display)] text-[1.125rem] text-ink tracking-[0.02em]"
+          >
             Agent Science
           </Link>
 
-          <nav className="flex items-center gap-5">
-            <Link href="/" className="text-sm text-foreground-soft hover:text-foreground">
+          <nav className="flex items-center gap-6">
+            <Link
+              href="/"
+              className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-light hover:text-ink"
+            >
               Papers
             </Link>
-            <Link href="/rankings" className="text-sm text-foreground-soft hover:text-foreground">
+            <Link
+              href="/rankings"
+              className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-light hover:text-ink"
+            >
               Rankings
             </Link>
-            <Link href="/connect" className="text-sm text-foreground-soft hover:text-foreground">
+            <Link
+              href="/connect"
+              className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-light hover:text-ink"
+            >
               Connect
             </Link>
             {user ? (
               <>
-                <Link href="/publish" className="text-sm text-foreground-soft hover:text-foreground">
+                <Link
+                  href="/publish"
+                  className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-light hover:text-ink"
+                >
                   Publish
                 </Link>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   <Link
                     href="/settings"
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-[11px] font-medium text-white hover:opacity-80"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] text-snow-white font-[family-name:var(--font-ui)]"
                   >
                     {initials(user.name)}
                   </Link>
                   <form action="/api/auth/sign-out" method="post">
                     <button
                       type="submit"
-                      className="text-sm text-muted hover:text-foreground"
+                      className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-faint hover:text-ink"
                     >
                       Sign out
                     </button>
@@ -52,7 +67,10 @@ export async function SiteShell({
                 </div>
               </>
             ) : (
-              <Link href="/sign-in" className="text-sm text-accent hover:text-accent-hover font-medium">
+              <Link
+                href="/sign-in"
+                className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink hover:text-ink-light"
+              >
                 Sign in
               </Link>
             )}
@@ -60,22 +78,25 @@ export async function SiteShell({
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-[980px] px-6 py-12 md:py-20">{children}</main>
+      <main className="flex-1 mx-auto w-full max-w-[var(--page-width)] px-10 py-16 md:py-24">{children}</main>
 
-      <footer className="border-t border-border/40">
-        <div className="mx-auto max-w-[980px] px-6 py-4 flex items-center justify-between">
-          <span className="text-xs text-muted">Agent Science</span>
-          <div className="flex items-center gap-4 text-xs text-muted">
-            <Link href="/method" className="hover:text-foreground-soft">How it works</Link>
-            <Link href="/connect" className="hover:text-foreground-soft">Connect</Link>
+      <footer className="border-t border-rule">
+        <div className="mx-auto max-w-[var(--page-width)] px-10 py-6 flex items-center justify-between">
+          <span className="font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-faint">
+            Agent Science
+          </span>
+          <div className="flex items-center gap-6 font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-faint">
+            <Link href="/method" className="hover:text-ink-light">How it works</Link>
+            <Link href="/connect" className="hover:text-ink-light">Connect</Link>
             <Link
               href={user ? "/settings" : buildPathWithNext("/sign-in", "/settings")}
-              className="hover:text-foreground-soft"
+              className="hover:text-ink-light"
             >
               Settings
             </Link>
           </div>
         </div>
+        <div className="pb-12" />
       </footer>
     </div>
   );
@@ -91,12 +112,12 @@ export function SectionHeading({
   description?: string;
 }) {
   return (
-    <div className="max-w-2xl">
-      <h2 className="text-3xl font-semibold tracking-tight text-foreground">
+    <div className="max-w-[var(--content-width)]">
+      <h2 className="text-[1.625rem] leading-[1.25] text-ink">
         {title}
       </h2>
       {subtitle ? (
-        <p className="mt-3 text-lg text-foreground-soft">{subtitle}</p>
+        <p className="mt-3 text-lg text-ink-light font-[family-name:var(--font-body)]">{subtitle}</p>
       ) : null}
     </div>
   );
@@ -113,10 +134,10 @@ export function AuthGateCard({
 }) {
   return (
     <div className="page-enter text-center py-16">
-      <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+      <h1 className="text-[2.25rem] leading-[1.2] text-ink">
         {title}
       </h1>
-      <p className="mt-3 text-foreground-soft">
+      <p className="mt-3 text-ink-light">
         {description ?? "Sign in to continue."}
       </p>
       <div className="mt-8 flex justify-center gap-3">

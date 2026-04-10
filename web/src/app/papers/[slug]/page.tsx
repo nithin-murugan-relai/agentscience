@@ -70,35 +70,35 @@ export default async function PaperDetailPage({
   return (
     <div className="page-enter">
       {/* Header */}
-      <section className="pb-8">
-        <div className="flex items-center gap-2.5 text-sm text-muted">
+      <section className="pb-10 max-w-[var(--content-width)]">
+        <div className="flex items-center gap-2.5 font-[family-name:var(--font-ui)] text-[0.8125rem] tracking-[0.04em] text-ink-faint">
           <span>{formatDate(paper.publishedAt)}</span>
-          <span>·</span>
+          <span className="text-rule">&middot;</span>
           <span>{readingTime(paper.markdown)} min read</span>
           {paper.metric?.finalScore != null && paper.metric.finalScore > 0 && (
             <>
-              <span>·</span>
-              <span className="font-medium text-foreground">
+              <span className="text-rule">&middot;</span>
+              <span className="font-[family-name:var(--font-mono)] text-ink">
                 {formatScore(paper.metric.finalScore)}
               </span>
             </>
           )}
         </div>
 
-        <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-[1.1] tracking-tight text-foreground md:text-5xl">
+        <h1 className="mt-4 text-[2.25rem] leading-[1.2] text-ink md:text-[2.75rem]">
           {paper.title}
         </h1>
 
-        <p className="mt-4 max-w-2xl text-foreground-soft leading-relaxed">
+        <p className="mt-4 text-ink-light leading-relaxed font-[family-name:var(--font-body)]">
           {paper.abstract}
         </p>
 
-        <div className="mt-4 flex flex-wrap gap-2 text-sm text-muted">
+        <div className="mt-4 flex flex-wrap gap-2 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
           {paper.authors.map((author) => (
             <Link
               key={author.user.handle}
               href={`/profiles/${author.user.handle}`}
-              className="hover:text-foreground"
+              className="hover:text-ink"
             >
               {author.user.name}
             </Link>
@@ -111,23 +111,23 @@ export default async function PaperDetailPage({
               href={`/api/v1/papers/${paper.slug}/download/pdf`}
               target="_blank"
               rel="noreferrer"
-              className="btn-primary text-sm"
+              className="btn-primary"
             >
               Open PDF
             </a>
           )}
           {paper.latexSource && (
-            <a href={`/api/v1/papers/${paper.slug}/download/latex`} className="btn-secondary text-sm">
+            <a href={`/api/v1/papers/${paper.slug}/download/latex`} className="btn-secondary">
               LaTeX
             </a>
           )}
           {paper.bibSource && (
-            <a href={`/api/v1/papers/${paper.slug}/download/bib`} className="btn-secondary text-sm">
+            <a href={`/api/v1/papers/${paper.slug}/download/bib`} className="btn-secondary">
               BibTeX
             </a>
           )}
           {hasBundle ? (
-            <a href="#bundle" className="btn-secondary text-sm">
+            <a href="#bundle" className="btn-secondary">
               Code Viewer
             </a>
           ) : null}
@@ -136,7 +136,7 @@ export default async function PaperDetailPage({
               href={paper.githubUrl}
               target="_blank"
               rel="noreferrer"
-              className="btn-secondary text-sm"
+              className="btn-secondary"
             >
               Source
             </a>
@@ -146,7 +146,7 @@ export default async function PaperDetailPage({
               href={paper.canonicalUrl}
               target="_blank"
               rel="noreferrer"
-              className="btn-secondary text-sm"
+              className="btn-secondary"
             >
               Source
             </a>
@@ -154,7 +154,7 @@ export default async function PaperDetailPage({
           {user ? (
             <form action={`/api/papers/${paper.slug}/save`} method="post">
               <input type="hidden" name="redirectTo" value={`/papers/${paper.slug}`} />
-              <button type="submit" className="btn-secondary text-sm">
+              <button type="submit" className="btn-secondary">
                 {isSaved ? "Saved" : "Save"}
               </button>
             </form>
@@ -179,17 +179,17 @@ export default async function PaperDetailPage({
 
       {/* References */}
       {paper.referencesOut.length > 0 && (
-        <section className="max-w-[720px] border-t border-border py-10">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+        <section className="max-w-[var(--content-width)] border-t border-rule py-10">
+          <h2 className="text-[1.25rem] leading-[1.3] text-ink">
             References
           </h2>
           <div className="mt-4 space-y-2">
             {paper.referencesOut.map((reference, index) => (
               <div
                 key={`${reference.referenceTitle ?? reference.referenceDoi}-${index}`}
-                className="text-sm leading-relaxed text-foreground-soft"
+                className="font-[family-name:var(--font-ui)] text-[0.875rem] leading-relaxed text-ink-light"
               >
-                <span className="text-muted">{index + 1}.</span>{" "}
+                <span className="font-[family-name:var(--font-mono)] text-ink-faint">{index + 1}.</span>{" "}
                 {reference.referenceTitle ?? reference.referenceDoi ?? "Untitled reference"}
                 {reference.referenceDoi ? ` (${reference.referenceDoi})` : ""}
               </div>
@@ -199,15 +199,15 @@ export default async function PaperDetailPage({
       )}
 
       {/* Reviews */}
-      <section className="border-t border-border py-10">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
+      <section className="border-t border-rule py-10">
+        <h2 className="text-[1.25rem] leading-[1.3] text-ink">
           Reviews
         </h2>
 
         {reviews.length === 0 ? (
-          <p className="mt-3 text-sm text-foreground-soft">No reviews yet.</p>
+          <p className="mt-3 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">No reviews yet.</p>
         ) : (
-          <div className="mt-5 space-y-4">
+          <div className="mt-5 space-y-0">
             {reviews.map((review) => {
               const isAi = review.kind === "AI";
               const name = isAi
@@ -220,24 +220,24 @@ export default async function PaperDetailPage({
                   ? "text-emerald-700"
                   : "text-amber-700";
               return (
-                <div key={review.id} className="rounded-xl border border-border px-4 py-3">
-                  <div className="flex items-center justify-between gap-4 text-sm">
+                <div key={review.id} className="border-b border-rule py-5">
+                  <div className="flex items-center justify-between gap-4 font-[family-name:var(--font-ui)] text-[0.875rem]">
                     <div className="flex items-center gap-2">
                       {handle ? (
                         <Link
                           href={`/profiles/${handle}`}
-                          className="font-medium text-foreground hover:text-accent"
+                          className="text-ink hover:text-accent"
                         >
                           {name}
                         </Link>
                       ) : (
-                        <span className="font-medium text-foreground">{name}</span>
+                        <span className="text-ink">{name}</span>
                       )}
-                      <span className={`text-xs ${verdictClass}`}>{verdictLabel}</span>
+                      <span className={`text-[0.8125rem] ${verdictClass}`}>{verdictLabel}</span>
                     </div>
-                    <span className="text-xs text-muted">{formatDate(review.createdAt)}</span>
+                    <span className="text-[0.8125rem] text-ink-faint">{formatDate(review.createdAt)}</span>
                   </div>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground-soft">
+                  <p className="mt-2 whitespace-pre-wrap font-[family-name:var(--font-body)] text-[1rem] leading-relaxed text-ink-light">
                     {review.summary}
                   </p>
                 </div>
@@ -250,11 +250,11 @@ export default async function PaperDetailPage({
           <form
             action={`/api/papers/${paper.slug}/reviews`}
             method="post"
-            className="mt-6 max-w-2xl"
+            className="mt-6 max-w-[var(--content-width)]"
           >
             <input type="hidden" name="redirectTo" value={`/papers/${paper.slug}`} />
             {error && (
-              <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="mb-3 rounded-[var(--radius-md)] border border-rule px-4 py-3 font-[family-name:var(--font-ui)] text-sm text-accent">
                 {error}
               </div>
             )}
@@ -263,7 +263,7 @@ export default async function PaperDetailPage({
               required
               minLength={1}
               maxLength={2000}
-              className="field-textarea min-h-[80px] text-sm leading-relaxed"
+              className="field-textarea min-h-[80px] leading-relaxed font-[family-name:var(--font-body)]"
               placeholder="what'd you think?"
               defaultValue={viewerReview?.summary ?? ""}
             />
@@ -272,30 +272,30 @@ export default async function PaperDetailPage({
                 type="submit"
                 name="verdict"
                 value="ENDORSE"
-                className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                className={`rounded-[var(--radius-sm)] border px-3 py-1.5 font-[family-name:var(--font-ui)] text-[0.875rem] transition ${
                   viewerReview?.verdict === "ENDORSE"
                     ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                    : "border-border text-foreground-soft hover:border-emerald-600 hover:text-emerald-700"
+                    : "border-rule text-ink-light hover:border-emerald-600 hover:text-emerald-700"
                 }`}
               >
-                👍 holds up
+                holds up
               </button>
               <button
                 type="submit"
                 name="verdict"
                 value="CONCERN"
-                className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                className={`rounded-[var(--radius-sm)] border px-3 py-1.5 font-[family-name:var(--font-ui)] text-[0.875rem] transition ${
                   viewerReview?.verdict === "CONCERN"
                     ? "border-amber-600 bg-amber-50 text-amber-700"
-                    : "border-border text-foreground-soft hover:border-amber-600 hover:text-amber-700"
+                    : "border-rule text-ink-light hover:border-amber-600 hover:text-amber-700"
                 }`}
               >
-                👎 doesn&apos;t
+                doesn&apos;t
               </button>
             </div>
           </form>
         ) : user && isAuthor ? (
-          <p className="mt-6 text-sm text-foreground-soft">
+          <p className="mt-6 font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">
             You can&apos;t review your own paper.
           </p>
         ) : (

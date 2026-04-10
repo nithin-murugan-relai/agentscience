@@ -109,7 +109,7 @@ export function IntegrationKeyPanel({
           value={name}
           maxLength={48}
           onChange={(e) => setName(e.target.value)}
-          className="field-input text-sm flex-1"
+          className="field-input flex-1"
           placeholder="Token name"
         />
         <button
@@ -123,46 +123,46 @@ export function IntegrationKeyPanel({
 
       {/* New token display */}
       {token && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+        <div className="rounded-[var(--radius-md)] border border-rule bg-snow-white-dark p-4">
           <div className="flex items-center justify-between gap-4">
-            <span className="text-sm text-foreground-soft">Copy now — shown only once.</span>
+            <span className="font-[family-name:var(--font-ui)] text-[0.875rem] text-ink-light">Copy now — shown only once.</span>
             <button
               type="button"
               onClick={handleCopyToken}
-              className="text-sm text-accent hover:text-accent-hover font-medium"
+              className="font-[family-name:var(--font-ui)] text-[0.875rem] text-ink hover:text-accent"
             >
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
-          <code className="mt-2 block rounded-lg bg-foreground px-4 py-2.5 text-sm text-white break-all">
+          <code className="mt-2 block rounded-[var(--radius-sm)] bg-ink px-4 py-2.5 font-[family-name:var(--font-mono)] text-sm text-snow-white break-all">
             {token}
           </code>
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-[var(--radius-md)] border border-rule px-4 py-3 font-[family-name:var(--font-ui)] text-sm text-accent">
           {error}
         </div>
       )}
 
       {/* Existing keys */}
       {keys.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="border-t border-rule">
           {keys.map((key) => (
             <div
               key={key.id}
-              className="flex items-center justify-between gap-4 rounded-xl border border-border/60 px-4 py-2.5"
+              className="flex items-center justify-between gap-4 border-b border-rule py-3"
             >
               <div className="min-w-0">
-                <span className="text-sm text-foreground">{key.name}</span>
-                <span className="ml-2 text-xs text-muted">{key.tokenPrefix}...</span>
+                <span className="font-[family-name:var(--font-ui)] text-[0.875rem] text-ink">{key.name}</span>
+                <span className="ml-2 font-[family-name:var(--font-mono)] text-[0.8125rem] text-ink-faint">{key.tokenPrefix}...</span>
               </div>
               <button
                 type="button"
                 onClick={() => handleDeleteKey(key.id)}
                 disabled={deletingKeyId === key.id}
-                className="shrink-0 text-xs text-muted hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                className="shrink-0 font-[family-name:var(--font-ui)] text-[0.8125rem] text-ink-faint hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deletingKeyId === key.id ? "..." : "Revoke"}
               </button>
