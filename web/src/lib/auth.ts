@@ -29,49 +29,64 @@ export function hashToken(token: string) {
 export async function createSession(userId: string) {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = addDays(new Date(), SESSION_DURATION_DAYS);
+  const now = new Date();
 
-  await prisma.session.deleteMany({
-    where: {
-      userId,
-      expiresAt: {
-        lt: new Date(),
-      },
-    },
-  });
+  await prisma.$transaction(async (transaction) => {
+    await transaction.$executeRaw`
+      SELECT pg_advisory_xact_lock(hashtext(${userId}))
+    `;
 
-  await prisma.session.create({
-    data: {
-      tokenHash: hashToken(token),
-      userId,
-      expiresAt,
-    },
-  });
-
-  const overflowSessions = await prisma.session.findMany({
-    where: {
-      userId,
-      expiresAt: {
-        gte: new Date(),
-      },
-    },
-    orderBy: {
-      lastUsedAt: "desc",
-    },
-    select: {
-      id: true,
-    },
-    skip: MAX_ACTIVE_SESSIONS,
-  });
-
-  if (overflowSessions.length > 0) {
-    await prisma.session.deleteMany({
+    await transaction.session.deleteMany({
       where: {
-        id: {
-          in: overflowSessions.map((session) => session.id),
+        userId,
+        expiresAt: {
+          lt: now,
         },
       },
     });
-  }
+
+    await transaction.session.create({
+      data: {
+        tokenHash: hashToken(token),
+        userId,
+        expiresAt,
+      },
+    });
+
+    const overflowSessions = await transaction.session.findMany({
+      where: {
+        userId,
+        expiresAt: {
+          gte: now,
+        },
+      },
+      orderBy: [
+        {
+          lastUsedAt: "desc",
+        },
+        {
+          createdAt: "desc",
+        },
+        {
+          id: "desc",
+        },
+      ],
+      select: {
+        id: true,
+      },
+      skip: MAX_ACTIVE_SESSIONS,
+    });
+
+    if (overflowSessions.length > 0) {
+      await transaction.session.deleteMany({
+        where: {
+          id: {
+            in: overflowSessions.map((session) => session.id),
+          },
+        },
+      });
+    }
+  });
 
   return token;
 }
