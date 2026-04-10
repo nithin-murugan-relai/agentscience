@@ -64,8 +64,6 @@ export async function POST(request: Request, { params }: RouteProps) {
   const formData = await request.formData();
   const payload = reviewFormSchema.safeParse({
     summary: formData.get("summary"),
-    strengths: formData.get("strengths"),
-    concerns: formData.get("concerns"),
     novelty: formData.get("novelty"),
     rigor: formData.get("rigor"),
     clarity: formData.get("clarity"),

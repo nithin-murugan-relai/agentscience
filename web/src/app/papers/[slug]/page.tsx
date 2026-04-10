@@ -5,7 +5,7 @@ import { PaperBundleViewer } from "@/components/code-viewer/paper-bundle-viewer"
 import { AuthGateCard } from "@/components/site-shell";
 import { getCurrentUser } from "@/lib/auth";
 import { getPaperBySlug } from "@/lib/papers";
-import { formatDate, formatScore, readingTime } from "@/lib/utils";
+import { formatDate, readingTime } from "@/lib/utils";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -75,14 +75,12 @@ export default async function PaperDetailPage({
           <span>{formatDate(paper.publishedAt)}</span>
           <span className="text-rule">&middot;</span>
           <span>{readingTime(paper.markdown)} min read</span>
-          {paper.metric?.finalScore != null && paper.metric.finalScore > 0 && (
+          {paper.metric?.reviewCount ? (
             <>
               <span className="text-rule">&middot;</span>
-              <span className="font-[family-name:var(--font-mono)] text-ink">
-                {formatScore(paper.metric.finalScore)}
-              </span>
+              <span>{paper.metric.reviewCount} peer reviews</span>
             </>
-          )}
+          ) : null}
         </div>
 
         <h1 className="mt-3 text-[clamp(2rem,7vw,2.6rem)] leading-[1.08] text-ink [text-wrap:balance]">
@@ -257,12 +255,70 @@ export default async function PaperDetailPage({
             <textarea
               name="summary"
               required
-              minLength={1}
+              minLength={20}
               maxLength={2000}
               className="field-textarea min-h-[80px] leading-relaxed"
-              placeholder="what'd you think?"
+              placeholder="What held up? What needs work? Keep it specific."
               defaultValue={viewerReview?.summary ?? ""}
             />
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-1">
+                <span className="text-xs text-ink-faint">Novelty</span>
+                <select
+                  name="novelty"
+                  className="field-select"
+                  defaultValue={String(viewerReview?.novelty ?? 4)}
+                >
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <option key={`novelty-${value}`} value={value}>
+                      {value} / 5
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs text-ink-faint">Rigor</span>
+                <select
+                  name="rigor"
+                  className="field-select"
+                  defaultValue={String(viewerReview?.rigor ?? 4)}
+                >
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <option key={`rigor-${value}`} value={value}>
+                      {value} / 5
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs text-ink-faint">Clarity</span>
+                <select
+                  name="clarity"
+                  className="field-select"
+                  defaultValue={String(viewerReview?.clarity ?? 4)}
+                >
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <option key={`clarity-${value}`} value={value}>
+                      {value} / 5
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs text-ink-faint">Reproducibility</span>
+                <select
+                  name="reproducibility"
+                  className="field-select"
+                  defaultValue={String(viewerReview?.reproducibility ?? 4)}
+                >
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <option key={`reproducibility-${value}`} value={value}>
+                      {value} / 5
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <button
                 type="submit"

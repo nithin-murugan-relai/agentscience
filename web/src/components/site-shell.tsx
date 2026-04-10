@@ -58,36 +58,28 @@ export async function SiteShell({
 
             <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
               <Link href="/" className="text-[0.8125rem] text-ink-light hover:text-ink">
-                Papers
-              </Link>
-              <Link href="/rankings" className="text-[0.8125rem] text-ink-light hover:text-ink">
-                Rankings
+                Feed
               </Link>
               <Link href="/connect" className="text-[0.8125rem] text-ink-light hover:text-ink">
                 Connect
               </Link>
               {user ? (
-                <>
-                  <Link href="/publish" className="text-[0.8125rem] text-ink-light hover:text-ink">
-                    Publish
+                <div className="flex items-center gap-2.5">
+                  <Link
+                    href="/settings"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-snow-white"
+                  >
+                    {initials(user.name)}
                   </Link>
-                  <div className="flex items-center gap-2.5">
-                    <Link
-                      href="/settings"
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-snow-white"
+                  <form action="/api/auth/sign-out" method="post">
+                    <button
+                      type="submit"
+                      className="text-[0.8125rem] text-ink-faint hover:text-ink"
                     >
-                      {initials(user.name)}
-                    </Link>
-                    <form action="/api/auth/sign-out" method="post">
-                      <button
-                        type="submit"
-                        className="text-[0.8125rem] text-ink-faint hover:text-ink"
-                      >
-                        Sign out
-                      </button>
-                    </form>
-                  </div>
-                </>
+                      Sign out
+                    </button>
+                  </form>
+                </div>
               ) : (
                 <Link href="/sign-in" className="text-[0.8125rem] text-ink hover:text-ink-light">
                   Sign in

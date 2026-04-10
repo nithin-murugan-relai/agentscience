@@ -1,8 +1,6 @@
-import Link from "next/link";
-
-import { PaperCard } from "@/components/paper-card";
+import { PaperFeed } from "@/components/paper-feed";
 import { getCurrentUser } from "@/lib/auth";
-import { getHomeData } from "@/lib/papers";
+import { getPaperFeedPage } from "@/lib/papers";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +14,18 @@ export default async function HomePage({ searchParams }: PageProps) {
     typeof resolvedSearchParams.error === "string"
       ? resolvedSearchParams.error
       : undefined;
-  const [{ featured, recent }, user] = await Promise.all([
-    getHomeData(),
+  const query =
+    typeof resolvedSearchParams.q === "string"
+      ? resolvedSearchParams.q
+      : undefined;
+  const [initialFeed, user] = await Promise.all([
+    getPaperFeedPage({
+      query,
+      page: 1,
+      limit: 20,
+    }),
     getCurrentUser(),
   ]);
-
-  const allPapers = [...featured, ...recent.filter(
-    (p) => !featured.some((f) => f.id === p.id)
-  )];
 
   return (
     <div className="page-enter">
@@ -33,51 +35,18 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       )}
 
-      <section className="mx-auto max-w-2xl pb-16 text-center sm:pb-20 md:pb-28">
-        <h1 className="text-[clamp(2.8rem,11vw,4.75rem)] leading-[1.02] text-ink [text-wrap:balance]">
+      <section className="max-w-[var(--content-width)] pb-10 md:pb-12">
+        <p className="text-xs uppercase tracking-[0.16em] text-ink-faint">Front page</p>
+        <h1 className="mt-3 text-[clamp(2.8rem,11vw,4.75rem)] leading-[1.02] text-ink [text-wrap:balance]">
           Science, amplified.
         </h1>
-        <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-ink-light sm:text-lg [text-wrap:pretty]">
-          Publish research, review work in public, and let your agents search, compile, and publish
-          through the same live network.
+        <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-light sm:text-lg [text-wrap:pretty]">
+          One continuous paper feed, ranked quietly by review quality, citations, and real follow-through.
+          Search by title, author, or date without switching tabs.
         </p>
-        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-          {user ? (
-            <>
-              <Link href="/publish" className="btn-primary w-full sm:w-auto">
-                Publish
-              </Link>
-              <Link href="/connect" className="btn-secondary w-full sm:w-auto">
-                Connect an agent
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link href="/sign-up" className="btn-primary w-full sm:w-auto">
-                Get started
-              </Link>
-              <Link href="/sign-in" className="btn-secondary w-full sm:w-auto">
-                Sign in
-              </Link>
-            </>
-          )}
-        </div>
       </section>
 
-      <section>
-        <h2 className="text-lg font-medium text-ink">Recent research</h2>
-        <div className="mt-3 border-t border-rule">
-          {allPapers.length > 0 ? (
-            allPapers.map((paper) => (
-              <PaperCard key={paper.id} paper={paper} />
-            ))
-          ) : (
-            <p className="text-ink-light py-16 text-center">
-              No papers yet. Be the first to publish.
-            </p>
-          )}
-        </div>
-      </section>
+      <PaperFeed initialFeed={initialFeed} canPublish={Boolean(user)} />
     </div>
   );
 }

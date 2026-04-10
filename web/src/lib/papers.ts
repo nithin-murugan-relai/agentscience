@@ -131,6 +131,31 @@ export type PaperListItem = Prisma.PaperGetPayload<{
   include: typeof paperListInclude;
 }>;
 
+export interface SerializedPaperListItem {
+  id: string;
+  slug: string;
+  title: string;
+  abstract: string;
+  publishedAt: string;
+  authors: Array<{
+    user: {
+      name: string;
+    };
+  }>;
+  metric: {
+    reviewCount: number;
+  } | null;
+}
+
+export interface PaperFeedPage {
+  papers: SerializedPaperListItem[];
+  page: number;
+  limit: number;
+  total: number;
+  hasMore: boolean;
+  query: string;
+}
+
 const DOI_PATTERN = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
 const MAX_ACTIVE_INTEGRATION_KEYS = 12;
 
@@ -162,6 +187,186 @@ function verdictFromScore(score: number) {
 
 function scoreToFivePoint(value: number) {
   return Math.min(5, Math.max(1, Math.round(value * 5)));
+}
+
+function parseSearchTerms(query: string) {
+  return [...new Set(query.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length >= 2))];
+}
+
+function parseSearchDateRange(query: string) {
+  const trimmed = query.trim().toLowerCase();
+  const monthLookup: Record<string, number> = {
+    jan: 0,
+    january: 0,
+    feb: 1,
+    february: 1,
+    mar: 2,
+    march: 2,
+    apr: 3,
+    april: 3,
+    may: 4,
+    jun: 5,
+    june: 5,
+    jul: 6,
+    july: 6,
+    aug: 7,
+    august: 7,
+    sep: 8,
+    sept: 8,
+    september: 8,
+    oct: 9,
+    october: 9,
+    nov: 10,
+    november: 10,
+    dec: 11,
+    december: 11,
+  };
+
+  const exactDayMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (exactDayMatch) {
+    const [, year, month, day] = exactDayMatch;
+    const start = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+    return { gte: start, lt: new Date(Date.UTC(Number(year), Number(month) - 1, Number(day) + 1)) };
+  }
+
+  const yearMonthMatch = trimmed.match(/^(\d{4})-(\d{2})$/);
+  if (yearMonthMatch) {
+    const [, year, month] = yearMonthMatch;
+    const start = new Date(Date.UTC(Number(year), Number(month) - 1, 1));
+    return { gte: start, lt: new Date(Date.UTC(Number(year), Number(month), 1)) };
+  }
+
+  const slashDayMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashDayMatch) {
+    const [, month, day, year] = slashDayMatch;
+    const start = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+    return { gte: start, lt: new Date(Date.UTC(Number(year), Number(month) - 1, Number(day) + 1)) };
+  }
+
+  const monthYearMatch = trimmed.match(
+    /^(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{4})$/
+  );
+  if (monthYearMatch) {
+    const [, monthName, year] = monthYearMatch;
+    const monthIndex = monthLookup[monthName];
+    const start = new Date(Date.UTC(Number(year), monthIndex, 1));
+    return { gte: start, lt: new Date(Date.UTC(Number(year), monthIndex + 1, 1)) };
+  }
+
+  const yearMatch = trimmed.match(/^(\d{4})$/);
+  if (yearMatch) {
+    const year = Number(yearMatch[1]);
+    return {
+      gte: new Date(Date.UTC(year, 0, 1)),
+      lt: new Date(Date.UTC(year + 1, 0, 1)),
+    };
+  }
+
+  return null;
+}
+
+function buildPaperFeedWhere(query?: string): Prisma.PaperWhereInput {
+  const trimmed = query?.trim();
+
+  if (!trimmed) {
+    return {
+      visibility: "PUBLIC",
+    };
+  }
+
+  const searchTerms = parseSearchTerms(trimmed);
+  const dateRange = parseSearchDateRange(trimmed);
+
+  return {
+    visibility: "PUBLIC",
+    OR: [
+      {
+        title: {
+          contains: trimmed,
+          mode: "insensitive",
+        },
+      },
+      {
+        abstract: {
+          contains: trimmed,
+          mode: "insensitive",
+        },
+      },
+      {
+        markdown: {
+          contains: trimmed,
+          mode: "insensitive",
+        },
+      },
+      {
+        doi: {
+          contains: trimmed,
+          mode: "insensitive",
+        },
+      },
+      {
+        authors: {
+          some: {
+            user: {
+              OR: [
+                {
+                  name: {
+                    contains: trimmed,
+                    mode: "insensitive",
+                  },
+                },
+                {
+                  handle: {
+                    contains: trimmed.replace(/^@/, ""),
+                    mode: "insensitive",
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+      ...(searchTerms.length > 0
+        ? [
+            {
+              keywords: {
+                hasSome: searchTerms,
+              },
+            },
+          ]
+        : []),
+      ...(dateRange
+        ? [
+            {
+              publishedAt: {
+                gte: dateRange.gte,
+                lt: dateRange.lt,
+              },
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+function serializePaperListItem(paper: PaperListItem): SerializedPaperListItem {
+  return {
+    id: paper.id,
+    slug: paper.slug,
+    title: paper.title,
+    abstract: paper.abstract,
+    publishedAt: paper.publishedAt.toISOString(),
+    authors: paper.authors.map((author) => ({
+      user: {
+        name: author.user.name,
+      },
+    })),
+    metric: paper.metric
+      ? {
+          reviewCount: paper.metric.reviewCount,
+        }
+      : null,
+  };
 }
 
 async function ensureUniqueSlug(baseSlug: string) {
@@ -419,7 +624,34 @@ export async function syncAiReviewForPaper(paperId: string) {
   return MetricStatus.READY;
 }
 
-export async function refreshPaperMetrics() {
+export async function refreshPaperMetrics(options: { syncMissingAi?: boolean } = {}) {
+  if (options.syncMissingAi && aiJudgeConfigured()) {
+    const aiCandidates = await prisma.paper.findMany({
+      select: {
+        id: true,
+        reviews: {
+          where: {
+            kind: ReviewKind.AI,
+          },
+          select: {
+            id: true,
+          },
+        },
+        metric: {
+          select: {
+            aiStatus: true,
+          },
+        },
+      },
+    });
+
+    for (const paper of aiCandidates) {
+      if (paper.reviews.length === 0 || paper.metric?.aiStatus !== MetricStatus.READY) {
+        await syncAiReviewForPaper(paper.id);
+      }
+    }
+  }
+
   const papers = await prisma.paper.findMany({
     select: {
       id: true,
@@ -440,6 +672,7 @@ export async function refreshPaperMetrics() {
       reviews: {
         select: {
           kind: true,
+          verdict: true,
           summary: true,
           novelty: true,
           rigor: true,
@@ -498,6 +731,7 @@ export async function refreshPaperMetrics() {
             rigor: review.rigor,
             clarity: review.clarity,
             reproducibility: review.reproducibility,
+            verdict: review.verdict,
           })),
         saveCount: paper.saves.length,
         ideaCount: paper.ideas.length,
@@ -597,6 +831,36 @@ export async function getRankedPapers(limit?: number) {
 
   const ranked = sortPapersByRank(papers);
   return typeof limit === "number" ? ranked.slice(0, limit) : ranked;
+}
+
+export async function getPaperFeedPage({
+  query,
+  page = 1,
+  limit = 20,
+}: {
+  query?: string;
+  page?: number;
+  limit?: number;
+} = {}): Promise<PaperFeedPage> {
+  const resolvedPage = Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
+  const resolvedLimit = Number.isFinite(limit) ? Math.min(50, Math.max(1, Math.floor(limit))) : 20;
+  const trimmedQuery = query?.trim() ?? "";
+  const papers = await prisma.paper.findMany({
+    where: buildPaperFeedWhere(trimmedQuery),
+    include: paperListInclude,
+  });
+  const ranked = sortPapersByRank(papers);
+  const start = (resolvedPage - 1) * resolvedLimit;
+  const sliced = ranked.slice(start, start + resolvedLimit);
+
+  return {
+    papers: sliced.map(serializePaperListItem),
+    page: resolvedPage,
+    limit: resolvedLimit,
+    total: ranked.length,
+    hasMore: start + resolvedLimit < ranked.length,
+    query: trimmedQuery,
+  };
 }
 
 export async function getHomeData() {
@@ -798,6 +1062,10 @@ export async function addReviewForUser(
   const reviewData = {
     verdict: input.verdict,
     summary: input.summary,
+    novelty: input.novelty,
+    rigor: input.rigor,
+    clarity: input.clarity,
+    reproducibility: input.reproducibility,
   };
 
   if (existingReview) {

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Admin access required." }, { status: 403 });
   }
 
-  await refreshPaperMetrics();
+  await refreshPaperMetrics({ syncMissingAi: true });
   const sidekick = createSidekickService();
   await sidekick.recomputeFeed();
   await sidekick.processTriggeredReviews();
