@@ -6,31 +6,31 @@ import { initials } from "@/lib/utils";
 
 function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 1024 1024" className={className} aria-hidden="true">
+    <svg viewBox="280 218 460 520" className={className} aria-hidden="true">
       <g transform="translate(512, 488)">
         <path
           d="M-72,-260 L-72,-100 L-205,190 Q-215,222 -180,238 L180,238 Q215,222 205,190 L72,-100 L72,-260"
           fill="none"
           stroke="currentColor"
-          strokeWidth="13"
+          strokeWidth="16"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
         <line x1="-102" y1="-260" x2="102" y2="-260"
           stroke="currentColor"
-          strokeWidth="13"
+          strokeWidth="16"
           strokeLinecap="round"
         />
-        <line x1="-50" y1="60" x2="40" y2="145" stroke="#3b5bdb" strokeWidth="5.5" opacity="0.30"/>
-        <line x1="40" y1="145" x2="90" y2="78" stroke="#3b5bdb" strokeWidth="5.5" opacity="0.30"/>
-        <line x1="-50" y1="60" x2="-108" y2="145" stroke="#3b5bdb" strokeWidth="5.5" opacity="0.30"/>
-        <line x1="-108" y1="145" x2="40" y2="145" stroke="#3b5bdb" strokeWidth="4.5" opacity="0.22"/>
-        <circle cx="-50" cy="60" r="17" fill="#3b5bdb" opacity="0.85"/>
-        <circle cx="40" cy="145" r="20" fill="#3b5bdb" opacity="0.92"/>
-        <circle cx="90" cy="78" r="14" fill="#3b5bdb" opacity="0.70"/>
-        <circle cx="-108" cy="145" r="15" fill="#3b5bdb" opacity="0.75"/>
-        <circle cx="-24" cy="195" r="12" fill="#3b5bdb" opacity="0.60"/>
-        <circle cx="18" cy="20" r="11" fill="#3b5bdb" opacity="0.55"/>
+        <line x1="-50" y1="60" x2="40" y2="145" stroke="#3b5bdb" strokeWidth="6" opacity="0.30"/>
+        <line x1="40" y1="145" x2="90" y2="78" stroke="#3b5bdb" strokeWidth="6" opacity="0.30"/>
+        <line x1="-50" y1="60" x2="-108" y2="145" stroke="#3b5bdb" strokeWidth="6" opacity="0.30"/>
+        <line x1="-108" y1="145" x2="40" y2="145" stroke="#3b5bdb" strokeWidth="5" opacity="0.22"/>
+        <circle cx="-50" cy="60" r="20" fill="#3b5bdb" opacity="0.85"/>
+        <circle cx="40" cy="145" r="23" fill="#3b5bdb" opacity="0.92"/>
+        <circle cx="90" cy="78" r="16" fill="#3b5bdb" opacity="0.70"/>
+        <circle cx="-108" cy="145" r="18" fill="#3b5bdb" opacity="0.75"/>
+        <circle cx="-24" cy="195" r="14" fill="#3b5bdb" opacity="0.60"/>
+        <circle cx="18" cy="20" r="13" fill="#3b5bdb" opacity="0.55"/>
       </g>
     </svg>
   );
@@ -49,9 +49,9 @@ export async function SiteShell({
         <div className="mx-auto max-w-[var(--page-width)] px-6 md:px-10 flex items-center justify-between" style={{ height: "var(--nav-height)" }}>
           <Link
             href="/"
-            className="flex items-center gap-2 text-ink"
+            className="flex items-center gap-1.5 text-ink"
           >
-            <LogoMark className="w-5 h-5" />
+            <LogoMark className="w-7 h-7" />
             <span className="font-[family-name:var(--font-display)] text-lg">AgentScience</span>
           </Link>
 
