@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
 import {
+  cpSync,
   chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
+  rmSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -12,10 +14,14 @@ import { spawnSync } from "node:child_process";
 import { basename, dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { createInterface } from "node:readline";
+import { fileURLToPath } from "node:url";
 import {
-  DEFAULT_CODEX_SKILL_NAME,
-  buildCodexSkillMetadata,
+  DEFAULT_CODEX_PLUGIN_NAME,
+  buildCodexAgentscienceSkill,
   getCodexPaths,
+  getCodexInstallTarget,
+  removeCodexMarketplacePlugin,
+  upsertCodexMarketplace,
 } from "../lib/codex.mjs";
 import {
   compilePaper,
@@ -42,6 +48,9 @@ const CODEX_RUNTIME = getCodexPaths({
   homeDir: homedir(),
   cwd: process.cwd(),
 });
+const CODEX_PLUGIN_TEMPLATE_DIR = fileURLToPath(
+  new URL("../resources/codex-plugin", import.meta.url)
+);
 
 const TOP_HELP = `Agent Science CLI
 
@@ -166,7 +175,7 @@ Examples:
   agentscience setup <runtime> [options]
 
 Runtimes:
-  codex         Install Agent Science as an on-demand Codex skill.
+  codex         Install Agent Science as a local Codex plugin.
   claude-code   Install Agent Science as a /agentscience slash command for Claude Code.
 
 Auth options:
@@ -175,16 +184,16 @@ Auth options:
   --password <value>         Password used with --email
 
 Researcher identity:
-  --author-name <name>       Your name (used as paper author). Prompted interactively if omitted.
-  --affiliation <text>       Institutional affiliation (optional).
+  --author-name <name>       Save your preferred paper author name locally.
+  --affiliation <text>       Save your institutional affiliation locally.
 
 Options:
   --project                  Install to the current repository instead of your user-level Codex/Claude config
-  --uninstall                Remove the installed Codex skill or Claude slash command
+  --uninstall                Remove the installed Codex plugin or Claude slash command
 
 Examples:
   agentscience setup codex
-  agentscience setup codex --author-name "Jane Doe" --affiliation "MIT"
+  agentscience setup codex --author-name "Jane Doe"
   agentscience setup codex --project
   agentscience setup codex --uninstall
   agentscience setup claude-code
@@ -203,9 +212,10 @@ Description:
 
 Description:
   Legacy alias for \`agentscience setup codex\`.
-  Installs Agent Science as an explicit Codex skill at ~/.agents/skills/agentscience/
-  unless --project is provided, in which case the skill is written to
-  ./.agents/skills/agentscience/ for the current repository.
+  Installs Agent Science as a local Codex plugin at ~/plugins/agent-science/
+  and registers it in ~/.agents/plugins/marketplace.json unless --project is
+  provided, in which case it writes ./plugins/agent-science/ and
+  ./.agents/plugins/marketplace.json for the current repository.
 
 Auth options:
   --token <agsk_...>         Use an existing Agent Science token
@@ -213,8 +223,8 @@ Auth options:
   --password <value>         Password used with --email
 
 Optional options:
-  --project                  Install the skill in the current repository
-  --uninstall                Remove the installed skill
+  --project                  Install the plugin in the current repository
+  --uninstall                Remove the installed plugin
 `,
   feed: `Usage:
   agentscience feed list [--page <n>] [--limit <n>]
@@ -735,6 +745,34 @@ function render(result, mode) {
     console.log(`Workspace base: ${result.workspaceBase}`);
     if (result.configPath) {
       console.log(`Config: ${result.configPath}`);
+    }
+    return;
+  }
+
+  if (result?.runtime === "codex" && result?.pluginPath && result?.marketplacePath) {
+    console.log(`Installed Agent Science Codex plugin (${result.scope})`);
+    console.log(`Plugin: ${result.pluginPath}`);
+    console.log(`Marketplace: ${result.marketplacePath}`);
+    if (Array.isArray(result.legacySkillRemoved) && result.legacySkillRemoved.length > 0) {
+      console.log(`Removed legacy skill install: ${result.legacySkillRemoved.join(", ")}`);
+    }
+    if (result.nextStep) {
+      console.log(result.nextStep);
+    }
+    return;
+  }
+
+  if (result?.runtime === "codex" && (result?.pluginRemoved || result?.message)) {
+    if (result.pluginRemoved) {
+      console.log(`Removed Agent Science Codex plugin from ${result.pluginRemoved}`);
+    } else {
+      console.log(result.message);
+    }
+    if (Array.isArray(result.legacySkillRemoved) && result.legacySkillRemoved.length > 0) {
+      console.log(`Removed legacy skill install: ${result.legacySkillRemoved.join(", ")}`);
+    }
+    if (result.nextStep) {
+      console.log(result.nextStep);
     }
     return;
   }
@@ -1656,31 +1694,93 @@ async function downloadMethodology(baseUrl) {
   };
 }
 
-function getCodexInstallTarget(isProject) {
-  return isProject
-    ? {
-        scope: "project",
-        skillDir: CODEX_RUNTIME.projectSkillDir,
-        skillPath: CODEX_RUNTIME.projectSkillPath,
-        metadataPath: CODEX_RUNTIME.projectMetadataPath,
-      }
-    : {
-        scope: "user",
-        skillDir: CODEX_RUNTIME.userSkillDir,
-        skillPath: CODEX_RUNTIME.userSkillPath,
-        metadataPath: CODEX_RUNTIME.userMetadataPath,
-      };
+function readJsonFile(jsonPath) {
+  return JSON.parse(readFileSync(jsonPath, "utf8"));
 }
 
-function installCodexSkill(methodology, { isProject }) {
-  const target = getCodexInstallTarget(isProject);
-  mkdirSync(dirname(target.metadataPath), { recursive: true });
-  writeFileSync(target.skillPath, methodology, "utf8");
-  writeFileSync(target.metadataPath, buildCodexSkillMetadata(), "utf8");
+function writeJsonFile(jsonPath, content) {
+  mkdirSync(dirname(jsonPath), { recursive: true });
+  writeFileSync(jsonPath, `${JSON.stringify(content, null, 2)}\n`, "utf8");
+}
+
+function removePathIfPresent(targetPath) {
+  if (!existsSync(targetPath)) {
+    return false;
+  }
+  rmSync(targetPath, { recursive: true, force: true });
+  return true;
+}
+
+function removeLegacyCodexSkill(target) {
+  const removed = [];
+
+  if (removePathIfPresent(target.legacySkillDir)) {
+    removed.push(target.legacySkillDir);
+  }
+
+  return removed;
+}
+
+function installCodexPlugin(methodology, { isProject }) {
+  const target = getCodexInstallTarget({ isProject, paths: CODEX_RUNTIME });
+
+  mkdirSync(dirname(target.pluginDir), { recursive: true });
+  removePathIfPresent(target.pluginDir);
+  cpSync(CODEX_PLUGIN_TEMPLATE_DIR, target.pluginDir, { recursive: true });
+
+  const methodologyDir = join(target.pluginDir, "skills", "agentscience");
+  mkdirSync(methodologyDir, { recursive: true });
+  writeFileSync(join(methodologyDir, "SKILL.md"), buildCodexAgentscienceSkill(methodology), "utf8");
+
+  const marketplace = existsSync(target.marketplacePath)
+    ? readJsonFile(target.marketplacePath)
+    : undefined;
+  writeJsonFile(target.marketplacePath, upsertCodexMarketplace(marketplace));
 
   return {
     ...target,
-    skillName: DEFAULT_CODEX_SKILL_NAME,
+    pluginName: DEFAULT_CODEX_PLUGIN_NAME,
+    legacySkillRemoved: removeLegacyCodexSkill(target),
+  };
+}
+
+function uninstallCodexPlugin({ isProject }) {
+  const target = getCodexInstallTarget({ isProject, paths: CODEX_RUNTIME });
+  const removedPluginDir = removePathIfPresent(target.pluginDir) ? target.pluginDir : null;
+  const removedLegacySkill = removeLegacyCodexSkill(target);
+
+  let marketplaceUpdated = false;
+  let marketplaceRemoved = false;
+
+  if (existsSync(target.marketplacePath)) {
+    const nextMarketplace = removeCodexMarketplacePlugin(readJsonFile(target.marketplacePath));
+    if (nextMarketplace.plugins.length === 0) {
+      unlinkSync(target.marketplacePath);
+      marketplaceRemoved = true;
+    } else {
+      writeJsonFile(target.marketplacePath, nextMarketplace);
+      marketplaceUpdated = true;
+    }
+  }
+
+  return {
+    ...target,
+    removedPluginDir,
+    removedLegacySkill,
+    marketplaceUpdated,
+    marketplaceRemoved,
+  };
+}
+
+function resolveKnownResearcherIdentity(rest) {
+  const config = loadConfig();
+  const authorNameFlag = flagValue(rest, "--author-name");
+  const affiliationFlag = flagValue(rest, "--affiliation");
+
+  return {
+    authorName: authorNameFlag !== undefined ? authorNameFlag || undefined : config.authorName,
+    authorAffiliation:
+      affiliationFlag !== undefined ? affiliationFlag || undefined : config.authorAffiliation,
   };
 }
 
@@ -1797,22 +1897,22 @@ async function handleSetup(args, globalOptions, config) {
   const isUninstall = hasFlag(rest, "--uninstall");
 
   if (runtime === "codex") {
-    const codexTarget = getCodexInstallTarget(isProject);
+    const codexTarget = getCodexInstallTarget({ isProject, paths: CODEX_RUNTIME });
 
     if (isUninstall) {
-      if (existsSync(codexTarget.skillPath)) {
-        unlinkSync(codexTarget.skillPath);
-        if (existsSync(codexTarget.metadataPath)) {
-          unlinkSync(codexTarget.metadataPath);
-        }
+      const removed = uninstallCodexPlugin({ isProject });
+      if (removed.removedPluginDir || removed.marketplaceUpdated || removed.marketplaceRemoved) {
         render(
           {
             ok: true,
             runtime: "codex",
-            removed: codexTarget.skillPath,
-            metadataRemoved: codexTarget.metadataPath,
+            pluginRemoved: removed.removedPluginDir,
+            marketplacePath: removed.marketplacePath,
+            marketplaceUpdated: removed.marketplaceUpdated,
+            marketplaceRemoved: removed.marketplaceRemoved,
+            legacySkillRemoved: removed.removedLegacySkill,
             scope: codexTarget.scope,
-            nextStep: `The ${DEFAULT_CODEX_SKILL_NAME} skill has been removed.`,
+            nextStep: "The Agent Science Codex plugin has been removed.",
           },
           globalOptions.outputMode
         );
@@ -1821,7 +1921,8 @@ async function handleSetup(args, globalOptions, config) {
           {
             ok: true,
             runtime: "codex",
-            message: "No Codex skill found to remove.",
+            message: "No Agent Science Codex plugin found to remove.",
+            legacySkillRemoved: removed.removedLegacySkill,
             scope: codexTarget.scope,
           },
           globalOptions.outputMode
@@ -1831,15 +1932,15 @@ async function handleSetup(args, globalOptions, config) {
     }
 
     const token = await authenticateForAgent(rest, globalOptions, config, "Codex setup");
-    const { authorName, authorAffiliation } = await resolveResearcherIdentity(rest);
+    const { authorName, authorAffiliation } = resolveKnownResearcherIdentity(rest);
     const methodology = await downloadMethodology(globalOptions.baseUrl);
-    const installedSkill = installCodexSkill(methodology.content, { isProject });
+    const installedPlugin = installCodexPlugin(methodology.content, { isProject });
 
     saveConfig({
       ...loadConfig(),
       baseUrl: globalOptions.baseUrl,
       token,
-      authorName,
+      ...(authorName ? { authorName } : {}),
       ...(authorAffiliation ? { authorAffiliation } : {}),
     });
 
@@ -1859,15 +1960,17 @@ async function handleSetup(args, globalOptions, config) {
       {
         ok: true,
         runtime: "codex",
-        skillName: installedSkill.skillName,
-        skillPath: installedSkill.skillPath,
-        metadataPath: installedSkill.metadataPath,
-        scope: installedSkill.scope,
+        pluginName: installedPlugin.pluginName,
+        pluginPath: installedPlugin.pluginDir,
+        pluginManifestPath: installedPlugin.pluginManifestPath,
+        marketplacePath: installedPlugin.marketplacePath,
+        legacySkillRemoved: installedPlugin.legacySkillRemoved,
+        scope: installedPlugin.scope,
         configPath: CONFIG_PATH,
         methodologyUrl: methodology.methodologyUrl,
         verification,
         nextStep:
-          "In Codex, run /skills and choose agentscience, or type $agentscience directly to activate the research scientist.",
+          "In the Codex app, enable Agent Science if prompted, then start a new thread and use /agentscience.",
       },
       globalOptions.outputMode
     );
