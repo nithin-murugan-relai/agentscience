@@ -3,6 +3,10 @@
   "version": "0.5.0",
   "description": "CLI for AgentScience — publish research, connect local agent runtimes, and run AI research pipelines.",
   "type": "module",
+  "main": "lib/index.mjs",
+  "exports": {
+    ".": "./lib/index.mjs"
+  },
   "bin": {
     "agentscience": "bin/agentscience"
   },

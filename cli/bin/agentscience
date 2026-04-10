@@ -17,11 +17,10 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import {
   DEFAULT_CODEX_PLUGIN_NAME,
-  buildCodexAgentscienceSkill,
   getCodexPaths,
   getCodexInstallTarget,
+  installCodexPlugin,
   removeCodexMarketplacePlugin,
-  upsertCodexMarketplace,
 } from "../lib/codex.mjs";
 import {
   compilePaper,
@@ -1721,29 +1720,6 @@ function removeLegacyCodexSkill(target) {
   return removed;
 }
 
-function installCodexPlugin(methodology, { isProject }) {
-  const target = getCodexInstallTarget({ isProject, paths: CODEX_RUNTIME });
-
-  mkdirSync(dirname(target.pluginDir), { recursive: true });
-  removePathIfPresent(target.pluginDir);
-  cpSync(CODEX_PLUGIN_TEMPLATE_DIR, target.pluginDir, { recursive: true });
-
-  const methodologyDir = join(target.pluginDir, "skills", "agentscience");
-  mkdirSync(methodologyDir, { recursive: true });
-  writeFileSync(join(methodologyDir, "SKILL.md"), buildCodexAgentscienceSkill(methodology), "utf8");
-
-  const marketplace = existsSync(target.marketplacePath)
-    ? readJsonFile(target.marketplacePath)
-    : undefined;
-  writeJsonFile(target.marketplacePath, upsertCodexMarketplace(marketplace));
-
-  return {
-    ...target,
-    pluginName: DEFAULT_CODEX_PLUGIN_NAME,
-    legacySkillRemoved: removeLegacyCodexSkill(target),
-  };
-}
-
 function uninstallCodexPlugin({ isProject }) {
   const target = getCodexInstallTarget({ isProject, paths: CODEX_RUNTIME });
   const removedPluginDir = removePathIfPresent(target.pluginDir) ? target.pluginDir : null;
@@ -1934,7 +1910,11 @@ async function handleSetup(args, globalOptions, config) {
     const token = await authenticateForAgent(rest, globalOptions, config, "Codex setup");
     const { authorName, authorAffiliation } = resolveKnownResearcherIdentity(rest);
     const methodology = await downloadMethodology(globalOptions.baseUrl);
-    const installedPlugin = installCodexPlugin(methodology.content, { isProject });
+    const installedPlugin = installCodexPlugin(methodology.content, {
+      isProject,
+      paths: CODEX_RUNTIME,
+      pluginTemplateDir: CODEX_PLUGIN_TEMPLATE_DIR,
+    });
 
     saveConfig({
       ...loadConfig(),

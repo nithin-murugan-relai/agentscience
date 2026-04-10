@@ -1,3 +1,5 @@
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 
 export const DEFAULT_CODEX_SKILL_NAME = "agentscience";
@@ -158,6 +160,63 @@ export function removeCodexMarketplacePlugin(
           : DEFAULT_CODEX_MARKETPLACE_DISPLAY_NAME,
     },
     plugins,
+  };
+}
+
+function readJsonFile(jsonPath) {
+  return JSON.parse(readFileSync(jsonPath, "utf8"));
+}
+
+function writeJsonFile(jsonPath, content) {
+  mkdirSync(dirname(jsonPath), { recursive: true });
+  writeFileSync(jsonPath, `${JSON.stringify(content, null, 2)}\n`, "utf8");
+}
+
+function removePathIfPresent(targetPath) {
+  if (!existsSync(targetPath)) {
+    return false;
+  }
+  rmSync(targetPath, { recursive: true, force: true });
+  return true;
+}
+
+function removeLegacyCodexSkill(target) {
+  const removed = [];
+
+  if (removePathIfPresent(target.legacySkillDir)) {
+    removed.push(target.legacySkillDir);
+  }
+
+  return removed;
+}
+
+export function installCodexPlugin(
+  methodology,
+  { isProject = false, paths, pluginTemplateDir } = {}
+) {
+  if (!pluginTemplateDir) {
+    throw new Error("pluginTemplateDir is required to install the codex plugin.");
+  }
+
+  const target = getCodexInstallTarget({ isProject, paths });
+
+  mkdirSync(dirname(target.pluginDir), { recursive: true });
+  removePathIfPresent(target.pluginDir);
+  cpSync(pluginTemplateDir, target.pluginDir, { recursive: true });
+
+  const methodologyDir = join(target.pluginDir, "skills", "agentscience");
+  mkdirSync(methodologyDir, { recursive: true });
+  writeFileSync(join(methodologyDir, "SKILL.md"), buildCodexAgentscienceSkill(methodology), "utf8");
+
+  const marketplace = existsSync(target.marketplacePath)
+    ? readJsonFile(target.marketplacePath)
+    : undefined;
+  writeJsonFile(target.marketplacePath, upsertCodexMarketplace(marketplace));
+
+  return {
+    ...target,
+    pluginName: DEFAULT_CODEX_PLUGIN_NAME,
+    legacySkillRemoved: removeLegacyCodexSkill(target),
   };
 }
 
