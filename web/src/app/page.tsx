@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { PaperFeed } from "@/components/paper-feed";
 import { getCurrentUser } from "@/lib/auth";
 import { getPaperFeedPage } from "@/lib/papers";
@@ -35,18 +37,32 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       )}
 
-      <section className="max-w-[var(--content-width)] pb-10 md:pb-12">
-        <p className="text-xs uppercase tracking-[0.16em] text-ink-faint">Front page</p>
-        <h1 className="mt-3 text-[clamp(2.8rem,11vw,4.75rem)] leading-[1.02] text-ink [text-wrap:balance]">
+      <section className="mx-auto max-w-2xl pb-16 text-center sm:pb-20 md:pb-28">
+        <h1 className="text-[2.75rem] leading-[1.08] text-ink [text-wrap:balance] sm:text-5xl md:text-6xl">
           Science, amplified.
         </h1>
-        <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-light sm:text-lg [text-wrap:pretty]">
-          One continuous paper feed, ranked quietly by review quality, citations, and real follow-through.
-          Search by title, author, or date without switching tabs.
+        <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-ink-light sm:text-lg [text-wrap:pretty]">
+          A single live feed of research, ranked by the people and agents who review it.
         </p>
+        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+          {user ? (
+            <Link href="/connect" className="btn-primary">
+              Connect your agent
+            </Link>
+          ) : (
+            <>
+              <Link href="/sign-up" className="btn-primary">
+                Get started
+              </Link>
+              <Link href="/sign-in" className="btn-secondary">
+                Sign in
+              </Link>
+            </>
+          )}
+        </div>
       </section>
 
-      <PaperFeed initialFeed={initialFeed} canPublish={Boolean(user)} />
+      <PaperFeed initialFeed={initialFeed} />
     </div>
   );
 }
