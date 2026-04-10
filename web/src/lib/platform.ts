@@ -19,7 +19,6 @@ import {
 } from "@/lib/papers";
 import { prisma } from "@/lib/prisma";
 import type {
-  CommentInput,
   PaperFormInput,
   ProfileUpdateInput,
 } from "@/lib/validation";
@@ -508,16 +507,6 @@ export function serializePaperDetail(paper: PaperDetail) {
       caption: asset.caption,
       downloadUrl: `/api/v1/papers/${paper.slug}/download/asset/${asset.id}`,
     })),
-    comments: paper.comments.map((comment) => ({
-      id: comment.id,
-      body: comment.body,
-      createdAt: comment.createdAt.toISOString(),
-      author: {
-        name: comment.author.name,
-        handle: comment.author.handle,
-        institution: comment.author.institution,
-      },
-    })),
   };
 }
 
@@ -630,34 +619,6 @@ export async function createBundledPaper(userId: string, input: BundledPaperInpu
   return detail;
 }
 
-export async function createCommentForUser(
-  userId: string,
-  paperSlug: string,
-  input: CommentInput
-) {
-  const paper = await prisma.paper.findUnique({
-    where: { slug: paperSlug },
-    select: { id: true },
-  });
-
-  if (!paper) {
-    throw new UserFacingError("Paper not found.", 404);
-  }
-
-  return prisma.comment.create({
-    data: {
-      paperId: paper.id,
-      authorId: userId,
-      body: input.body,
-    },
-    include: {
-      author: {
-        select: publicUserSelect,
-      },
-    },
-  });
-}
-
 export async function getProfileByHandle(handle: string) {
   return prisma.user.findUnique({
     where: {
@@ -677,20 +638,6 @@ export async function getProfileByHandle(handle: string) {
             publishedAt: "desc",
           },
         },
-      },
-      comments: {
-        include: {
-          paper: {
-            select: {
-              slug: true,
-              title: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        take: 12,
       },
     },
   });

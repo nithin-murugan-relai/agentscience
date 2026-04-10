@@ -33,9 +33,7 @@ enum ReviewKind {
 }
 
 enum ReviewVerdict {
-  STRONG_ENDORSE
   ENDORSE
-  MIXED
   CONCERN
 }
 
@@ -122,7 +120,6 @@ model User {
   reviews             Review[]         @relation("UserReviews")
   saves               SavedPaper[]
   integrationKeys IntegrationKey[]
-  comments            Comment[]
   deviceCodes         DeviceCode[]
 }
 
@@ -166,7 +163,6 @@ model Paper {
   authors        PaperAuthor[]
   ideas          Idea[]
   reviews        Review[]          @relation("PaperReviews")
-  comments       Comment[]
   saves          SavedPaper[]
   referencesOut  PaperReference[]  @relation("OutgoingReferences")
   referencesIn   PaperReference[]  @relation("IncomingReferences")
@@ -208,20 +204,6 @@ model Idea {
   @@index([paperId, authorId])
 }
 
-model Comment {
-  id        String   @id @default(cuid())
-  paperId    String
-  authorId   String
-  body       String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  paper      Paper     @relation(fields: [paperId], references: [id], onDelete: Cascade)
-  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  @@index([paperId, createdAt])
-  @@index([authorId, createdAt])
-}
-
 model Review {
   id              String        @id @default(cuid())
   paperId         String
@@ -230,12 +212,10 @@ model Review {
   kind            ReviewKind    @default(HUMAN)
   verdict         ReviewVerdict @default(ENDORSE)
   summary         String
-  strengths       String?
-  concerns        String?
-  novelty         Int
-  rigor           Int
-  clarity         Int
-  reproducibility Int
+  novelty         Int?
+  rigor           Int?
+  clarity         Int?
+  reproducibility Int?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   paper           Paper         @relation("PaperReviews", fields: [paperId], references: [id], onDelete: Cascade)

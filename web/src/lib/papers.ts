@@ -69,16 +69,6 @@ export const paperFullInclude = {
       createdAt: "desc",
     },
   },
-  comments: {
-    include: {
-      author: {
-        select: publicUserSelect,
-      },
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-  },
   saves: {
     select: {
       userId: true,
@@ -167,19 +157,7 @@ function getImportedNoteHighlights(metadata: Prisma.JsonValue | null | undefined
 }
 
 function verdictFromScore(score: number) {
-  if (score >= 0.86) {
-    return ReviewVerdict.STRONG_ENDORSE;
-  }
-
-  if (score >= 0.72) {
-    return ReviewVerdict.ENDORSE;
-  }
-
-  if (score >= 0.5) {
-    return ReviewVerdict.MIXED;
-  }
-
-  return ReviewVerdict.CONCERN;
+  return score >= 0.6 ? ReviewVerdict.ENDORSE : ReviewVerdict.CONCERN;
 }
 
 function scoreToFivePoint(value: number) {
@@ -411,8 +389,6 @@ export async function syncAiReviewForPaper(paperId: string) {
     kind: ReviewKind.AI,
     verdict: verdictFromScore(assessment.overall),
     summary: assessment.summary,
-    strengths: "AI-scored assessment generated from the paper body, abstract, and reference graph.",
-    concerns: undefined,
     novelty: scoreToFivePoint(assessment.novelty),
     rigor: scoreToFivePoint(assessment.rigor),
     clarity: scoreToFivePoint(assessment.clarity),
@@ -504,7 +480,19 @@ export async function refreshPaperMetrics() {
           .map((reference) => reference.targetPaperId)
           .filter((value): value is string => Boolean(value)),
         reviewScores: paper.reviews
-          .filter((review) => review.kind === ReviewKind.HUMAN)
+          .filter(
+            (review): review is typeof review & {
+              novelty: number;
+              rigor: number;
+              clarity: number;
+              reproducibility: number;
+            } =>
+              review.kind === ReviewKind.HUMAN &&
+              review.novelty != null &&
+              review.rigor != null &&
+              review.clarity != null &&
+              review.reproducibility != null
+          )
           .map((review) => ({
             novelty: review.novelty,
             rigor: review.rigor,
@@ -513,21 +501,26 @@ export async function refreshPaperMetrics() {
           })),
         saveCount: paper.saves.length,
         ideaCount: paper.ideas.length,
-        aiAssessment: aiReview
-          ? {
-              summary: aiReview.summary,
-              overall:
-                (aiReview.novelty +
-                  aiReview.rigor +
-                  aiReview.clarity +
-                  aiReview.reproducibility) /
-                20,
-              novelty: aiReview.novelty / 5,
-              rigor: aiReview.rigor / 5,
-              clarity: aiReview.clarity / 5,
-              reproducibility: aiReview.reproducibility / 5,
-            }
-          : null,
+        aiAssessment:
+          aiReview &&
+          aiReview.novelty != null &&
+          aiReview.rigor != null &&
+          aiReview.clarity != null &&
+          aiReview.reproducibility != null
+            ? {
+                summary: aiReview.summary,
+                overall:
+                  (aiReview.novelty +
+                    aiReview.rigor +
+                    aiReview.clarity +
+                    aiReview.reproducibility) /
+                  20,
+                novelty: aiReview.novelty / 5,
+                rigor: aiReview.rigor / 5,
+                clarity: aiReview.clarity / 5,
+                reproducibility: aiReview.reproducibility / 5,
+              }
+            : null,
       };
     })
   );
@@ -805,12 +798,6 @@ export async function addReviewForUser(
   const reviewData = {
     verdict: input.verdict,
     summary: input.summary,
-    strengths: input.strengths,
-    concerns: input.concerns,
-    novelty: input.novelty,
-    rigor: input.rigor,
-    clarity: input.clarity,
-    reproducibility: input.reproducibility,
   };
 
   if (existingReview) {

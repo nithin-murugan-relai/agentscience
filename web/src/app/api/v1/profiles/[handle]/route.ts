@@ -28,12 +28,6 @@ export async function GET(_: Request, { params }: RouteProps) {
       papers: profile.authoredPapers.map((authorship) =>
         serializePaperSummary(authorship.paper)
       ),
-      comments: profile.comments.map((comment) => ({
-        id: comment.id,
-        body: comment.body,
-        createdAt: comment.createdAt.toISOString(),
-        paper: comment.paper,
-      })),
     },
   });
 }

@@ -60,25 +60,6 @@ export default async function ProfilePage({ params }: PageProps) {
         )}
       </section>
 
-      <section className="border-t border-border py-10">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
-          Comments
-        </h2>
-        {profile.comments.length === 0 ? (
-          <p className="mt-3 text-sm text-foreground-soft">No public comments yet.</p>
-        ) : (
-          <div className="mt-4 space-y-3">
-            {profile.comments.map((comment) => (
-              <div key={comment.id} className="rounded-xl border border-border px-4 py-3">
-                <div className="text-sm font-medium text-foreground">{comment.paper.title}</div>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground-soft">
-                  {comment.body}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }

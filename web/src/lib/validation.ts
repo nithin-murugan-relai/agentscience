@@ -58,14 +58,8 @@ export const paperFormSchema = z.object({
 });
 
 export const reviewFormSchema = z.object({
-  summary: z.string().trim().min(40).max(1200),
-  strengths: z.string().trim().max(1000).optional().or(z.literal("").transform(() => undefined)),
-  concerns: z.string().trim().max(1000).optional().or(z.literal("").transform(() => undefined)),
-  novelty: z.coerce.number().int().min(1).max(5),
-  rigor: z.coerce.number().int().min(1).max(5),
-  clarity: z.coerce.number().int().min(1).max(5),
-  reproducibility: z.coerce.number().int().min(1).max(5),
-  verdict: z.enum(["STRONG_ENDORSE", "ENDORSE", "MIXED", "CONCERN"]),
+  summary: z.string().trim().min(1).max(2000),
+  verdict: z.enum(["ENDORSE", "CONCERN"]),
   redirectTo: optionalText,
 });
 
@@ -100,10 +94,6 @@ export const profileUpdateSchema = z.object({
   researchInterests: z.array(z.string().trim().min(2).max(60)).max(20).default([]),
   digestEnabled: z.boolean().optional(),
   digestEmailEnabled: z.boolean().optional(),
-});
-
-export const commentSchema = z.object({
-  body: z.string().trim().min(2).max(2000),
 });
 
 export const sidekickAuthorSchema = z.object({
@@ -160,6 +150,5 @@ export type ResearchPlanInput = z.infer<typeof researchPlanSchema>;
 export type IntegrationKeyInput = z.infer<typeof integrationKeySchema>;
 export type ApiTokenSignInInput = z.infer<typeof apiTokenSignInSchema>;
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
-export type CommentInput = z.infer<typeof commentSchema>;
 export type SidekickPublishInput = z.infer<typeof sidekickPublishSchema>;
 export type PaperAiAssessment = z.infer<typeof paperAiAssessmentSchema>;
