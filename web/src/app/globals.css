@@ -135,9 +135,8 @@ textarea {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  min-height: 44px;
-  padding: 10px 18px;
-  font-size: 0.875rem;
+  padding: 8px 18px;
+  font-size: 0.8125rem;
   font-weight: 500;
   background: var(--ink);
   color: var(--snow-white);
@@ -153,9 +152,8 @@ textarea {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  min-height: 44px;
-  padding: 10px 18px;
-  font-size: 0.875rem;
+  padding: 8px 18px;
+  font-size: 0.8125rem;
   font-weight: 500;
   background: transparent;
   color: var(--ink);
@@ -165,6 +163,17 @@ textarea {
 
 .btn-secondary:hover {
   background: var(--snow-white-dark);
+}
+
+/* Preserve comfortable tap targets on touch devices without
+   inflating the desktop aesthetic. */
+@media (max-width: 639px) {
+  .btn-primary,
+  .btn-secondary {
+    min-height: 44px;
+    padding: 10px 20px;
+    font-size: 0.875rem;
+  }
 }
 
 /* ── Form fields ───────────────────────────────────────────── */
@@ -177,14 +186,27 @@ textarea {
   border: 1px solid var(--rule);
   background: var(--snow-white);
   color: var(--ink);
-  font-size: 1rem;
+  font-size: 0.875rem;
   line-height: 1.45;
 }
 
 .field-input,
 .field-select {
-  min-height: 44px;
+  height: 40px;
   padding: 0 12px;
+}
+
+@media (max-width: 639px) {
+  .field-input,
+  .field-textarea,
+  .field-select {
+    font-size: 1rem;
+  }
+  .field-input,
+  .field-select {
+    height: auto;
+    min-height: 44px;
+  }
 }
 
 .field-textarea {
