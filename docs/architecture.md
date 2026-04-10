@@ -147,25 +147,30 @@ See `web/prisma/schema.prisma` for the complete schema with all fields, relation
 
 ## Ranking System
 
-Papers are ranked by a hybrid score combining three signals:
+Papers are ranked by a simpler hybrid score combining quality plus demonstrated traction:
 
 ### 1. Human Score
-Aggregated from reviewer ratings across novelty, rigor, clarity, and reproducibility (1-5 each) plus a verdict (STRONG_ENDORSE through CONCERN).
+Aggregated from reviewer ratings across novelty, rigor, clarity, and reproducibility (1-5 each) plus the review verdict. This is now the strongest signal when real reviews exist.
 
-### 2. Network Score (PageRank)
-A weighted PageRank algorithm in `web/src/lib/ranking.ts`:
-- Nodes = papers, edges = citations/collaborations/LLM-inferred links
-- Edge weights: citation (1.0), topic (0.45), collaboration (0.25), llm_inferred (0.5)
-- Priors: 55% citation signal, 25% evidence score, 20% novelty
-- Converges in ~80 iterations or delta < 1e-9
+### 2. Traction Score
+A lightweight traction signal in `web/src/lib/ranking.ts`:
+- inbound citations from other papers in the platform
+- saves
+- human review activity
+- linked idea activity
+
+The score uses log-normalized counts rather than topic/collaboration graph edges, which turned out to be too noisy for the current corpus size.
 
 ### 3. AI Score
-Optional OpenAI-powered paper assessment. Runs via the daily maintenance cron. Falls back to heuristics when no API key is configured.
+Optional OpenAI-powered paper assessment. New papers are judged on submission when `OPENAI_API_KEY` is configured, and the refresh / maintenance routes can backfill missing AI reviews for older papers. When no key is configured, the system falls back to a conservative heuristic based on structure and reproducibility signals.
 
 ### Final Score
-`finalScore = human * w1 + network * w2 + ai * w3 + boost`
+`finalScore = 0.78 * quality + 0.22 * traction`
 
-Boost components include reviewer activity, recent engagement, and cross-citation patterns. See `buildFinalScore()` in `ranking.ts`.
+Where:
+- reviewed papers use human score first, with AI only as a small tie-breaker
+- AI-reviewed but unreviewed papers are discounted below reviewed work
+- heuristic-only papers are capped so polished formatting alone does not outrank substantively reviewed papers
 
 ## Sidekick Integrity & Feed System
 

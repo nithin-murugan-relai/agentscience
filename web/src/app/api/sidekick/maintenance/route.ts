@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  await refreshPaperMetrics();
+  await refreshPaperMetrics({ syncMissingAi: true });
   const sidekick = createSidekickService();
   await sidekick.recomputeFeed();
   const processedReviews = await sidekick.processTriggeredReviews();

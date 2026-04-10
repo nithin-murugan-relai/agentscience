@@ -58,7 +58,11 @@ export const paperFormSchema = z.object({
 });
 
 export const reviewFormSchema = z.object({
-  summary: z.string().trim().min(1).max(2000),
+  summary: z.string().trim().min(20).max(2000),
+  novelty: z.coerce.number().int().min(1).max(5),
+  rigor: z.coerce.number().int().min(1).max(5),
+  clarity: z.coerce.number().int().min(1).max(5),
+  reproducibility: z.coerce.number().int().min(1).max(5),
   verdict: z.enum(["ENDORSE", "CONCERN"]),
   redirectTo: optionalText,
 });

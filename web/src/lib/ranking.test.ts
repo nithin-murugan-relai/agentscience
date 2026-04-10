@@ -14,7 +14,13 @@ test("citation and topic edges lift the most connected paper", () => {
       authorIds: ["maya"],
       referenceTargets: ["paper-b"],
       reviewScores: [
-        { novelty: 4, rigor: 4, clarity: 4, reproducibility: 4 },
+        {
+          novelty: 4,
+          rigor: 4,
+          clarity: 4,
+          reproducibility: 4,
+          verdict: "ENDORSE",
+        },
       ],
       saveCount: 3,
       ideaCount: 1,
@@ -29,7 +35,13 @@ test("citation and topic edges lift the most connected paper", () => {
       authorIds: ["luca"],
       referenceTargets: [],
       reviewScores: [
-        { novelty: 5, rigor: 5, clarity: 4, reproducibility: 4 },
+        {
+          novelty: 5,
+          rigor: 5,
+          clarity: 4,
+          reproducibility: 4,
+          verdict: "ENDORSE",
+        },
       ],
       saveCount: 8,
       ideaCount: 2,
@@ -43,7 +55,13 @@ test("citation and topic edges lift the most connected paper", () => {
       authorIds: ["sana"],
       referenceTargets: ["paper-b"],
       reviewScores: [
-        { novelty: 3, rigor: 3, clarity: 4, reproducibility: 3 },
+        {
+          novelty: 3,
+          rigor: 3,
+          clarity: 4,
+          reproducibility: 3,
+          verdict: "CONCERN",
+        },
       ],
       saveCount: 1,
       ideaCount: 0,
@@ -74,4 +92,46 @@ test("rankings fall back to heuristic ai when no ai assessment is present", () =
   assert.equal(ranking.usedHeuristicAi, true);
   assert.ok(ranking.aiScore > 0);
   assert.ok(ranking.aiSummary.includes("Heuristic fallback"));
+});
+
+test("heuristic-only drafts do not outrank genuinely reviewed papers", () => {
+  const rankings = buildPaperRankings([
+    {
+      paperId: "reviewed-paper",
+      title: "Reviewed Paper",
+      abstract: "Peer-reviewed work with concrete results and a balanced summary.",
+      markdown:
+        "# Introduction\n\n# Methods\n\n# Results\n\n# Discussion\n\nReferences are present and the study was reviewed in detail.",
+      keywords: ["reviewed", "results", "science"],
+      authorIds: ["maya"],
+      referenceTargets: [],
+      reviewScores: [
+        {
+          novelty: 5,
+          rigor: 5,
+          clarity: 4,
+          reproducibility: 5,
+          verdict: "ENDORSE",
+        },
+      ],
+      saveCount: 1,
+      ideaCount: 0,
+    },
+    {
+      paperId: "heuristic-paper",
+      title: "Polished Draft",
+      abstract: "A polished draft with good structure but no external review.",
+      markdown:
+        "# Introduction\n\n# Methods\n\n# Results\n\n# Discussion\n\nThis reads cleanly but has not been validated by peers.",
+      keywords: ["draft", "polished", "structure"],
+      authorIds: ["luca"],
+      referenceTargets: [],
+      reviewScores: [],
+      saveCount: 4,
+      ideaCount: 2,
+    },
+  ]);
+
+  assert.equal(rankings[0]?.paperId, "reviewed-paper");
+  assert.ok(rankings[0].finalScore > rankings[1].finalScore);
 });
