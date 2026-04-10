@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/auth";
 import { buildPathWithNext } from "@/lib/request";
-import { firstInitials } from "@/lib/utils";
+import { initials } from "@/lib/utils";
 
 function LogoMark({ className }: { className?: string }) {
   return (
@@ -42,59 +42,54 @@ export async function SiteShell({
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
-  const settingsBadge = user
-    ? firstInitials(user.name, user.handle, user.email?.split("@")[0])
-    : "";
 
   return (
     <div className="relative min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 bg-snow-white/90 backdrop-blur-sm border-b border-rule">
-        <div className="mx-auto max-w-[var(--page-width)] px-[var(--page-gutter)]">
-          <div className="flex min-h-[var(--nav-height)] flex-col justify-center gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-0">
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 text-ink"
-            >
-              <LogoMark className="w-7 h-7" />
-              <span className="font-[family-name:var(--font-display)] text-lg">AgentScience</span>
-            </Link>
+        <div
+          className="mx-auto flex max-w-[var(--page-width)] items-center justify-between gap-4 px-[var(--page-gutter)]"
+          style={{ height: "var(--nav-height)" }}
+        >
+          <Link href="/" className="flex items-center gap-1.5 text-ink">
+            <LogoMark className="h-7 w-7" />
+            <span className="font-[family-name:var(--font-display)] text-lg">AgentScience</span>
+          </Link>
 
-            <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
-              <Link href="/" className="text-[0.8125rem] text-ink-light hover:text-ink">
-                Feed
-              </Link>
-              <Link href="/connect" className="text-[0.8125rem] text-ink-light hover:text-ink">
-                Connect
-              </Link>
-              {user ? (
-                <div className="flex items-center gap-2.5">
-                  <Link
-                    href="/settings"
-                    className="flex h-7 min-w-7 items-center justify-center rounded-full border border-rule bg-snow-white px-2 text-[11px] font-medium tracking-[0.08em] text-ink-light hover:border-ink/15 hover:text-ink"
-                    aria-label="Settings"
-                  >
-                    {settingsBadge}
-                  </Link>
-                  <form action="/api/auth/sign-out" method="post">
-                    <button
-                      type="submit"
-                      className="text-[0.8125rem] text-ink-faint hover:text-ink"
-                    >
-                      Sign out
-                    </button>
-                  </form>
-                </div>
-              ) : (
-                <Link href="/sign-in" className="text-[0.8125rem] text-ink hover:text-ink-light">
-                  Sign in
+          <nav className="flex items-center gap-4 sm:gap-5">
+            <Link href="/" className="text-[0.8125rem] text-ink-light hover:text-ink">
+              Feed
+            </Link>
+            <Link href="/connect" className="text-[0.8125rem] text-ink-light hover:text-ink">
+              Connect
+            </Link>
+            {user ? (
+              <div className="flex items-center gap-2.5">
+                <Link
+                  href="/settings"
+                  aria-label="Settings"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-snow-white"
+                >
+                  {initials(user.name)}
                 </Link>
-              )}
-            </nav>
-          </div>
+                <form action="/api/auth/sign-out" method="post">
+                  <button
+                    type="submit"
+                    className="text-[0.8125rem] text-ink-faint hover:text-ink"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <Link href="/sign-in" className="text-[0.8125rem] text-ink hover:text-ink-light">
+                Sign in
+              </Link>
+            )}
+          </nav>
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-[var(--page-width)] px-[var(--page-gutter)] py-10 sm:py-12 md:py-20">{children}</main>
+      <main className="flex-1 mx-auto w-full max-w-[var(--page-width)] px-[var(--page-gutter)] py-12 md:py-20">{children}</main>
 
       <footer className="border-t border-rule">
         <div className="mx-auto flex max-w-[var(--page-width)] flex-col gap-3 px-[var(--page-gutter)] py-5 text-xs sm:flex-row sm:items-center sm:justify-between">
