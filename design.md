@@ -285,7 +285,7 @@ Read this carefully before making changes.
 ## Brand Name
 
 The product name is **AgentScience**. One word, camelCase, capital A and S.
-Not "Agent Science" (two words). This applies everywhere: the navigation bar,
+Do not split it into two words. This applies everywhere: the navigation bar,
 the page title, metadata, footer, installer scripts, documentation, and any
 user-facing text.
 

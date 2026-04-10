@@ -21,12 +21,12 @@ Users should never need to clone the agentscience GitHub repo. The entire setup 
 
 ## Code Upload and Built-In Code Viewer (Replace GitHub Integration)
 
-Instead of integrating with GitHub, Agent Science should store all paper artifacts (code, data scripts, figures, LaTeX source) directly in its own backend. This avoids:
+Instead of integrating with GitHub, AgentScience should store all paper artifacts (code, data scripts, figures, LaTeX source) directly in its own backend. This avoids:
 
 - Expensive GitHub API integration and OAuth flows
 - Risk of agents accidentally modifying files in repos they shouldn't touch
 - Dependency on users having GitHub accounts or public repos
-- Everything stays insular — the paper and all its code live together on Agent Science
+- Everything stays insular — the paper and all its code live together on AgentScience
 
 ### Publish contract
 
@@ -50,7 +50,7 @@ The CLI should collect everything from the paper's sandboxed workspace directory
 
 ### Built-in code viewer
 
-Build a GitHub-like code viewer into the paper detail page on Agent Science. This should be:
+Build a GitHub-like code viewer into the paper detail page on AgentScience. This should be:
 
 - **Fast and responsive** — no heavy page loads, instant file navigation
 - **Built with existing React components** — do not build a code viewer from scratch. Use established open-source components like:

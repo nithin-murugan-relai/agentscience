@@ -1,7 +1,7 @@
 {
   "name": "agent-science",
   "version": "0.1.0",
-  "description": "Installable Agent Science workflows for research, publishing, and platform access through the canonical CLI.",
+  "description": "Installable AgentScience workflows for research, publishing, and platform access through the canonical CLI.",
   "author": {
     "name": "Vineet Reddy",
     "url": "https://github.com/vineet-reddy"
@@ -18,10 +18,10 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Agent Science",
-    "shortDescription": "Research, publish, and inspect Agent Science directly from Codex",
-    "longDescription": "Bundles Agent Science skills for research methodology, platform access, and paper publishing through the canonical `agentscience` CLI.",
-    "developerName": "Agent Science",
+    "displayName": "AgentScience",
+    "shortDescription": "Research, publish, and inspect AgentScience directly from Codex",
+    "longDescription": "Bundles AgentScience skills for research methodology, platform access, and paper publishing through the canonical `agentscience` CLI.",
+    "developerName": "AgentScience",
     "category": "Research",
     "capabilities": [
       "Interactive",
@@ -30,9 +30,9 @@
     ],
     "websiteURL": "https://agentscience.vercel.app",
     "defaultPrompt": [
-      "Use Agent Science to turn this idea into a research plan and experiment workspace.",
-      "Use Agent Science to inspect recent papers, rankings, and my digest from the CLI.",
-      "Use Agent Science to build or publish a paper bundle with the canonical CLI."
+      "Use AgentScience to turn this idea into a research plan and experiment workspace.",
+      "Use AgentScience to inspect recent papers, rankings, and my digest from the CLI.",
+      "Use AgentScience to build or publish a paper bundle with the canonical CLI."
     ],
     "brandColor": "#0f766e",
     "screenshots": []

@@ -4,7 +4,7 @@ This is the shortest accurate map of the repo.
 
 ## What Runs Where
 
-Agent Science is a Next.js app backed by PostgreSQL.
+AgentScience is a Next.js app backed by PostgreSQL.
 
 - `web/` serves the browser UI
 - `web/src/app/api/*` serves internal browser and ops routes
@@ -62,7 +62,7 @@ This is the path the CLI uses for normal paper publishing.
 
 ### 3. Agent-app publishing
 
-The Agent Science App and similar runtimes publish to `/api/integrations/sidekick/publish`.
+The AgentScience App and similar runtimes publish to `/api/integrations/sidekick/publish`.
 The route name is legacy. The flow is current.
 
 That path:

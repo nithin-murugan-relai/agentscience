@@ -52,10 +52,10 @@ const CODEX_PLUGIN_TEMPLATE_DIR = fileURLToPath(
   new URL("../resources/codex-plugin", import.meta.url)
 );
 
-const TOP_HELP = `Agent Science CLI
+const TOP_HELP = `AgentScience CLI
 
 Agent-forward scientific publishing for researchers.
-This CLI talks to the live Agent Science backend and returns JSON by default so
+This CLI talks to the live AgentScience backend and returns JSON by default so
 other agents can discover the platform without scraping the web UI.
 
 Usage:
@@ -70,7 +70,7 @@ Global options:
   -V, --version      Show version.
 
 Commands:
-  setup      Set up Agent Science for a specific runtime (e.g. claude-code).
+  setup      Set up AgentScience for a specific runtime (e.g. claude-code).
   config     View or update local settings (author name, affiliation, workspace directory).
   auth       Authenticate with an API token or email/password exchange.
   codex      Deprecated alias for agentscience setup codex.
@@ -81,7 +81,7 @@ Commands:
   profiles   View or update public researcher profiles and digest settings.
   digest     Generate a personalized daily digest for the authenticated user.
   research   Workspace bootstrap, literature review, LaTeX compilation, and paper publishing tools.
-  registry   Search and manage the Agent Science dataset registry.
+  registry   Search and manage the AgentScience dataset registry.
   research template Copy the standard LaTeX template into a directory.
 
 Examples:
@@ -141,7 +141,7 @@ Optional options:
   agentscience auth login --email <email> --password <password> [--name <label>]
 
 Description:
-  Calls the live /api/v1/auth/token endpoint, creates an Agent Science API token,
+  Calls the live /api/v1/auth/token endpoint, creates an AgentScience API token,
   and stores it in ${CONFIG_PATH}.
 
 Required options:
@@ -155,7 +155,7 @@ Optional options:
   agentscience auth use-token --token <agsk_...>
 
 Description:
-  Stores an existing Agent Science token for future CLI commands.
+  Stores an existing AgentScience token for future CLI commands.
 `,
   config: `Usage:
   agentscience config [subcommand] [options]
@@ -175,11 +175,11 @@ Examples:
   agentscience setup <runtime> [options]
 
 Runtimes:
-  codex         Install Agent Science as a local Codex plugin.
-  claude-code   Install Agent Science as a /agentscience slash command for Claude Code.
+  codex         Install AgentScience as a local Codex plugin.
+  claude-code   Install AgentScience as a /agentscience slash command for Claude Code.
 
 Auth options:
-  --token <agsk_...>         Use an existing Agent Science token
+  --token <agsk_...>         Use an existing AgentScience token
   --email <email>            Exchange email/password for a new persistent token
   --password <value>         Password used with --email
 
@@ -212,13 +212,13 @@ Description:
 
 Description:
   Legacy alias for \`agentscience setup codex\`.
-  Installs Agent Science as a local Codex plugin at ~/plugins/agent-science/
+  Installs AgentScience as a local Codex plugin at ~/plugins/agent-science/
   and registers it in ~/.agents/plugins/marketplace.json unless --project is
   provided, in which case it writes ./plugins/agent-science/ and
   ./.agents/plugins/marketplace.json for the current repository.
 
 Auth options:
-  --token <agsk_...>         Use an existing Agent Science token
+  --token <agsk_...>         Use an existing AgentScience token
   --email <email>            Exchange email/password for a new persistent token
   --password <value>         Password used with --email
 
@@ -387,9 +387,9 @@ Description:
 Subcommands:
   init         Create an isolated per-paper workspace with its own Python venv.
   list         List paper workspaces under the configured workspace base.
-  literature   Search OpenAlex and internal Agent Science papers for related work.
+  literature   Search OpenAlex and internal AgentScience papers for related work.
   compile      Compile a LaTeX paper in a workspace directory to PDF.
-  template     Copy the standard Agent Science LaTeX template to a directory.
+  template     Copy the standard AgentScience LaTeX template to a directory.
 `,
   researchInit: `Usage:
   agentscience research init --idea <text>
@@ -418,7 +418,7 @@ Description:
   agentscience research template --out-dir <dir>
 
 Description:
-  Copies the standard Agent Science LaTeX template into the specified directory
+  Copies the standard AgentScience LaTeX template into the specified directory
   as paper.tex.
 `,
   registry: `Usage:
@@ -750,7 +750,7 @@ function render(result, mode) {
   }
 
   if (result?.runtime === "codex" && result?.pluginPath && result?.marketplacePath) {
-    console.log(`Installed Agent Science Codex plugin (${result.scope})`);
+    console.log(`Installed AgentScience Codex plugin (${result.scope})`);
     console.log(`Plugin: ${result.pluginPath}`);
     console.log(`Marketplace: ${result.marketplacePath}`);
     if (Array.isArray(result.legacySkillRemoved) && result.legacySkillRemoved.length > 0) {
@@ -764,7 +764,7 @@ function render(result, mode) {
 
   if (result?.runtime === "codex" && (result?.pluginRemoved || result?.message)) {
     if (result.pluginRemoved) {
-      console.log(`Removed Agent Science Codex plugin from ${result.pluginRemoved}`);
+      console.log(`Removed AgentScience Codex plugin from ${result.pluginRemoved}`);
     } else {
       console.log(result.message);
     }
@@ -1555,7 +1555,7 @@ async function startDeviceAuthorization(globalOptions, tokenName) {
   }
 
   console.log("\n--- Browser Sign-In ---");
-  console.log(`Approve Agent Science in your browser to finish ${tokenName}.\n`);
+  console.log(`Approve AgentScience in your browser to finish ${tokenName}.\n`);
   console.log(`Verification URL: ${device.verificationUrl}`);
   console.log(`Code: ${device.code}\n`);
 
@@ -1912,7 +1912,7 @@ async function handleSetup(args, globalOptions, config) {
             marketplaceRemoved: removed.marketplaceRemoved,
             legacySkillRemoved: removed.removedLegacySkill,
             scope: codexTarget.scope,
-            nextStep: "The Agent Science Codex plugin has been removed.",
+            nextStep: "The AgentScience Codex plugin has been removed.",
           },
           globalOptions.outputMode
         );
@@ -1921,7 +1921,7 @@ async function handleSetup(args, globalOptions, config) {
           {
             ok: true,
             runtime: "codex",
-            message: "No Agent Science Codex plugin found to remove.",
+            message: "No AgentScience Codex plugin found to remove.",
             legacySkillRemoved: removed.removedLegacySkill,
             scope: codexTarget.scope,
           },
@@ -1970,7 +1970,7 @@ async function handleSetup(args, globalOptions, config) {
         methodologyUrl: methodology.methodologyUrl,
         verification,
         nextStep:
-          "In the Codex app, enable Agent Science if prompted, then start a new thread and use /agentscience.",
+          "In the Codex app, enable AgentScience if prompted, then start a new thread and use /agentscience.",
       },
       globalOptions.outputMode
     );

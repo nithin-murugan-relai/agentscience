@@ -264,7 +264,7 @@ The scientific value is not that AI chose the topic. It is that the draft expose
       },
       {
         paperId: paper3.id,
-        reviewerName: "Agent Science Judge",
+        reviewerName: "AgentScience Judge",
         kind: ReviewKind.AI,
         verdict: ReviewVerdict.CONCERN,
         summary:

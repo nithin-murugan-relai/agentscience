@@ -1,5 +1,5 @@
 /**
- * Agent Science Pipeline Utilities
+ * AgentScience Pipeline Utilities
  *
  * These are the tools the pipeline provides to agents. The agent does the
  * science (find data, run experiments, write the paper). These utilities
@@ -46,7 +46,7 @@ async function requestJson(path, { method = "GET", token, body } = {}) {
 const TEMPLATE_DIR = join(__dirname, "..", "resources", "latex-template");
 
 /**
- * Copy the standard Agent Science LaTeX template into a workspace directory.
+ * Copy the standard AgentScience LaTeX template into a workspace directory.
  */
 export function copyTemplate(outDir, outputFileName = "paper.tex") {
   const templatePath = join(TEMPLATE_DIR, "agentscience.tex");

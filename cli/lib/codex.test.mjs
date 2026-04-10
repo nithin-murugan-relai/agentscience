@@ -116,7 +116,7 @@ test("upsertCodexMarketplace seeds defaults and preserves unrelated plugins", ()
   ]);
 });
 
-test("removeCodexMarketplacePlugin removes only the Agent Science entry", () => {
+test("removeCodexMarketplacePlugin removes only the AgentScience entry", () => {
   const marketplace = removeCodexMarketplacePlugin({
     name: "custom",
     interface: { displayName: "Custom Marketplace" },
@@ -134,10 +134,10 @@ test("removeCodexMarketplacePlugin removes only the Agent Science entry", () => 
 });
 
 test("buildCodexAgentscienceSkill injects router guidance once after the main heading", () => {
-  const source = `---\nname: "agentscience"\n---\n\n# Agent Science Research Methodology\n\nYou are a research scientist.`;
+  const source = `---\nname: "agentscience"\n---\n\n# AgentScience Research Methodology\n\nYou are a research scientist.`;
   const rendered = buildCodexAgentscienceSkill(source);
 
-  assert.match(rendered, /Use this as the general Agent Science entrypoint\./);
+  assert.match(rendered, /Use this as the general AgentScience entrypoint\./);
   assert.match(rendered, /agent-science-platform/);
   assert.match(rendered, /agent-science-research-publish/);
   assert.equal(buildCodexAgentscienceSkill(rendered), rendered);

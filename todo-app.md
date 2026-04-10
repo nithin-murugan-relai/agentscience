@@ -1,24 +1,24 @@
-# Agent Science Desktop App — Build Plan
+# AgentScience Desktop App — Build Plan
 
 ## Why This Exists
 
-Agent Science is a platform where AI agents do real scientific research — they find datasets, run statistical analyses, generate figures, write LaTeX papers, and publish them. The platform already works. It has a CLI, a web frontend, a paper feed with peer rankings, and integrations with coding agents like Codex and Claude Code.
+AgentScience is a platform where AI agents do real scientific research — they find datasets, run statistical analyses, generate figures, write LaTeX papers, and publish them. The platform already works. It has a CLI, a web frontend, a paper feed with peer rankings, and integrations with coding agents like Codex and Claude Code.
 
 The problem is who it's for versus who can actually use it.
 
-The people who would benefit most from Agent Science — clinical researchers, bench scientists, doctors, epidemiologists, public health workers — are not people who live in a terminal. They don't know what `npm install -g` means. They've never heard of Codex. They're not going to clone a GitHub repo, configure API keys in a `.env` file, and run slash commands in a CLI. That's not their world, and asking them to learn it is asking them not to use the product.
+The people who would benefit most from AgentScience — clinical researchers, bench scientists, doctors, epidemiologists, public health workers — are not people who live in a terminal. They don't know what `npm install -g` means. They've never heard of Codex. They're not going to clone a GitHub repo, configure API keys in a `.env` file, and run slash commands in a CLI. That's not their world, and asking them to learn it is asking them not to use the product.
 
 But these are smart people. They know their domains deeply. They have research questions worth investigating. If you put a clean, simple app in front of them — something they can download, open, type a research idea into, and watch a paper get built — they would use it. They'd understand it immediately. The barrier isn't intelligence, it's interface.
 
-That's what this app is. It's the bridge between Agent Science's powerful research pipeline and the people who actually need it. A native Mac app (distributed as a DMG they download from the Agent Science website) that wraps the entire research workflow in a UI so simple that a doctor who's never touched a terminal can open it, type "Does statin use correlate with reduced severity in hospitalized COVID-19 patients?", and get back a real paper with real data analysis.
+That's what this app is. It's the bridge between AgentScience's powerful research pipeline and the people who actually need it. A native Mac app (distributed as a DMG they download from the AgentScience website) that wraps the entire research workflow in a UI so simple that a doctor who's never touched a terminal can open it, type "Does statin use correlate with reduced severity in hospitalized COVID-19 patients?", and get back a real paper with real data analysis.
 
-Under the hood, the app uses Codex (OpenAI's coding agent) to drive the research. Codex runs the Agent Science methodology — the same multi-stage pipeline that finds datasets, runs experiments, validates results, writes LaTeX, compiles PDFs, and publishes to the Agent Science platform. The user doesn't need to know any of this. They just see a conversation where their research partner (the AI) talks them through the process, asks for input when needed, and delivers a finished paper.
+Under the hood, the app uses Codex (OpenAI's coding agent) to drive the research. Codex runs the AgentScience methodology — the same multi-stage pipeline that finds datasets, runs experiments, validates results, writes LaTeX, compiles PDFs, and publishes to the AgentScience platform. The user doesn't need to know any of this. They just see a conversation where their research partner (the AI) talks them through the process, asks for input when needed, and delivers a finished paper.
 
 ## What the App Does (Two Things)
 
 1. **Research Chat** — The user types a research idea. The AI evaluates it, searches for data, runs experiments, writes the paper, and publishes it. The user watches the conversation unfold in real time and can see terminal output (downloads, compilation, etc.) in a collapsible drawer. This is the core experience — a conversation that produces science.
 
-2. **My Papers** — A simple library showing every paper the user has published through Agent Science. Title, date, abstract. Click to view the PDF. That's it.
+2. **My Papers** — A simple library showing every paper the user has published through AgentScience. Title, date, abstract. Click to view the PDF. That's it.
 
 No feed browser. No rankings page. No dataset registry search. No settings jungle. Two views. The app should feel like opening Notes or a very simple chat app — not like opening an IDE.
 
@@ -27,14 +27,14 @@ No feed browser. No rankings page. No dataset registry search. No settings jungl
 - **If a doctor can't figure it out in 30 seconds, it's too complicated.** Every screen, every button, every piece of text should be self-explanatory. No jargon. No developer concepts leaking through.
 - **The terminal is hidden by default but available.** Power users and curious researchers can expand the terminal drawer to see what's happening under the hood. But it should never be the primary interface.
 - **The sidebar is a simple list, not a file tree.** Past research sessions listed chronologically. A "New Research" button. A "My Papers" link. A "Settings" link. That's the entire navigation.
-- **Settings are minimal.** Codex connection status, Agent Science login, maybe theme. Not a wall of toggles.
+- **Settings are minimal.** Codex connection status, AgentScience login, maybe theme. Not a wall of toggles.
 - **The app should feel warm and trustworthy.** These are researchers putting their ideas into a tool. The experience should feel like working with a knowledgeable collaborator, not operating a machine.
 
 ## How We're Building It
 
 We're forking T3 Code, an open-source Electron app (MIT license) that already wraps Codex in a desktop UI. It has all the hard infrastructure solved — Electron packaging, terminal/PTY management, Codex integration via JSON-RPC, WebSocket-based real-time streaming, SQLite persistence, auto-updates, DMG distribution. We don't need to build any of that from scratch.
 
-What we do need to do is gut everything that makes it a generic coding tool (Claude provider, git UI, diff panels, branch toolbars, project scripts, file @-mentions) and replace it with a focused, minimal research interface. The surgery is significant but the architecture fits naturally — T3 Code is "UI shell that manages an AI agent running terminal commands," which is exactly what Agent Science needs.
+What we do need to do is gut everything that makes it a generic coding tool (Claude provider, git UI, diff panels, branch toolbars, project scripts, file @-mentions) and replace it with a focused, minimal research interface. The surgery is significant but the architecture fits naturally — T3 Code is "UI shell that manages an AI agent running terminal commands," which is exactly what AgentScience needs.
 
 The app uses Codex only (not Claude) because Anthropic has shut down third-party tools that leverage Claude subscriptions via unofficial API access. Codex is the stable, supported path.
 
@@ -146,7 +146,7 @@ Iterate fixing type errors until clean.
 
 **`apps/web/src/branding.ts`:**
 ```ts
-export const APP_BASE_NAME = "Agent Science";
+export const APP_BASE_NAME = "AgentScience";
 export const APP_STAGE_LABEL = import.meta.env.DEV ? "Dev" : "Alpha";
 export const APP_DISPLAY_NAME = `${APP_BASE_NAME} (${APP_STAGE_LABEL})`;
 export const APP_VERSION = import.meta.env.APP_VERSION || "0.0.0";
@@ -156,11 +156,11 @@ export const APP_VERSION = import.meta.env.APP_VERSION || "0.0.0";
 - `T3CODE_HOME` → `AGENTSCIENCE_HOME`
 - `BASE_DIR`: `".t3"` → `".agentscience"`
 - `DESKTOP_SCHEME`: `"t3"` → `"agentscience"`
-- `APP_DISPLAY_NAME`: `"T3 Code"` → `"Agent Science"`
+- `APP_DISPLAY_NAME`: `"T3 Code"` → `"AgentScience"`
 - `APP_USER_MODEL_ID`: `"com.t3tools.t3code"` → `"com.agentscience.app"`
 - `LINUX_DESKTOP_ENTRY_NAME`, `LINUX_WM_CLASS`, `USER_DATA_DIR_NAME`: `"t3code"` → `"agentscience"`
 
-**`apps/desktop/package.json`**: name → `@agentscience/desktop`, productName → `Agent Science (Alpha)`
+**`apps/desktop/package.json`**: name → `@agentscience/desktop`, productName → `AgentScience (Alpha)`
 
 ### 2.2 Package renames
 
@@ -184,7 +184,7 @@ export const APP_VERSION = import.meta.env.APP_VERSION || "0.0.0";
 | `@t3tools/marketing` | (delete references) |
 | `T3CODE_` (all env vars) | `AGENTSCIENCE_` |
 | `t3code` | `agentscience` |
-| `T3 Code` | `Agent Science` |
+| `T3 Code` | `AgentScience` |
 | `t3-server` | `agentscience-server` |
 | `com.t3tools.t3code` | `com.agentscience.app` |
 
@@ -196,7 +196,7 @@ Key files: `turbo.json`, `apps/server/src/config.ts`, `apps/server/src/cli.ts`, 
 - `appId` → `"com.agentscience.app"`
 - `artifactName` → `"Agent-Science-${version}-${arch}.${ext}"`
 - `executableName` → `"agentscience"`
-- `author` → `"Agent Science"`
+- `author` → `"AgentScience"`
 
 ### 2.5 Verify
 ```bash
@@ -212,7 +212,7 @@ grep -r "t3code\|t3tools\|T3 Code\|T3CODE" --include="*.ts" --include="*.tsx" --
 
 **`apps/web/src/components/Sidebar.tsx`** — complete rewrite (~1000 lines → ~200 lines):
 
-1. **Header:** "Agent Science" + version badge
+1. **Header:** "AgentScience" + version badge
 2. **"New Research" button** (uses `useHandleNewThread` hook from `../hooks/useHandleNewThread`)
 3. **Thread list:** Flat, sorted by `updatedAt` desc. Each: title + timestamp. Click → `/$threadId`.
 4. **Footer:** "My Papers" (→ `/papers`), "Settings" (→ `/settings`)
@@ -226,7 +226,7 @@ grep -r "t3code\|t3tools\|T3 Code\|T3CODE" --include="*.ts" --include="*.tsx" --
 **`apps/web/src/components/settings/SettingsPanels.tsx`:**
 - Keep: Codex provider status, theme picker, app version
 - Remove: diff word wrap, worktree, project scripts, sidebar sort
-- Add: "Agent Science Account" section (login status from CLI config)
+- Add: "AgentScience Account" section (login status from CLI config)
 
 **`apps/web/src/components/settings/SettingsSidebarNav.tsx`:** Remove "Archived" link.
 
@@ -240,7 +240,7 @@ grep -r "t3code\|t3tools\|T3 Code\|T3CODE" --include="*.ts" --include="*.tsx" --
 ### 3.4 Update empty state
 
 **`apps/web/src/routes/_chat.index.tsx`:**
-- Text: "Start a new research session to begin. Type your research idea and Agent Science will find data, run experiments, and write your paper."
+- Text: "Start a new research session to begin. Type your research idea and AgentScience will find data, run experiments, and write your paper."
 - Centered "New Research" button
 
 ### 3.5 Verify
@@ -323,7 +323,7 @@ bun typecheck && bun dev
 **`.github/workflows/release.yml`:** On tag `v*` → macOS runner builds DMG → uploads to GitHub Release.
 
 ### 6.3 README
-- What Agent Science is
+- What AgentScience is
 - Prerequisites: Codex CLI, `npm i -g agentscience`, OpenAI API key
 - Download: link to GitHub Releases
 - Dev: `bun install && bun dev`

@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 export const DEFAULT_CODEX_SKILL_NAME = "agentscience";
 export const DEFAULT_CODEX_PLUGIN_NAME = "agent-science";
 export const DEFAULT_CODEX_MARKETPLACE_NAME = "agentscience-local";
-export const DEFAULT_CODEX_MARKETPLACE_DISPLAY_NAME = "Agent Science Local";
+export const DEFAULT_CODEX_MARKETPLACE_DISPLAY_NAME = "AgentScience Local";
 
 export function getCodexPaths({
   homeDir,
@@ -161,17 +161,17 @@ export function removeCodexMarketplacePlugin(
   };
 }
 
-const CODEX_AGENTSCIENCE_ROUTER_PREAMBLE = `Use this as the general Agent Science entrypoint.
+const CODEX_AGENTSCIENCE_ROUTER_PREAMBLE = `Use this as the general AgentScience entrypoint.
 
 Route work like this before you commit to the long-form research pipeline:
 
-- If the user wants to inspect or mutate Agent Science data through the platform itself, prefer the canonical \`agentscience\` CLI workflows used by the \`agent-science-platform\` skill (\`papers list\`, \`papers get\`, \`feed list\`, \`rankings list\`, \`profiles get\`, \`papers comment\`, and related commands).
+- If the user wants to inspect or mutate AgentScience data through the platform itself, prefer the canonical \`agentscience\` CLI workflows used by the \`agent-science-platform\` skill (\`papers list\`, \`papers get\`, \`feed list\`, \`rankings list\`, \`profiles get\`, \`papers comment\`, and related commands).
 - If the user wants to build or publish a paper bundle, prefer the canonical \`agentscience research build\`, \`agentscience research run\`, and \`agentscience papers publish\` workflows used by the \`agent-science-research-publish\` skill.
 - If the user wants idea refinement, dataset discovery, experiments, figure generation, and paper writing, follow the methodology below.
 `;
 
 export function buildCodexAgentscienceSkill(methodology) {
-  const heading = "# Agent Science Research Methodology";
+  const heading = "# AgentScience Research Methodology";
 
   if (!methodology.includes(heading) || methodology.includes(CODEX_AGENTSCIENCE_ROUTER_PREAMBLE)) {
     return methodology;

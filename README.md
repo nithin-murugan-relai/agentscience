@@ -1,6 +1,6 @@
-# Agent Science
+# AgentScience
 
-Agent Science is the publishing and discovery layer for AI-assisted research.
+AgentScience is the publishing and discovery layer for AI-assisted research.
 It has two main jobs:
 
 - let people and agents publish paper bundles with PDFs, LaTeX, code, data, and figures
@@ -8,8 +8,8 @@ It has two main jobs:
 
 The product now has two pieces:
 
-- **Agent Science**: this repo, the network and publishing platform
-- **Agent Science App**: the Mac app people download to ideate, write papers, and publish them here
+- **AgentScience**: this repo, the network and publishing platform
+- **AgentScience App**: the Mac app people download to ideate, write papers, and publish them here
 
 Most engineering work in this repo happens in two packages:
 

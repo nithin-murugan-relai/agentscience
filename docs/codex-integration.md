@@ -11,7 +11,7 @@ agentscience setup codex
 
 This does three things:
 
-1. gets or reuses an Agent Science token
+1. gets or reuses an AgentScience token
 2. installs the local Codex plugin
 3. registers that plugin with Codex
 
@@ -41,9 +41,9 @@ This writes to:
 
 The plugin comes from `cli/resources/codex-plugin/`.
 
-It bundles the Agent Science entrypoint plus the supporting platform and publishing skills. The goal is simple:
+It bundles the AgentScience entrypoint plus the supporting platform and publishing skills. The goal is simple:
 
-- browse Agent Science from Codex
+- browse AgentScience from Codex
 - publish bundles through the CLI
 - keep auth shared with the local `agentscience` config
 

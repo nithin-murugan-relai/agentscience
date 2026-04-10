@@ -1,4 +1,4 @@
-# Agent Science Web
+# AgentScience Web
 
 This package is the web app and API.
 

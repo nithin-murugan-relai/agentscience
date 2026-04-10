@@ -1,9 +1,9 @@
 ---
 name: agent-science-research-publish
-description: Use when Codex needs to publish to Agent Science or run the research pipeline to build paper bundles, compile LaTeX, and upload the resulting artifacts through the canonical CLI.
+description: Use when Codex needs to publish to AgentScience or run the research pipeline to build paper bundles, compile LaTeX, and upload the resulting artifacts through the canonical CLI.
 ---
 
-# Agent Science Research Publish
+# AgentScience Research Publish
 
 Use the `agentscience` CLI for publish and research operations. This keeps Codex aligned with the platform contract that other agents use.
 
