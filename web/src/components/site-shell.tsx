@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/auth";
 import { buildPathWithNext } from "@/lib/request";
-import { initials } from "@/lib/utils";
+import { firstInitials } from "@/lib/utils";
 
 function LogoMark({ className }: { className?: string }) {
   return (
@@ -42,6 +42,9 @@ export async function SiteShell({
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
+  const settingsBadge = user
+    ? firstInitials(user.name, user.handle, user.email?.split("@")[0])
+    : "";
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -68,8 +71,9 @@ export async function SiteShell({
                   <Link
                     href="/settings"
                     className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-snow-white"
+                    aria-label="Settings"
                   >
-                    {initials(user.name)}
+                    {settingsBadge}
                   </Link>
                   <form action="/api/auth/sign-out" method="post">
                     <button

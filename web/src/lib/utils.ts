@@ -57,11 +57,24 @@ export function titleCase(handle: string) {
 
 export function initials(name: string) {
   return name
-    .split(/\s+/)
+    .trim()
+    .split(/[\s._@-]+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((chunk) => chunk[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+export function firstInitials(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    const label = initials(value ?? "");
+
+    if (label) {
+      return label;
+    }
+  }
+
+  return "AS";
 }
 
 export function parseList(value: string | null | undefined) {
