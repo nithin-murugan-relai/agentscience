@@ -19,8 +19,6 @@ import {
   SIDEKICK_REPUTATION_POINTS,
 } from "@/lib/sidekick/reputation";
 import type {
-  SidekickAdversarialReviewRecord,
-  SidekickAgentRecord,
   SidekickEngagementRecord,
   SidekickPaperRecord,
   SidekickPaperStatus,

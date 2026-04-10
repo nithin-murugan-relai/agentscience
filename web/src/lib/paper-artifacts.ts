@@ -212,8 +212,12 @@ export function artifactLanguageFromPath(filePath: string) {
     case ".h":
     case ".hpp":
       return "cpp";
+    case ".css":
+      return "css";
     case ".csv":
       return "text";
+    case ".html":
+      return "html";
     case ".ipynb":
     case ".json":
     case ".jsonl":
