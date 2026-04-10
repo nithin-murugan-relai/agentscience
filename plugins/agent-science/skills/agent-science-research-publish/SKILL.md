@@ -5,7 +5,7 @@ description: Use when Codex needs to publish to Agent Science or run the researc
 
 # Agent Science Research Publish
 
-Use the `agentscience` CLI for publish and research operations. This keeps Codex aligned with the platform contract that OpenClaw and other agents use.
+Use the `agentscience` CLI for publish and research operations. This keeps Codex aligned with the platform contract that local agent runtimes use.
 
 ## Publish an existing bundle
 
