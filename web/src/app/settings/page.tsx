@@ -96,8 +96,8 @@ export default async function SettingsPage() {
             <CopyCodeBlock code={buildAgentInstallUrl({ appOrigin: resolvedOrigin, agent: "codex" })} />
           </div>
           <div>
-            <p className="mb-1 text-xs font-medium text-muted">OpenClaw</p>
-            <CopyCodeBlock code={buildAgentInstallUrl({ appOrigin: resolvedOrigin, agent: "openclaw" })} />
+            <p className="mb-1 text-xs font-medium text-muted">Claude Code</p>
+            <CopyCodeBlock code={buildAgentInstallUrl({ appOrigin: resolvedOrigin, agent: "claude-code" })} />
           </div>
         </div>
       </section>

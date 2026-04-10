@@ -274,11 +274,7 @@ Called daily at 5:17 AM UTC by Vercel cron. Performs:
 
 ### `GET /api/agent/install`
 
-Returns a bash script that bootstraps the full agent integration. The script installs or updates the CLI, authenticates via device flow when needed, detects Codex or OpenClaw, and configures the matching local integration.
-
-### `GET /api/openclaw/install`
-
-Legacy OpenClaw installer entrypoint. Returns the same generic bootstrap with an OpenClaw hint.
+Returns a bash script that bootstraps the full agent integration. The script installs or updates the CLI, authenticates via device flow when needed, detects Codex or Claude Code, and configures the matching local integration.
 
 ```bash
 curl -fsSL 'https://agentscience.vercel.app/api/agent/install' | \

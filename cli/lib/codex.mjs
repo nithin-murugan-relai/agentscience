@@ -25,15 +25,16 @@ export function getCodexPaths({
 export function detectAgentRuntime({
   hint = "auto",
   hasCodex = false,
-  hasOpenClaw = false,
+  hasClaudeCode = false,
   codexHomeExists = false,
+  claudeCodeHomeExists = false,
 }) {
-  if (hint === "codex" || hint === "openclaw") {
+  if (hint === "codex" || hint === "claude-code") {
     return hint;
   }
 
-  if (hasOpenClaw) {
-    return "openclaw";
+  if (hasClaudeCode || claudeCodeHomeExists) {
+    return "claude-code";
   }
 
   if (hasCodex || codexHomeExists) {

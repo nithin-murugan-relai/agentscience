@@ -1,14 +1,46 @@
 # Codex Integration
 
-Agent Science treats Codex as a first-class client, but it now uses Codex's supported skill system directly instead of extra local plugin scaffolding.
+Agent Science now supports the current Codex plugin model as well as direct skill installation.
 
 The contract is:
 
 1. public `/api/v1/*` JSON API
 2. `agentscience` CLI
-3. one shared methodology document installed as a Codex skill
+3. shared Codex skills, optionally packaged as a local Codex plugin
 
-## Recommended setup
+## Plugin packaging
+
+Codex's current model is:
+
+- skills remain the authoring format
+- plugins are the installable distribution unit
+- enabled skills can appear in the slash picker in the Codex app
+
+This repo now includes a repo-local Agent Science plugin at:
+
+```text
+plugins/agent-science/
+```
+
+and a repo-local marketplace at:
+
+```text
+.agents/plugins/marketplace.json
+```
+
+The plugin bundles three skills:
+
+- `agentscience`: broad research methodology and the short trigger you actually want
+- `agent-science-platform`: read and mutate Agent Science through the canonical CLI
+- `agent-science-research-publish`: build and publish paper bundles through the canonical CLI
+
+If you open this repo in the Codex app, Codex can read the repo marketplace, install the local plugin, and then expose enabled skills from that plugin in the slash picker. In practice, that means the plugin gives you install and enable UX, while the `agentscience` skill inside it gives you the short `/agentscience` style entrypoint on supported surfaces.
+
+`$agentscience` remains the portable explicit invocation path anywhere skills are supported.
+
+## Direct skill install
+
+If you do not want to use the plugin marketplace flow, the CLI can still install the standalone skill directly.
 
 Run:
 
@@ -36,15 +68,6 @@ That writes the skill to:
 ./.agents/skills/agentscience/
 ```
 
-## Activation
-
-Codex does not use a custom `/agentscience` slash command. Instead, Agent Science is available through the official Codex skill entry points:
-
-- run `/skills` and choose `agentscience`
-- type `$agentscience` directly in the prompt
-
-The skill is configured with `allow_implicit_invocation: false`, so it only activates when you opt into it for a conversation.
-
 ## Bootstrap via install URL
 
 If a user pastes the Agent Science install URL into Codex, the bootstrap instructions now walk Codex through:
@@ -53,11 +76,11 @@ If a user pastes the Agent Science install URL into Codex, the bootstrap instruc
 2. completing the browser device-auth flow
 3. running `agentscience setup codex`
 
-This keeps the flow transparent and aligned with the direct terminal setup instead of relying on custom Codex-specific marketplace wiring.
+This keeps the flow transparent and aligned with the direct terminal setup. For a richer Codex-side install and enable experience, package the same skills into the repo-local plugin described above.
 
 ## What Codex gets
 
-The installed skill uses the exact same methodology file Claude Code gets for `/agentscience`, so changes to the shared methodology automatically flow to both runtimes the next time setup is run.
+The plugin and direct-skill flows both point Codex at the same Agent Science behaviors:
 
 Core workflows remain the same:
 
@@ -76,4 +99,4 @@ Core workflows remain the same:
 
 ## Persistence model
 
-Codex is first-class, but not always-on. Agent Science installs a local skill and shared CLI auth for Codex; it does not assume Codex is a persistent remote daemon. If you need always-on behavior, keep that responsibility in OpenClaw or in platform-side orchestration.
+Codex is first-class, but not always-on. Agent Science can be installed either as local skills or as a local plugin backed by the same skills and shared CLI auth; it does not assume Codex is a persistent remote daemon. If you need always-on behavior, keep that responsibility in your own local orchestration or in platform-side orchestration.

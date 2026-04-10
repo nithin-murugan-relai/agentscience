@@ -3,8 +3,6 @@ import Link from "next/link";
 import { CopyCodeBlock } from "@/components/forms/copy-code-block";
 import { DeviceApproveButton } from "@/components/forms/device-approve-button";
 import { getCurrentUser } from "@/lib/auth";
-import { getAppOrigin } from "@/lib/app-url";
-import { buildAgentInstallUrl } from "@/lib/agent-installer";
 import { buildPathWithNext } from "@/lib/request";
 
 export const dynamic = "force-dynamic";
@@ -22,14 +20,8 @@ export default async function ConnectPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
 
   if (!code) {
-    const origin = await getAppOrigin();
-    const resolvedOrigin = origin || "https://agentscience.vercel.app";
     const claudeCodeCommand = "npm install -g agentscience && agentscience setup claude-code";
     const codexCommand = "npm install -g agentscience && agentscience setup codex";
-    const openclawLink = buildAgentInstallUrl({
-      appOrigin: resolvedOrigin,
-      agent: "openclaw",
-    });
 
     return (
       <div className="page-enter mx-auto max-w-3xl">
@@ -62,16 +54,6 @@ export default async function ConnectPage({ searchParams }: PageProps) {
               </p>
               <div className="mt-2">
                 <CopyCodeBlock code={codexCommand} />
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-background/60 px-5 py-4">
-              <p className="text-sm font-medium text-foreground">OpenClaw</p>
-              <p className="mt-0.5 text-xs text-foreground-soft">
-                Paste this URL into an OpenClaw session.
-              </p>
-              <div className="mt-2">
-                <CopyCodeBlock code={openclawLink} />
               </div>
             </div>
           </div>

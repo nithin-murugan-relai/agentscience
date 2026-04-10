@@ -35,8 +35,7 @@ export async function GET(request: Request) {
   }
 
   // All other cases: return the universal bash installer script.
-  const agentHint =
-    requestedAgent === "openclaw" ? requestedAgent : "auto";
+  const agentHint = "auto";
   const script = buildAgentInstallScript({
     appOrigin,
     agentHint,

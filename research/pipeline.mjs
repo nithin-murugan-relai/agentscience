@@ -6,8 +6,12 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_BASE_URL =
   process.env.AGENTSCIENCE_BASE_URL ?? "https://agentscience.vercel.app";
-const OPENCLAW_SESSION_TARGET =
-  process.env.OPENCLAW_RESEARCH_SESSION ?? "+15550001111";
+const OPENAI_API_BASE =
+  process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+const DEFAULT_RESEARCH_MODEL =
+  process.env.OPENAI_RESEARCH_MODEL ??
+  process.env.OPENAI_JUDGE_MODEL ??
+  "gpt-5.2";
 
 function runCommand(command, args, options = {}) {
   return execFileSync(command, args, {
@@ -19,21 +23,6 @@ function runCommand(command, args, options = {}) {
 
 function ensureDir(path) {
   mkdirSync(path, { recursive: true });
-}
-
-function shellQuote(value) {
-  return `'${String(value).replace(/'/g, `'\"'\"'`)}'`;
-}
-
-function buildOpenClawShellCommand(prompt) {
-  const explicitBinary = process.env.OPENCLAW_BIN;
-  const resolver = explicitBinary
-    ? `OPENCLAW_BIN=${shellQuote(explicitBinary)}; `
-    : 'OPENCLAW_BIN="$(command -v openclaw 2>/dev/null || ls -1d "$HOME"/.nvm/versions/node/*/bin/openclaw 2>/dev/null | tail -n 1)"; ';
-  const args = `agent --to ${shellQuote(OPENCLAW_SESSION_TARGET)} --message ${shellQuote(
-    prompt
-  )} --thinking off --json`;
-  return `${resolver}[ -n "$OPENCLAW_BIN" ] || { echo "openclaw: command not found" >&2; exit 127; }; OPENCLAW_NODE="$(dirname "$OPENCLAW_BIN")/node"; OPENCLAW_SCRIPT="$(readlink -f "$OPENCLAW_BIN")"; if [ -x "$OPENCLAW_NODE" ]; then "$OPENCLAW_NODE" "$OPENCLAW_SCRIPT" ${args}; else "$OPENCLAW_BIN" ${args}; fi`;
 }
 
 function slugify(value) {
@@ -78,20 +67,68 @@ export function inferGitHubUrl(workspaceDir) {
   }
 }
 
-function extractOpenClawText(rawOutput) {
-  const trimmed = rawOutput.trim();
-  const start = trimmed.indexOf("{");
-  const end = trimmed.lastIndexOf("}");
-  if (start === -1 || end === -1 || end < start) {
-    throw new Error(`OpenClaw did not return a JSON payload.\n${rawOutput}`);
+function extractAssistantText(content) {
+  if (typeof content === "string") {
+    return content.trim();
   }
-  const parsed = JSON.parse(trimmed.slice(start, end + 1));
-  return parsed.result?.payloads?.map((payload) => payload.text).join("\n").trim() ?? "";
+
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (typeof part === "string") {
+          return part;
+        }
+        if (typeof part?.text === "string") {
+          return part.text;
+        }
+        return "";
+      })
+      .join("\n")
+      .trim();
+  }
+
+  return "";
 }
 
-export function callOpenClawJson(prompt) {
-  const rawOutput = runCommand("bash", ["-lc", buildOpenClawShellCommand(prompt)]);
-  const text = extractOpenClawText(rawOutput);
+export async function callResearchModelJson(prompt) {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is required for research idea and plan generation.");
+  }
+
+  const response = await fetch(new URL("/chat/completions", `${OPENAI_API_BASE.replace(/\/$/, "")}/`), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: DEFAULT_RESEARCH_MODEL,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: "You are the Agent Science research planner. Return valid JSON only.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    }),
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(
+      payload?.error?.message ?? `Research model request failed with status ${response.status}`
+    );
+  }
+
+  const text = extractAssistantText(payload?.choices?.[0]?.message?.content);
+  if (!text) {
+    throw new Error("Research model did not return JSON content.");
+  }
+
   return JSON.parse(text);
 }
 
@@ -112,11 +149,11 @@ Researcher profile:
 ${JSON.stringify(profile, null, 2)}
 Extra context:
 ${context || "none"}
-Generate exactly ${count} ideas.`;
+  Generate exactly ${count} ideas.`;
 
   return {
     profile,
-    ...(callOpenClawJson(prompt)),
+    ...(await callResearchModelJson(prompt)),
   };
 }
 
@@ -129,7 +166,7 @@ ${JSON.stringify(profile, null, 2)}
 Idea:
 ${idea}`;
 
-  const plan = callOpenClawJson(prompt);
+  const plan = await callResearchModelJson(prompt);
   return { profile, plan };
 }
 

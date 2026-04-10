@@ -1,0 +1,20 @@
+{
+  "name": "agentscience-local",
+  "interface": {
+    "displayName": "Agent Science Local"
+  },
+  "plugins": [
+    {
+      "name": "agent-science",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agent-science"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Research"
+    }
+  ]
+}

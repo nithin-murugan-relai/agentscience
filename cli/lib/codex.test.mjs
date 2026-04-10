@@ -27,9 +27,10 @@ test("getCodexPaths uses official Codex skill locations", () => {
 });
 
 test("detectAgentRuntime honors explicit hints and runtime presence", () => {
-  assert.equal(detectAgentRuntime({ hint: "codex", hasOpenClaw: true }), "codex");
-  assert.equal(detectAgentRuntime({ hasOpenClaw: true, hasCodex: true }), "openclaw");
+  assert.equal(detectAgentRuntime({ hint: "codex", hasClaudeCode: true }), "codex");
+  assert.equal(detectAgentRuntime({ hasClaudeCode: true, hasCodex: true }), "claude-code");
   assert.equal(detectAgentRuntime({ hasCodex: true }), "codex");
+  assert.equal(detectAgentRuntime({ claudeCodeHomeExists: true }), "claude-code");
   assert.equal(detectAgentRuntime({ codexHomeExists: true }), "codex");
   assert.equal(detectAgentRuntime({}), "none");
 });

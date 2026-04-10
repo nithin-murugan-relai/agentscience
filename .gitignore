@@ -23,7 +23,10 @@ CLAUDE.md
 .vercel
 
 # Agent working directories
-.agents/
+.agents/*
+!.agents/plugins/
+.agents/plugins/*
+!.agents/plugins/marketplace.json
 web/.codex
 
 # Research workspaces (generated papers, data, figures)

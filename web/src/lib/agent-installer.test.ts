@@ -6,7 +6,6 @@ import {
   buildAgentInstallScript,
   buildClaudeCodeBootstrapInstructions,
   buildCodexBootstrapInstructions,
-  buildOpenClawInstallCommand,
 } from "@/lib/agent-installer";
 
 test("buildAgentInstallCommand includes token and agent hint when provided", () => {
@@ -22,15 +21,6 @@ test("buildAgentInstallCommand includes token and agent hint when provided", () 
   assert.match(command, /curl -fsSL 'https:\/\/agentscience\.example\/api\/agent\/install\?agent=codex'/);
 });
 
-test("buildOpenClawInstallCommand keeps the legacy OpenClaw hint", () => {
-  const command = buildOpenClawInstallCommand({
-    appOrigin: "https://agentscience.example",
-  });
-
-  assert.match(command, /AGENTSCIENCE_AGENT_HINT='openclaw'/);
-  assert.doesNotMatch(command, /AGENTSCIENCE_TOKEN=/);
-});
-
 test("buildAgentInstallScript wires generic bootstrap with codex and claude-code branches", () => {
   const script = buildAgentInstallScript({
     appOrigin: "https://agentscience.example",
@@ -44,7 +34,6 @@ test("buildAgentInstallScript wires generic bootstrap with codex and claude-code
   assert.match(script, /CODEX_SKILL_DIR="\$CODEX_SKILLS_DIR\/agentscience"/);
   assert.match(script, /allow_implicit_invocation: false/);
   assert.match(script, /Installing \/agentscience slash command for Claude Code/);
-  assert.match(script, /Configuring OpenClaw integration/);
   assert.match(script, /run \/skills and choose agentscience/);
   assert.match(script, /agentscience research init --idea/);
   assert.match(script, /default sandbox/);

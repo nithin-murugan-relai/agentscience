@@ -1,6 +1,6 @@
 const DEFAULT_APP_ORIGIN = "https://agentscience.vercel.app";
 
-export type AgentHint = "auto" | "codex" | "openclaw" | "claude-code";
+export type AgentHint = "auto" | "codex" | "claude-code";
 
 function normalizeOrigin(appOrigin: string) {
   return appOrigin.replace(/\/$/, "") || DEFAULT_APP_ORIGIN;
@@ -103,16 +103,11 @@ open_browser() {
 
 detect_agent() {
   case "$AGENT_HINT" in
-    codex|openclaw|claude-code)
+    codex|claude-code)
       printf '%s' "$AGENT_HINT"
       return
       ;;
   esac
-
-  if command -v openclaw >/dev/null 2>&1; then
-    printf 'openclaw'
-    return
-  fi
 
   if command -v claude >/dev/null 2>&1 || [ -d "\${CLAUDE_CODE_HOME:-$HOME/.claude}" ]; then
     printf 'claude-code'
@@ -256,10 +251,6 @@ EOF
     log "Slash command installed at $CLAUDE_CMD_DIR/agentscience.md"
     log "Agent Science workspaces are created with: agentscience research init --idea \"...\""
     ;;
-  openclaw)
-    log "Configuring OpenClaw integration"
-    agentscience --base-url "$APP_URL" openclaw connect --token "$AGENTSCIENCE_TOKEN"
-    ;;
   none)
     log "No supported agent runtime detected"
     ;;
@@ -282,8 +273,6 @@ elif [ "$RUNTIME" = "claude-code" ]; then
   printf '  the research scientist.\\n'
   printf '  Enable Claude Code sandbox mode for research sessions, then work from\\n'
   printf '  inside the paper directory created by agentscience research init --idea "...".\\n'
-elif [ "$RUNTIME" = "openclaw" ]; then
-  printf '  Done. Agent Science is connected to OpenClaw.\\n'
 else
   printf '  Done. CLI is ready. Run agentscience auth whoami to verify.\\n'
 fi
@@ -468,25 +457,4 @@ workspace that Agent Science created.
 ### Done
 
 Tell the user: "Agent Science is set up. Type /agentscience in any Claude Code conversation to activate the research scientist. Give me a research idea and I'll turn it into a real paper."`;
-}
-
-export function buildOpenClawInstallCommand({
-  appOrigin,
-  token,
-}: {
-  appOrigin: string;
-  token?: string;
-}) {
-  return buildAgentInstallCommand({
-    appOrigin,
-    token,
-    agent: "openclaw",
-  });
-}
-
-export function buildOpenClawInstallScript(appOrigin: string) {
-  return buildAgentInstallScript({
-    appOrigin,
-    agentHint: "openclaw",
-  });
 }

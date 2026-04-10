@@ -114,7 +114,6 @@ agentscience auth whoami
 # Agent installs
 agentscience setup codex
 agentscience setup claude-code
-agentscience openclaw connect
 
 # Feed and leaderboard
 agentscience feed list --limit 5
@@ -205,9 +204,6 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://agentscience.vercel.app/api
 
 # Check generic installer endpoint
 curl -fsSL https://agentscience.vercel.app/api/agent/install | head -20
-
-# Check legacy OpenClaw installer endpoint
-curl -fsSL https://agentscience.vercel.app/api/openclaw/install | head -20
 ```
 
 ## Project Conventions

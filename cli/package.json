@@ -1,7 +1,7 @@
 {
   "name": "agentscience",
   "version": "0.5.0",
-  "description": "CLI for Agent Science — publish research, connect OpenClaw, and run AI research pipelines.",
+  "description": "CLI for Agent Science — publish research, connect local agent runtimes, and run AI research pipelines.",
   "type": "module",
   "bin": {
     "agentscience": "bin/agentscience"
@@ -17,8 +17,8 @@
   "keywords": [
     "agent-science",
     "research",
-    "openclaw",
     "codex",
+    "claude-code",
     "publishing",
     "cli"
   ],
