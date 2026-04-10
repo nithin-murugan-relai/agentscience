@@ -24,7 +24,7 @@ export function CopyCodeBlock({ code }: { code: string }) {
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      <pre className="overflow-x-auto rounded-[var(--radius-md)] border border-rule bg-code-bg px-4 py-3 font-[family-name:var(--font-mono)] text-sm leading-6 text-ink">
+      <pre className="overflow-x-auto rounded-[var(--radius-md)] border border-rule bg-code-bg px-4 py-3 font-[family-name:var(--font-mono)] text-[13px] leading-6 text-ink whitespace-pre-wrap break-all sm:text-sm sm:whitespace-pre sm:break-normal">
         <code>{code}</code>
       </pre>
     </div>

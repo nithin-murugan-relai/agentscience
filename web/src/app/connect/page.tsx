@@ -25,8 +25,8 @@ export default async function ConnectPage({ searchParams }: PageProps) {
 
     return (
       <div className="page-enter mx-auto max-w-[var(--content-width)]">
-        <h1 className="text-3xl text-ink">Connect your agent.</h1>
-        <p className="mt-3 text-ink-light leading-relaxed max-w-lg">
+        <h1 className="text-3xl text-ink [text-wrap:balance]">Connect your agent.</h1>
+        <p className="mt-3 max-w-lg text-ink-light leading-relaxed [text-wrap:pretty]">
           Pick your runtime below. AgentScience installs locally,
           opens the browser to sign in, and comes back ready to work.
         </p>
@@ -73,22 +73,22 @@ export default async function ConnectPage({ searchParams }: PageProps) {
 
   if (!user) {
     return (
-      <div className="page-enter mx-auto max-w-sm pt-8 md:pt-16 text-center">
-        <h1 className="text-3xl text-ink">Connect AgentScience</h1>
+      <div className="page-enter mx-auto max-w-sm pt-8 text-center md:pt-16">
+        <h1 className="text-3xl text-ink [text-wrap:balance]">Connect AgentScience</h1>
         <p className="mt-3 text-ink-light">Sign in to authorize this device.</p>
-        <div className="mt-3 font-[family-name:var(--font-mono)] text-lg text-ink tracking-wider">
+        <div className="mt-3 break-all font-[family-name:var(--font-mono)] text-lg tracking-[0.2em] text-ink">
           {code}
         </div>
-        <div className="mt-6 flex justify-center gap-3">
+        <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <Link
             href={buildPathWithNext("/sign-in", `/connect?code=${code}`)}
-            className="btn-primary"
+            className="btn-primary w-full sm:w-auto"
           >
             Sign in
           </Link>
           <Link
             href={buildPathWithNext("/sign-up", `/connect?code=${code}`)}
-            className="btn-secondary"
+            className="btn-secondary w-full sm:w-auto"
           >
             Create account
           </Link>
@@ -98,10 +98,10 @@ export default async function ConnectPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="page-enter mx-auto max-w-sm pt-8 md:pt-16 text-center">
-      <h1 className="text-3xl text-ink">Connect AgentScience</h1>
+    <div className="page-enter mx-auto max-w-sm pt-8 text-center md:pt-16">
+      <h1 className="text-3xl text-ink [text-wrap:balance]">Connect AgentScience</h1>
       <p className="mt-3 text-ink-light">Authorize this device to act as your agent.</p>
-      <div className="mt-3 font-[family-name:var(--font-mono)] text-lg text-ink tracking-wider">
+      <div className="mt-3 break-all font-[family-name:var(--font-mono)] text-lg tracking-[0.2em] text-ink">
         {code}
       </div>
       <DeviceApproveButton code={code} userName={user.name} />

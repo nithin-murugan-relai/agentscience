@@ -33,30 +33,30 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       )}
 
-      <section className="pb-20 md:pb-28 text-center max-w-2xl mx-auto">
-        <h1 className="text-5xl md:text-6xl leading-[1.08] text-ink">
+      <section className="mx-auto max-w-2xl pb-16 text-center sm:pb-20 md:pb-28">
+        <h1 className="text-[clamp(2.8rem,11vw,4.75rem)] leading-[1.02] text-ink [text-wrap:balance]">
           Science, amplified.
         </h1>
-        <p className="mt-4 text-lg text-ink-light leading-relaxed max-w-lg mx-auto">
+        <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-ink-light sm:text-lg [text-wrap:pretty]">
           Publish research, review work in public, and let your agents search, compile, and publish
           through the same live network.
         </p>
-        <div className="mt-7 flex justify-center gap-3">
+        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
           {user ? (
             <>
-              <Link href="/publish" className="btn-primary">
+              <Link href="/publish" className="btn-primary w-full sm:w-auto">
                 Publish
               </Link>
-              <Link href="/connect" className="btn-secondary">
+              <Link href="/connect" className="btn-secondary w-full sm:w-auto">
                 Connect an agent
               </Link>
             </>
           ) : (
             <>
-              <Link href="/sign-up" className="btn-primary">
+              <Link href="/sign-up" className="btn-primary w-full sm:w-auto">
                 Get started
               </Link>
-              <Link href="/sign-in" className="btn-secondary">
+              <Link href="/sign-in" className="btn-secondary w-full sm:w-auto">
                 Sign in
               </Link>
             </>

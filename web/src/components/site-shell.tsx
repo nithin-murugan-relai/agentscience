@@ -46,62 +46,64 @@ export async function SiteShell({
   return (
     <div className="relative min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 bg-snow-white/90 backdrop-blur-sm border-b border-rule">
-        <div className="mx-auto max-w-[var(--page-width)] px-6 md:px-10 flex items-center justify-between" style={{ height: "var(--nav-height)" }}>
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 text-ink"
-          >
-            <LogoMark className="w-7 h-7" />
-            <span className="font-[family-name:var(--font-display)] text-lg">AgentScience</span>
-          </Link>
+        <div className="mx-auto max-w-[var(--page-width)] px-[var(--page-gutter)]">
+          <div className="flex min-h-[var(--nav-height)] flex-col justify-center gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-0">
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 text-ink"
+            >
+              <LogoMark className="w-7 h-7" />
+              <span className="font-[family-name:var(--font-display)] text-lg">AgentScience</span>
+            </Link>
 
-          <nav className="flex items-center gap-5">
-            <Link href="/" className="text-[0.8125rem] text-ink-light hover:text-ink">
-              Papers
-            </Link>
-            <Link href="/rankings" className="text-[0.8125rem] text-ink-light hover:text-ink">
-              Rankings
-            </Link>
-            <Link href="/connect" className="text-[0.8125rem] text-ink-light hover:text-ink">
-              Connect
-            </Link>
-            {user ? (
-              <>
-                <Link href="/publish" className="text-[0.8125rem] text-ink-light hover:text-ink">
-                  Publish
-                </Link>
-                <div className="flex items-center gap-2.5">
-                  <Link
-                    href="/settings"
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-snow-white"
-                  >
-                    {initials(user.name)}
-                  </Link>
-                  <form action="/api/auth/sign-out" method="post">
-                    <button
-                      type="submit"
-                      className="text-[0.8125rem] text-ink-faint hover:text-ink"
-                    >
-                      Sign out
-                    </button>
-                  </form>
-                </div>
-              </>
-            ) : (
-              <Link href="/sign-in" className="text-[0.8125rem] text-ink hover:text-ink-light">
-                Sign in
+            <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <Link href="/" className="text-[0.8125rem] text-ink-light hover:text-ink">
+                Papers
               </Link>
-            )}
-          </nav>
+              <Link href="/rankings" className="text-[0.8125rem] text-ink-light hover:text-ink">
+                Rankings
+              </Link>
+              <Link href="/connect" className="text-[0.8125rem] text-ink-light hover:text-ink">
+                Connect
+              </Link>
+              {user ? (
+                <>
+                  <Link href="/publish" className="text-[0.8125rem] text-ink-light hover:text-ink">
+                    Publish
+                  </Link>
+                  <div className="flex items-center gap-2.5">
+                    <Link
+                      href="/settings"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-snow-white"
+                    >
+                      {initials(user.name)}
+                    </Link>
+                    <form action="/api/auth/sign-out" method="post">
+                      <button
+                        type="submit"
+                        className="text-[0.8125rem] text-ink-faint hover:text-ink"
+                      >
+                        Sign out
+                      </button>
+                    </form>
+                  </div>
+                </>
+              ) : (
+                <Link href="/sign-in" className="text-[0.8125rem] text-ink hover:text-ink-light">
+                  Sign in
+                </Link>
+              )}
+            </nav>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-[var(--page-width)] px-6 md:px-10 py-12 md:py-20">{children}</main>
+      <main className="flex-1 mx-auto w-full max-w-[var(--page-width)] px-[var(--page-gutter)] py-10 sm:py-12 md:py-20">{children}</main>
 
       <footer className="border-t border-rule">
-        <div className="mx-auto max-w-[var(--page-width)] px-6 md:px-10 py-5 flex items-center justify-between">
+        <div className="mx-auto flex max-w-[var(--page-width)] flex-col gap-3 px-[var(--page-gutter)] py-5 text-xs sm:flex-row sm:items-center sm:justify-between">
           <span className="text-xs text-ink-faint">AgentScience</span>
-          <div className="flex items-center gap-5 text-xs text-ink-faint">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-faint">
             <Link href="/method" className="hover:text-ink-light">How it works</Link>
             <Link href="/connect" className="hover:text-ink-light">Connect</Link>
             <Link
@@ -147,16 +149,16 @@ export function AuthGateCard({
   nextPath?: string;
 }) {
   return (
-    <div className="page-enter text-center py-16">
-      <h1 className="text-3xl text-ink">{title}</h1>
+    <div className="page-enter py-12 text-center sm:py-16">
+      <h1 className="text-3xl text-ink [text-wrap:balance]">{title}</h1>
       <p className="mt-3 text-ink-light">
         {description ?? "Sign in to continue."}
       </p>
-      <div className="mt-8 flex justify-center gap-3">
-        <Link href={buildPathWithNext("/sign-in", nextPath)} className="btn-primary">
+      <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+        <Link href={buildPathWithNext("/sign-in", nextPath)} className="btn-primary w-full sm:w-auto">
           Sign in
         </Link>
-        <Link href={buildPathWithNext("/sign-up", nextPath)} className="btn-secondary">
+        <Link href={buildPathWithNext("/sign-up", nextPath)} className="btn-secondary w-full sm:w-auto">
           Create account
         </Link>
       </div>

@@ -309,6 +309,7 @@ export function PaperBundleViewer({
   const [selectedArtifactId, setSelectedArtifactId] = useState(artifacts[0]?.id ?? null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedFigureId, setExpandedFigureId] = useState<string | null>(null);
+  const [compactLayout, setCompactLayout] = useState(false);
   const selectedArtifact = artifacts.find((artifact) => artifact.id === selectedArtifactId) ?? artifacts[0] ?? null;
   const tree = buildArtifactTree(artifacts);
   const tabs: Array<{ id: BundleTab; label: string; disabled: boolean }> = [
@@ -319,11 +320,26 @@ export function PaperBundleViewer({
 
   /* close sidebar on small screens by default */
   useEffect(() => {
-    if (window.innerWidth < 768) setSidebarOpen(false);
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const syncLayout = () => {
+      const isCompact = mediaQuery.matches;
+      setCompactLayout(isCompact);
+      if (isCompact) {
+        setSidebarOpen(false);
+      }
+    };
+
+    syncLayout();
+    mediaQuery.addEventListener("change", syncLayout);
+
+    return () => mediaQuery.removeEventListener("change", syncLayout);
   }, []);
 
   const handleSelectArtifact = useCallback((artifactId: string) => {
     setSelectedArtifactId(artifactId);
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
   }, []);
 
   const shouldWrap = selectedArtifact ? isProseFile(selectedArtifact.path) : false;
@@ -357,7 +373,7 @@ export function PaperBundleViewer({
             type="button"
             disabled={tab.disabled}
             onClick={() => setActiveTab(tab.id)}
-            className={`rounded-[var(--radius-sm)] px-4 py-2 text-sm ${
+            className={`min-w-[5.5rem] rounded-[var(--radius-sm)] px-4 py-2 text-sm ${
               activeTab === tab.id
                 ? "bg-ink text-snow-white"
                 : "border border-rule text-ink-light hover:border-ink-faint hover:text-ink"
@@ -376,7 +392,7 @@ export function PaperBundleViewer({
         ) : (
           <div className="mt-6 overflow-hidden rounded-[var(--radius-md)] border border-rule bg-snow-white">
             {/* toolbar */}
-            <div className="flex items-center justify-between border-b border-rule bg-snow-white-dark px-2 py-1.5">
+            <div className="flex flex-col gap-2 border-b border-rule bg-snow-white-dark px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-center gap-1">
                 {/* sidebar toggle */}
                 <button
@@ -392,7 +408,7 @@ export function PaperBundleViewer({
 
                 {/* breadcrumb path */}
                 {selectedArtifact && (
-                  <div className="flex min-w-0 items-center gap-0.5 px-1 text-[13px]">
+                  <div className="hide-scrollbar flex min-w-0 items-center gap-0.5 overflow-x-auto px-1 text-[13px] whitespace-nowrap">
                     {selectedArtifact.path.split("/").map((segment, i, arr) => (
                       <span key={i} className="flex shrink-0 items-center gap-0.5">
                         {i > 0 && <span className="text-ink-faint">/</span>}
@@ -405,7 +421,7 @@ export function PaperBundleViewer({
                 )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-2 pl-2">
+              <div className="flex shrink-0 items-center gap-2 sm:pl-2">
                 <span className="font-[family-name:var(--font-mono)] text-[10px] text-ink-faint">
                   {selectedArtifact ? formatBytes(selectedArtifact.sizeBytes) : null}
                 </span>
@@ -423,11 +439,11 @@ export function PaperBundleViewer({
               </div>
             </div>
 
-            <div className="flex" style={{ height: "clamp(480px, 70vh, 800px)" }}>
+            <div className="flex flex-col md:flex-row md:[height:clamp(480px,70vh,800px)]">
               {/* sidebar */}
               {sidebarOpen && (
                 <aside
-                  className="flex w-56 shrink-0 flex-col border-r border-rule bg-snow-white-dark lg:w-60"
+                  className="flex max-h-64 w-full shrink-0 flex-col border-b border-rule bg-snow-white-dark md:max-h-none md:w-56 md:border-b-0 md:border-r lg:w-60"
                 >
                   <div className="flex-1 overflow-y-auto overscroll-contain px-1.5 py-2">
                     {renderTree(tree, "", selectedArtifact?.id ?? "", handleSelectArtifact)}
@@ -436,7 +452,7 @@ export function PaperBundleViewer({
               )}
 
               {/* code pane */}
-              <div className="flex min-w-0 flex-1 flex-col overflow-auto">
+              <div className="flex min-w-0 flex-1 flex-col overflow-auto min-h-[24rem]">
                 {selectedArtifact?.textContent ? (
                   looksLikeCsv(selectedArtifact) ? (
                     <div className="p-4">
@@ -470,13 +486,13 @@ export function PaperBundleViewer({
                     <SyntaxHighlighter
                       language={artifactLanguageFromPath(selectedArtifact.path)}
                       style={oneLight}
-                      showLineNumbers
+                      showLineNumbers={!compactLayout}
                       wrapLongLines={shouldWrap}
                       customStyle={{
                         margin: 0,
-                        padding: "12px 0",
+                        padding: compactLayout ? "10px 0" : "12px 0",
                         background: "#F5F5F5",
-                        fontSize: "13px",
+                        fontSize: compactLayout ? "12px" : "13px",
                         lineHeight: "1.6",
                         minHeight: "100%",
                       }}
@@ -539,10 +555,10 @@ export function PaperBundleViewer({
                   <img
                     src={figure.downloadUrl}
                     alt={figure.caption ?? figure.fileName}
-                    className="h-56 w-full object-cover"
+                    className="h-48 w-full object-cover sm:h-56"
                   />
-                  <div className="flex items-center justify-between bg-snow-white px-4 py-3">
-                    <div>
+                  <div className="flex flex-col gap-2 bg-snow-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                       <div className="text-sm text-ink">{figure.fileName}</div>
                       {figure.caption ? (
                         <p className="mt-0.5 text-sm text-ink-light">{figure.caption}</p>
@@ -562,8 +578,8 @@ export function PaperBundleViewer({
               if (!figure) return null;
               return (
                 <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule">
-                  <div className="flex items-center justify-between border-b border-rule bg-snow-white px-5 py-3">
-                    <div>
+                  <div className="flex flex-col gap-3 border-b border-rule bg-snow-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <div className="min-w-0">
                       <div className="text-sm text-ink">{figure.fileName}</div>
                       {figure.caption && (
                         <p className="mt-0.5 text-sm text-ink-light">{figure.caption}</p>
@@ -609,7 +625,11 @@ export function PaperBundleViewer({
       {activeTab === "pdf" ? (
         pdfUrl ? (
           <div className="mt-6 overflow-hidden rounded-[var(--radius-md)] border border-rule">
-            <iframe src={pdfUrl} title={`${paperTitle} PDF`} className="h-[900px] w-full" />
+            <iframe
+              src={pdfUrl}
+              title={`${paperTitle} PDF`}
+              className="h-[min(78vh,56rem)] min-h-[22rem] w-full"
+            />
           </div>
         ) : (
           <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">

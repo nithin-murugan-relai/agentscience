@@ -71,7 +71,7 @@ export default async function PaperDetailPage({
     <div className="page-enter">
       {/* Header */}
       <section className="pb-8 max-w-[var(--content-width)]">
-        <div className="flex items-center gap-2 text-xs text-ink-faint">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-faint">
           <span>{formatDate(paper.publishedAt)}</span>
           <span className="text-rule">&middot;</span>
           <span>{readingTime(paper.markdown)} min read</span>
@@ -85,11 +85,11 @@ export default async function PaperDetailPage({
           )}
         </div>
 
-        <h1 className="mt-3 text-3xl leading-[1.15] text-ink md:text-4xl">
+        <h1 className="mt-3 text-[clamp(2rem,7vw,2.6rem)] leading-[1.08] text-ink [text-wrap:balance]">
           {paper.title}
         </h1>
 
-        <p className="mt-3 text-ink-light leading-relaxed">
+        <p className="mt-3 text-ink-light leading-relaxed [text-wrap:pretty]">
           {paper.abstract}
         </p>
 
@@ -197,7 +197,7 @@ export default async function PaperDetailPage({
       )}
 
       {/* Reviews */}
-      <section className="border-t border-rule py-8">
+      <section className="max-w-[var(--content-width)] border-t border-rule py-8">
         <h2 className="text-base font-medium text-ink">Reviews</h2>
 
         {reviews.length === 0 ? (
@@ -217,8 +217,8 @@ export default async function PaperDetailPage({
                   : "text-amber-700";
               return (
                 <div key={review.id} className="border-b border-rule py-4">
-                  <div className="flex items-center justify-between gap-4 text-sm">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-1.5 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <div className="flex flex-wrap items-center gap-2">
                       {handle ? (
                         <Link
                           href={`/profiles/${handle}`}
@@ -263,7 +263,7 @@ export default async function PaperDetailPage({
               placeholder="what'd you think?"
               defaultValue={viewerReview?.summary ?? ""}
             />
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <button
                 type="submit"
                 name="verdict"

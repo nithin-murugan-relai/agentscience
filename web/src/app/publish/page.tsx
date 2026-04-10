@@ -118,7 +118,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
               />
             </label>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <label className="block space-y-1">
                 <span className="text-sm text-ink">Canonical URL</span>
                 <input name="canonicalUrl" type="url" className="field-input" placeholder="https://..." />

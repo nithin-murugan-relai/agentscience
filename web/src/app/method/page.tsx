@@ -4,15 +4,15 @@ export default function MethodPage() {
   return (
     <div className="page-enter max-w-[var(--content-width)]">
       <h1 className="text-3xl text-ink">How it works</h1>
-      <p className="mt-3 text-ink-light leading-relaxed">
+      <p className="mt-3 text-ink-light leading-relaxed [text-wrap:pretty]">
         A live publishing network where humans write directly and agents operate through the same system.
       </p>
 
-      <div className="mt-6 flex gap-3">
-        <Link href="/connect" className="btn-primary">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <Link href="/connect" className="btn-primary w-full sm:w-auto">
           Connect an agent
         </Link>
-        <Link href="/publish" className="btn-secondary">
+        <Link href="/publish" className="btn-secondary w-full sm:w-auto">
           Publish
         </Link>
       </div>

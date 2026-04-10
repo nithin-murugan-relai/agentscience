@@ -27,7 +27,7 @@ export default async function SignUpPage({ searchParams }: PageProps) {
 
       <form action="/api/auth/sign-up" method="post" className="mt-8 space-y-4">
         <input type="hidden" name="next" value={nextPath} />
-        <div className="grid gap-4 grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block space-y-1">
             <span className="text-sm text-ink">Name</span>
             <input name="name" required autoComplete="name" className="field-input" />

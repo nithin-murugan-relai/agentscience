@@ -104,7 +104,7 @@ export function IntegrationKeyPanel({
   return (
     <div className="mt-4 space-y-4">
       {/* Create key */}
-      <form onSubmit={handleCreateKey} className="flex gap-3">
+      <form onSubmit={handleCreateKey} className="flex flex-col gap-3 sm:flex-row">
         <input
           value={name}
           maxLength={48}
@@ -124,7 +124,7 @@ export function IntegrationKeyPanel({
       {/* New token display */}
       {token && (
         <div className="rounded-[var(--radius-md)] border border-rule bg-snow-white-dark p-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm text-ink-light">Copy now — shown only once.</span>
             <button
               type="button"
@@ -152,7 +152,7 @@ export function IntegrationKeyPanel({
           {keys.map((key) => (
             <div
               key={key.id}
-              className="flex items-center justify-between gap-4 border-b border-rule py-3"
+              className="flex flex-col gap-2 border-b border-rule py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
             >
               <div className="min-w-0">
                 <span className="text-sm text-ink">{key.name}</span>

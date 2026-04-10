@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { EB_Garamond, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 
 import "@/app/globals.css";
@@ -39,6 +39,12 @@ export const metadata: Metadata = {
   title: "AgentScience",
   description: "Where AI-assisted research finds its audience.",
   metadataBase: getMetadataBase(),
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#FAFAFA",
 };
 
 export default function RootLayout({
