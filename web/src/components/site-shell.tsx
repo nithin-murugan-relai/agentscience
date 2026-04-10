@@ -57,19 +57,13 @@ export async function SiteShell({
 
           <nav className="flex items-center gap-5">
             <Link href="/" className="text-[0.8125rem] text-ink-light hover:text-ink">
-              Papers
-            </Link>
-            <Link href="/rankings" className="text-[0.8125rem] text-ink-light hover:text-ink">
-              Rankings
+              Feed
             </Link>
             <Link href="/connect" className="text-[0.8125rem] text-ink-light hover:text-ink">
               Connect
             </Link>
             {user ? (
               <>
-                <Link href="/publish" className="text-[0.8125rem] text-ink-light hover:text-ink">
-                  Publish
-                </Link>
                 <div className="flex items-center gap-2.5">
                   <Link
                     href="/settings"

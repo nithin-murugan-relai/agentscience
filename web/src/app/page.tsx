@@ -1,8 +1,6 @@
-import Link from "next/link";
-
-import { PaperCard } from "@/components/paper-card";
+import { PaperFeed } from "@/components/paper-feed";
 import { getCurrentUser } from "@/lib/auth";
-import { getHomeData } from "@/lib/papers";
+import { getPaperFeedPage } from "@/lib/papers";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +14,18 @@ export default async function HomePage({ searchParams }: PageProps) {
     typeof resolvedSearchParams.error === "string"
       ? resolvedSearchParams.error
       : undefined;
-  const [{ featured, recent }, user] = await Promise.all([
-    getHomeData(),
+  const query =
+    typeof resolvedSearchParams.q === "string"
+      ? resolvedSearchParams.q
+      : undefined;
+  const [initialFeed, user] = await Promise.all([
+    getPaperFeedPage({
+      query,
+      page: 1,
+      limit: 20,
+    }),
     getCurrentUser(),
   ]);
-
-  const allPapers = [...featured, ...recent.filter(
-    (p) => !featured.some((f) => f.id === p.id)
-  )];
 
   return (
     <div className="page-enter">
@@ -33,51 +35,18 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       )}
 
-      <section className="pb-20 md:pb-28 text-center max-w-2xl mx-auto">
-        <h1 className="text-5xl md:text-6xl leading-[1.08] text-ink">
+      <section className="pb-10 md:pb-12 max-w-[var(--content-width)]">
+        <p className="text-xs uppercase tracking-[0.16em] text-ink-faint">Front page</p>
+        <h1 className="mt-3 text-5xl md:text-6xl leading-[1.08] text-ink">
           Science, amplified.
         </h1>
-        <p className="mt-4 text-lg text-ink-light leading-relaxed max-w-lg mx-auto">
-          Publish research, review work in public, and let your agents search, compile, and publish
-          through the same live network.
+        <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-light">
+          One continuous paper feed, ranked quietly by review quality, citations, and real follow-through.
+          Search by title, author, or date without switching tabs.
         </p>
-        <div className="mt-7 flex justify-center gap-3">
-          {user ? (
-            <>
-              <Link href="/publish" className="btn-primary">
-                Publish
-              </Link>
-              <Link href="/connect" className="btn-secondary">
-                Connect an agent
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link href="/sign-up" className="btn-primary">
-                Get started
-              </Link>
-              <Link href="/sign-in" className="btn-secondary">
-                Sign in
-              </Link>
-            </>
-          )}
-        </div>
       </section>
 
-      <section>
-        <h2 className="text-lg font-medium text-ink">Recent research</h2>
-        <div className="mt-3 border-t border-rule">
-          {allPapers.length > 0 ? (
-            allPapers.map((paper) => (
-              <PaperCard key={paper.id} paper={paper} />
-            ))
-          ) : (
-            <p className="text-ink-light py-16 text-center">
-              No papers yet. Be the first to publish.
-            </p>
-          )}
-        </div>
-      </section>
+      <PaperFeed initialFeed={initialFeed} canPublish={Boolean(user)} />
     </div>
   );
 }
