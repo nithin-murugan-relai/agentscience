@@ -1,5 +1,4 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { compileClaudeCodeSlashCommand, loadPersonality } from "@agentscience/personality";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +10,7 @@ export const dynamic = "force-dynamic";
  * standards, and personality.
  */
 export async function GET() {
-  const methodologyPath = join(process.cwd(), "src", "lib", "methodology.md");
-  const content = readFileSync(methodologyPath, "utf8");
+  const content = compileClaudeCodeSlashCommand(loadPersonality()).content;
 
   return new Response(content, {
     headers: {

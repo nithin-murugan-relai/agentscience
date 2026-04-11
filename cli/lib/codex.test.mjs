@@ -1,16 +1,22 @@
 import assert from "node:assert/strict";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
+
+import { compileCodexPlugin, loadPersonality } from "@agentscience/personality";
 
 import {
   DEFAULT_CODEX_MARKETPLACE_DISPLAY_NAME,
   DEFAULT_CODEX_MARKETPLACE_NAME,
   DEFAULT_CODEX_PLUGIN_NAME,
   DEFAULT_CODEX_SKILL_NAME,
-  buildCodexAgentscienceSkill,
   buildCodexMarketplaceEntry,
   detectAgentRuntime,
   getCodexInstallTarget,
   getCodexPaths,
+  installCodexPlugin,
   removeCodexMarketplacePlugin,
   upsertCodexMarketplace,
 } from "./codex.mjs";
@@ -28,19 +34,19 @@ test("getCodexPaths uses official Codex plugin and legacy skill locations", () =
   assert.equal(paths.userSkillPath, "/tmp/example/.agents/skills/agentscience/SKILL.md");
   assert.equal(
     paths.userMetadataPath,
-    "/tmp/example/.agents/skills/agentscience/agents/openai.yaml"
+    "/tmp/example/.agents/skills/agentscience/agents/openai.yaml",
   );
   assert.equal(paths.userMarketplacePath, "/tmp/example/.agents/plugins/marketplace.json");
   assert.equal(paths.userPluginDir, "/tmp/example/plugins/agent-science");
   assert.equal(
     paths.userPluginManifestPath,
-    "/tmp/example/plugins/agent-science/.codex-plugin/plugin.json"
+    "/tmp/example/plugins/agent-science/.codex-plugin/plugin.json",
   );
   assert.equal(paths.projectSkillsDir, "/tmp/example/project/.agents/skills");
   assert.equal(paths.projectSkillDir, "/tmp/example/project/.agents/skills/agentscience");
   assert.equal(
     paths.projectMarketplacePath,
-    "/tmp/example/project/.agents/plugins/marketplace.json"
+    "/tmp/example/project/.agents/plugins/marketplace.json",
   );
   assert.equal(paths.projectPluginDir, "/tmp/example/project/plugins/agent-science");
 });
@@ -133,12 +139,45 @@ test("removeCodexMarketplacePlugin removes only the AgentScience entry", () => {
   ]);
 });
 
-test("buildCodexAgentscienceSkill injects router guidance once after the main heading", () => {
-  const source = `---\nname: "agentscience"\n---\n\n# AgentScience Research Methodology\n\nYou are a research scientist.`;
-  const rendered = buildCodexAgentscienceSkill(source);
+test("installCodexPlugin writes the compiled plugin tree and links it to the personality hash", () => {
+  const rootDir = mkdtempSync(join(tmpdir(), "agentscience-codex-"));
+  const cwd = join(rootDir, "project");
+  mkdirSync(cwd, { recursive: true });
 
-  assert.match(rendered, /Use this as the general AgentScience entrypoint\./);
-  assert.match(rendered, /agent-science-platform/);
-  assert.match(rendered, /agent-science-research-publish/);
-  assert.equal(buildCodexAgentscienceSkill(rendered), rendered);
+  const paths = getCodexPaths({
+    homeDir: rootDir,
+    cwd,
+  });
+
+  mkdirSync(paths.userSkillDir, { recursive: true });
+  writeFileSync(paths.userSkillPath, "legacy skill\n", "utf8");
+
+  try {
+    const installed = installCodexPlugin({ paths });
+    const personality = loadPersonality();
+    const compiledPlugin = compileCodexPlugin(personality);
+
+    assert.equal(installed.pluginName, "agent-science");
+    assert.equal(installed.personalityVersion, personality.version);
+    assert.equal(installed.personalityContentHash, personality.contentHash);
+    assert.deepEqual(installed.legacySkillRemoved, [paths.userSkillDir]);
+    assert.equal(existsSync(paths.userSkillDir), false);
+
+    const skillPath = join(installed.pluginDir, "skills", "agentscience", "SKILL.md");
+    const manifestPath = join(installed.pluginDir, ".codex-plugin", "plugin.json");
+    const marketplacePath = paths.userMarketplacePath;
+
+    assert.equal(readFileSync(skillPath, "utf8"), compiledPlugin.files["skills/agentscience/SKILL.md"]);
+    assert.match(readFileSync(skillPath, "utf8"), new RegExp(personality.contentHash));
+    assert.equal(
+      readFileSync(manifestPath, "utf8"),
+      compiledPlugin.files[".codex-plugin/plugin.json"],
+    );
+    assert.deepEqual(
+      JSON.parse(readFileSync(marketplacePath, "utf8")),
+      upsertCodexMarketplace(undefined),
+    );
+  } finally {
+    rmSync(rootDir, { recursive: true, force: true });
+  }
 });

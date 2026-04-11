@@ -18,6 +18,9 @@
   "scripts": {
     "test": "node --test lib/*.test.mjs"
   },
+  "dependencies": {
+    "@agentscience/personality": "^1.0.1"
+  },
   "keywords": [
     "agent-science",
     "research",

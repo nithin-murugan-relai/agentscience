@@ -14,7 +14,12 @@ import { spawnSync } from "node:child_process";
 import { basename, dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { createInterface } from "node:readline";
-import { fileURLToPath } from "node:url";
+import {
+  compileClaudeCodeSlashCommand,
+  loadPersonality,
+  PERSONALITY_CONTENT_HASH,
+  PERSONALITY_VERSION,
+} from "@agentscience/personality";
 import {
   DEFAULT_CODEX_PLUGIN_NAME,
   getCodexPaths,
@@ -47,9 +52,6 @@ const CODEX_RUNTIME = getCodexPaths({
   homeDir: homedir(),
   cwd: process.cwd(),
 });
-const CODEX_PLUGIN_TEMPLATE_DIR = fileURLToPath(
-  new URL("../resources/codex-plugin", import.meta.url)
-);
 
 const TOP_HELP = `AgentScience CLI
 
@@ -1693,6 +1695,32 @@ async function downloadMethodology(baseUrl) {
   };
 }
 
+async function resolveClaudeCodeSlashCommand(baseUrl) {
+  if (process.env.AGENTSCIENCE_USE_REMOTE === "1") {
+    const methodology = await downloadMethodology(baseUrl);
+    return {
+      commandName: "agentscience",
+      content: methodology.content,
+      methodologyUrl: methodology.methodologyUrl,
+      personalityVersion: null,
+      personalityContentHash: null,
+      source: "remote",
+    };
+  }
+
+  const personality = loadPersonality();
+  const compiled = compileClaudeCodeSlashCommand(personality);
+
+  return {
+    commandName: compiled.commandName,
+    content: compiled.content,
+    methodologyUrl: null,
+    personalityVersion: personality.version,
+    personalityContentHash: personality.contentHash,
+    source: "local",
+  };
+}
+
 function readJsonFile(jsonPath) {
   return JSON.parse(readFileSync(jsonPath, "utf8"));
 }
@@ -1909,11 +1937,9 @@ async function handleSetup(args, globalOptions, config) {
 
     const token = await authenticateForAgent(rest, globalOptions, config, "Codex setup");
     const { authorName, authorAffiliation } = resolveKnownResearcherIdentity(rest);
-    const methodology = await downloadMethodology(globalOptions.baseUrl);
-    const installedPlugin = installCodexPlugin(methodology.content, {
+    const installedPlugin = installCodexPlugin({
       isProject,
       paths: CODEX_RUNTIME,
-      pluginTemplateDir: CODEX_PLUGIN_TEMPLATE_DIR,
     });
 
     saveConfig({
@@ -1947,7 +1973,8 @@ async function handleSetup(args, globalOptions, config) {
         legacySkillRemoved: installedPlugin.legacySkillRemoved,
         scope: installedPlugin.scope,
         configPath: CONFIG_PATH,
-        methodologyUrl: methodology.methodologyUrl,
+        personalityVersion: installedPlugin.personalityVersion,
+        personalityContentHash: installedPlugin.personalityContentHash,
         verification,
         nextStep:
           "In the Codex app, enable AgentScience if prompted, then start a new thread and use /agentscience.",
@@ -1995,8 +2022,8 @@ async function handleSetup(args, globalOptions, config) {
 
   const token = await authenticateForAgent(rest, globalOptions, config, "Claude Code setup");
   const { authorName, authorAffiliation } = await resolveResearcherIdentity(rest);
-  const methodology = await downloadMethodology(globalOptions.baseUrl);
-
+  const slashCommand = await resolveClaudeCodeSlashCommand(globalOptions.baseUrl);
+  const resolvedCommandPath = join(commandDir, `${slashCommand.commandName}.md`);
   saveConfig({
     ...loadConfig(),
     baseUrl: globalOptions.baseUrl,
@@ -2006,7 +2033,7 @@ async function handleSetup(args, globalOptions, config) {
   });
 
   mkdirSync(commandDir, { recursive: true });
-  writeFileSync(commandPath, methodology.content, "utf8");
+  writeFileSync(resolvedCommandPath, slashCommand.content, "utf8");
 
   const verification = [];
   try {
@@ -2024,10 +2051,13 @@ async function handleSetup(args, globalOptions, config) {
     {
       ok: true,
       runtime: "claude-code",
-      commandPath,
+      commandPath: resolvedCommandPath,
       scope: isProject ? "project" : "user",
       configPath: CONFIG_PATH,
-      methodologyUrl: methodology.methodologyUrl,
+      methodologyUrl: slashCommand.methodologyUrl,
+      personalityVersion: slashCommand.personalityVersion,
+      personalityContentHash: slashCommand.personalityContentHash,
+      commandSource: slashCommand.source,
       verification,
       nextStep: "Type /agentscience in any Claude Code conversation to activate the research scientist.",
     },
@@ -2061,7 +2091,21 @@ async function main() {
   const globalOptions = parseGlobalOptions(process.argv.slice(2));
 
   if (globalOptions.version) {
-    console.log(VERSION);
+    if (globalOptions.outputMode === "json") {
+      console.log(
+        JSON.stringify(
+          {
+            version: VERSION,
+            personalityVersion: PERSONALITY_VERSION,
+            personalityContentHash: PERSONALITY_CONTENT_HASH,
+          },
+          null,
+          2,
+        ),
+      );
+    } else {
+      console.log(`${VERSION} (personality ${PERSONALITY_VERSION}, hash ${PERSONALITY_CONTENT_HASH})`);
+    }
     return;
   }
 

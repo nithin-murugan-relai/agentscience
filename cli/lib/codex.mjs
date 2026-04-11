@@ -1,6 +1,7 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { compileCodexPlugin, loadPersonality } from "@agentscience/personality";
 
 export const DEFAULT_CODEX_SKILL_NAME = "agentscience";
 export const DEFAULT_CODEX_PLUGIN_NAME = "agent-science";
@@ -191,52 +192,38 @@ function removeLegacyCodexSkill(target) {
 }
 
 export function installCodexPlugin(
-  methodology,
-  { isProject = false, paths, pluginTemplateDir } = {}
+  { isProject = false, paths } = {}
 ) {
-  if (!pluginTemplateDir) {
-    throw new Error("pluginTemplateDir is required to install the codex plugin.");
-  }
-
   const target = getCodexInstallTarget({ isProject, paths });
+  const personality = loadPersonality();
+  const compiledPlugin = compileCodexPlugin(personality);
 
   mkdirSync(dirname(target.pluginDir), { recursive: true });
   removePathIfPresent(target.pluginDir);
-  cpSync(pluginTemplateDir, target.pluginDir, { recursive: true });
-
-  const methodologyDir = join(target.pluginDir, "skills", "agentscience");
-  mkdirSync(methodologyDir, { recursive: true });
-  writeFileSync(join(methodologyDir, "SKILL.md"), buildCodexAgentscienceSkill(methodology), "utf8");
+  for (const [relativePath, contents] of Object.entries(compiledPlugin.files)) {
+    const destination = join(target.pluginDir, relativePath);
+    mkdirSync(dirname(destination), { recursive: true });
+    writeFileSync(destination, contents);
+  }
 
   const marketplace = existsSync(target.marketplacePath)
     ? readJsonFile(target.marketplacePath)
     : undefined;
-  writeJsonFile(target.marketplacePath, upsertCodexMarketplace(marketplace));
+  writeJsonFile(
+    target.marketplacePath,
+    upsertCodexMarketplace(marketplace, {
+      pluginName: compiledPlugin.marketplaceEntry.name,
+      category: compiledPlugin.marketplaceEntry.category,
+    })
+  );
 
   return {
     ...target,
-    pluginName: DEFAULT_CODEX_PLUGIN_NAME,
+    pluginName: compiledPlugin.pluginName,
     legacySkillRemoved: removeLegacyCodexSkill(target),
+    personalityVersion: personality.version,
+    personalityContentHash: personality.contentHash,
   };
-}
-
-const CODEX_AGENTSCIENCE_ROUTER_PREAMBLE = `Use this as the general AgentScience entrypoint.
-
-Route work like this before you commit to the long-form research pipeline:
-
-- If the user wants to inspect or mutate AgentScience data through the platform itself, prefer the canonical \`agentscience\` CLI workflows used by the \`agent-science-platform\` skill (\`papers list\`, \`papers get\`, \`feed list\`, \`rankings list\`, \`profiles get\`, \`papers comment\`, and related commands).
-- If the user wants to build or publish a paper bundle, prefer the canonical \`agentscience research build\`, \`agentscience research run\`, and \`agentscience papers publish\` workflows used by the \`agent-science-research-publish\` skill.
-- If the user wants idea refinement, dataset discovery, experiments, figure generation, and paper writing, follow the methodology below.
-`;
-
-export function buildCodexAgentscienceSkill(methodology) {
-  const heading = "# AgentScience Research Methodology";
-
-  if (!methodology.includes(heading) || methodology.includes(CODEX_AGENTSCIENCE_ROUTER_PREAMBLE)) {
-    return methodology;
-  }
-
-  return methodology.replace(heading, `${heading}\n\n${CODEX_AGENTSCIENCE_ROUTER_PREAMBLE}`);
 }
 
 export function detectAgentRuntime({
