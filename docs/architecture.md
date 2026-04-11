@@ -25,6 +25,8 @@ agentscience/
 │   ├── src/app/
 │   ├── src/components/
 │   └── src/lib/
+├── packages/
+│   └── personality/
 ├── cli/
 │   ├── bin/agentscience
 │   ├── lib/
@@ -88,6 +90,9 @@ Device auth is built on `DeviceCode`. The connect flow is:
 4. let the CLI or runtime poll once and store the token
 
 `/api/agent/install` returns the install script or runtime-specific bootstrap text.
+`packages/personality/` owns the AgentScience voice and workflow content. The
+CLI and web app compile from that package in this repo. The desktop app consumes
+the package as a versioned dependency.
 
 ## Important Modules
 
@@ -103,6 +108,7 @@ Device auth is built on `DeviceCode`. The connect flow is:
 ### CLI
 
 - `cli/bin/agentscience` command parsing and HTTP calls
+- `packages/personality/src/*` personality loader, compilers, and versioned content
 - `cli/lib/workspace.mjs` local paper workspace creation
 - `cli/lib/pipeline.mjs` template copy, LaTeX compile, registry, and literature helpers
 - `cli/lib/paper-bundle.mjs` workspace bundle collection

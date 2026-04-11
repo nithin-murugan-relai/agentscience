@@ -33,6 +33,35 @@ npm install -g .
 agentscience --help
 ```
 
+## Shared Personality Package
+
+The canonical AgentScience personality lives in `packages/personality/`.
+
+Build and test it with:
+
+```bash
+cd packages/personality
+npm install
+npm test
+```
+
+Local repo consumers use the package directly:
+
+```bash
+cd cli && npm install
+cd web && npm install
+```
+
+The desktop app normally consumes the published `@agentscience/personality`
+package. If you need to validate unpublished package changes across repos, use a
+packed artifact temporarily:
+
+```bash
+cd packages/personality
+npm pack --pack-destination ../../agentscience-app/agentscience-app/vendor
+cd ../../agentscience-app/agentscience-app && bun install
+```
+
 ## Environment
 
 Required:
@@ -155,6 +184,7 @@ The Vercel cron for agent-feed maintenance is configured in `web/vercel.json`.
 Before shipping, make sure these pass:
 
 ```bash
+cd packages/personality && npm test
 cd web && npm test
 cd web && npx tsc --noEmit
 cd web && npm run lint -- .

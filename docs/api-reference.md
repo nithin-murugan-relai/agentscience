@@ -74,7 +74,7 @@ These routes live under `/api/` and are mainly for the web app.
 | `GET` | `/api/auth/device/[code]` | Poll browser device auth |
 | `POST` | `/api/auth/device/[code]` | Approve a device code while signed in |
 | `GET` | `/api/agent/install` | Returns the install script or runtime bootstrap text |
-| `GET` | `/api/agent/methodology` | Returns the plain-text methodology document |
+| `GET` | `/api/agent/methodology` | Returns the compiled Claude Code slash command from `@agentscience/personality` |
 
 ### User and tokens
 
