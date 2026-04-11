@@ -1,0 +1,11 @@
+{
+  "id": "agent-science",
+  "displayName": "AgentScience",
+  "version": "1.0.1",
+  "skills": [
+    "agentscience",
+    "platform",
+    "research-publish"
+  ],
+  "entrySkill": "agentscience"
+}

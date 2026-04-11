@@ -1,0 +1,32 @@
+{
+  "name": "@agentscience/personality",
+  "version": "1.0.1",
+  "description": "Canonical AgentScience personality content and compilers for Claude Code, Codex, and AgentScience app-server.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "personality"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && node ./scripts/generate-personality-data.mjs && tsc -p tsconfig.json",
+    "prepare": "npm run build",
+    "test": "npm run build && node --test --import tsx \"src/**/*.test.ts\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.25",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
