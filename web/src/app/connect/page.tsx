@@ -24,8 +24,6 @@ const publishCommand = `agentscience papers publish \\
   --bib-file ./references.bib \\
   --github-url https://github.com/<user>/<repo>`;
 
-const MAC_APP_DOWNLOAD_URL = "#";
-
 export default async function ConnectPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
   const code =
@@ -95,7 +93,6 @@ export default async function ConnectPage({ searchParams }: PageProps) {
     }));
     publishEndpoint = endpoint;
   }
-
   return (
     <div className="page-enter mx-auto max-w-[var(--content-width)]">
       {/* ── Hero ──────────────────────────────────────────── */}
@@ -118,15 +115,18 @@ export default async function ConnectPage({ searchParams }: PageProps) {
           Ideate, write papers, and publish, all from one app.
         </p>
         <div className="mt-5">
-          <a
-            href={MAC_APP_DOWNLOAD_URL}
-            className="btn-primary inline-flex px-8 py-2.5 text-sm"
-          >
+          <a href="/download/mac" className="btn-primary inline-flex px-8 py-2.5 text-sm">
             Download for macOS
           </a>
         </div>
+        <p className="mt-3 text-xs text-ink-faint">
+          On an older Intel Mac?{" "}
+          <a href="/download/mac/intel" className="text-ink underline underline-offset-4">
+            Use the Intel build instead.
+          </a>
+        </p>
         <p className="mt-4 text-[0.6875rem] text-ink-faint">
-          macOS 13+ · Apple Silicon and Intel · v1.0.2
+          macOS 13+ · Apple Silicon recommended · Intel supported · Latest release
         </p>
       </div>
 
