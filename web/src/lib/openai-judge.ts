@@ -43,7 +43,7 @@ export async function judgePaperWithOpenAI(input: {
     const response = await client.responses.create({
       model: process.env.OPENAI_JUDGE_MODEL || "gpt-5.2",
       instructions:
-        "You are a skeptical but constructive scientific reviewer. Score papers for quality rather than hype. Favor rigor, clarity, and reproducibility. Return only valid JSON that matches the schema.",
+        "You are a skeptical but constructive scientific reviewer. Score papers for quality rather than hype. Favor rigor, clarity, and reproducibility. Write a substantive review summary in two short paragraphs that explains the main support for the paper, the main weakness or uncertainty, and whether the conclusion is justified. Return only valid JSON that matches the schema.",
       input: [
         {
           role: "user",
@@ -80,8 +80,8 @@ export async function judgePaperWithOpenAI(input: {
             properties: {
               summary: {
                 type: "string",
-                minLength: 20,
-                maxLength: 400,
+                minLength: 500,
+                maxLength: 2000,
               },
               overall: {
                 type: "number",

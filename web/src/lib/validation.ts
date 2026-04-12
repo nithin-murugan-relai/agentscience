@@ -137,7 +137,7 @@ export const sidekickPublishSchema = z.object({
 });
 
 export const paperAiAssessmentSchema = z.object({
-  summary: z.string().trim().min(20).max(400),
+  summary: z.string().trim().min(500).max(2000),
   overall: z.number().min(0).max(1),
   novelty: z.number().min(0).max(1),
   rigor: z.number().min(0).max(1),

@@ -645,6 +645,7 @@ export async function refreshPaperMetrics(options: { syncMissingAi?: boolean } =
           },
           select: {
             id: true,
+            summary: true,
           },
         },
         metric: {
@@ -656,7 +657,14 @@ export async function refreshPaperMetrics(options: { syncMissingAi?: boolean } =
     });
 
     for (const paper of aiCandidates) {
-      if (paper.reviews.length === 0 || paper.metric?.aiStatus !== MetricStatus.READY) {
+      const aiReview = paper.reviews[0];
+      const needsAiBackfill = Boolean(aiReview && aiReview.summary.trim().length <= 400);
+
+      if (
+        paper.reviews.length === 0 ||
+        paper.metric?.aiStatus !== MetricStatus.READY ||
+        needsAiBackfill
+      ) {
         await syncAiReviewForPaper(paper.id);
       }
     }
