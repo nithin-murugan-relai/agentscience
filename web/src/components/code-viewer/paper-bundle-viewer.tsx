@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import type { PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask } from "pdfjs-dist";
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -241,6 +242,207 @@ function renderTree(
   }
 
   return children;
+}
+
+function MobilePdfPage({
+  pdfDocument,
+  pageNumber,
+  pageWidth,
+}: {
+  pdfDocument: PDFDocumentProxy;
+  pageNumber: number;
+  pageWidth: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [minHeight, setMinHeight] = useState<number>(224);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+
+    if (!canvas || !pageWidth) {
+      return;
+    }
+
+    let cancelled = false;
+    let renderTask: RenderTask | null = null;
+    let pageProxy: PDFPageProxy | null = null;
+
+    const renderPage = async () => {
+      try {
+        pageProxy = await pdfDocument.getPage(pageNumber);
+
+        if (cancelled || !canvas) {
+          return;
+        }
+
+        const baseViewport = pageProxy.getViewport({ scale: 1 });
+        const scale = pageWidth / baseViewport.width;
+        const viewport = pageProxy.getViewport({ scale });
+        const outputScale = window.devicePixelRatio || 1;
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          return;
+        }
+
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        canvas.style.width = `${viewport.width}px`;
+        canvas.style.height = `${viewport.height}px`;
+        setMinHeight(viewport.height);
+        const transform =
+          outputScale === 1
+            ? undefined
+            : ([outputScale, 0, 0, outputScale, 0, 0] as [number, number, number, number, number, number]);
+
+        renderTask = pageProxy.render({
+          canvas,
+          canvasContext: context,
+          viewport,
+          transform,
+        });
+
+        await renderTask.promise;
+        pageProxy.cleanup?.();
+      } catch (error) {
+        if ((error as Error)?.name !== "RenderingCancelledException") {
+          console.error(`Unable to render PDF page ${pageNumber}.`, error);
+        }
+      }
+    };
+
+    void renderPage();
+
+    return () => {
+      cancelled = true;
+      renderTask?.cancel?.();
+      pageProxy?.cleanup?.();
+    };
+  }, [pageNumber, pageWidth, pdfDocument]);
+
+  return (
+    <div
+      className="overflow-hidden rounded-[var(--radius-md)] border border-rule bg-white shadow-[0_8px_20px_rgba(15,23,42,0.06)]"
+      style={{ minHeight: `${minHeight}px` }}
+    >
+      <canvas ref={canvasRef} className="h-auto w-full bg-white" aria-label={`PDF page ${pageNumber}`} />
+    </div>
+  );
+}
+
+function MobilePdfViewer({
+  pdfUrl,
+  paperTitle,
+}: {
+  pdfUrl: string;
+  paperTitle: string;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
+  const [pageCount, setPageCount] = useState(0);
+  const [pageWidth, setPageWidth] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const element = containerRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    const syncWidth = () => {
+      setPageWidth(Math.max(Math.floor(element.clientWidth - 2), 0));
+    };
+
+    syncWidth();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(syncWidth);
+      observer.observe(element);
+
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", syncWidth);
+
+    return () => window.removeEventListener("resize", syncWidth);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let loadingTask: PDFDocumentLoadingTask | null = null;
+    let loadedPdf: PDFDocumentProxy | null = null;
+
+    const loadPdf = async () => {
+      setLoading(true);
+      setError(null);
+      setPdfDocument(null);
+      setPageCount(0);
+
+      try {
+        const pdfjs = await import("pdfjs-dist/legacy/webpack.mjs");
+
+        if (cancelled) {
+          return;
+        }
+
+        const nextLoadingTask = pdfjs.getDocument({ url: pdfUrl });
+        loadingTask = nextLoadingTask;
+        loadedPdf = await nextLoadingTask.promise;
+
+        if (cancelled) {
+          await loadedPdf.destroy?.();
+          return;
+        }
+
+        setPdfDocument(loadedPdf);
+        setPageCount(loadedPdf.numPages);
+      } catch (error) {
+        if (!cancelled) {
+          console.error(`Unable to load inline PDF for ${paperTitle}.`, error);
+          setError("This PDF could not be rendered inline on mobile.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadPdf();
+
+    return () => {
+      cancelled = true;
+      void loadingTask?.destroy?.();
+      void loadedPdf?.destroy?.();
+    };
+  }, [paperTitle, pdfUrl]);
+
+  return (
+    <div ref={containerRef} className="mt-4">
+      {loading ? (
+        <div className="rounded-[var(--radius-md)] border border-rule bg-snow-white px-4 py-10 text-center text-sm text-ink-light">
+          Loading PDF…
+        </div>
+      ) : error ? (
+        <div className="rounded-[var(--radius-md)] border border-dashed border-rule px-4 py-10 text-center text-sm text-ink-light">
+          {error}
+        </div>
+      ) : pdfDocument && pageWidth > 0 ? (
+        <div className="space-y-4">
+          {Array.from({ length: pageCount }, (_, index) => (
+            <MobilePdfPage
+              key={`${pdfUrl}-page-${index + 1}`}
+              pdfDocument={pdfDocument}
+              pageNumber={index + 1}
+              pageWidth={pageWidth}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 /* ── main component ─────────────────────────────────────────── */
@@ -624,13 +826,17 @@ export function PaperBundleViewer({
 
       {activeTab === "pdf" ? (
         pdfUrl ? (
-          <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule">
-            <iframe
-              src={compactLayout ? `${pdfUrl}#zoom=50` : pdfUrl}
-              title={`${paperTitle} PDF`}
-              className="h-[min(78vh,56rem)] min-h-[22rem] w-full"
-            />
-          </div>
+          compactLayout ? (
+            <MobilePdfViewer pdfUrl={pdfUrl} paperTitle={paperTitle} />
+          ) : (
+            <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule">
+              <iframe
+                src={pdfUrl}
+                title={`${paperTitle} PDF`}
+                className="h-[min(78vh,56rem)] min-h-[22rem] w-full"
+              />
+            </div>
+          )
         ) : (
           <div className="mt-4 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
             No compiled PDF is available for this paper.
