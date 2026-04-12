@@ -253,9 +253,6 @@ export function PaperBundleViewer({
   initialTab,
   latexUrl,
   bibUrl,
-  saveAction,
-  isSaved,
-  redirectTo,
 }: {
   artifacts: ArtifactEntry[];
   figures: FigureEntry[];
@@ -264,9 +261,6 @@ export function PaperBundleViewer({
   initialTab: BundleTab;
   latexUrl?: string | null;
   bibUrl?: string | null;
-  saveAction?: string | null;
-  isSaved?: boolean;
-  redirectTo?: string;
 }) {
   const [activeTab, setActiveTab] = useState<BundleTab>(initialTab);
   const [selectedArtifactId, setSelectedArtifactId] = useState(artifacts[0]?.id ?? null);
@@ -281,7 +275,7 @@ export function PaperBundleViewer({
     { id: "figures", label: "Figures", disabled: figures.length === 0 },
     { id: "code", label: "Code", disabled: artifacts.length === 0 },
   ];
-  const hasSaveOptions = latexUrl || bibUrl || saveAction;
+  const hasSaveOptions = latexUrl || bibUrl || pdfUrl;
 
   /* close sidebar on small screens by default */
   useEffect(() => {
@@ -310,7 +304,7 @@ export function PaperBundleViewer({
   const shouldWrap = selectedArtifact ? isProseFile(selectedArtifact.path) : false;
 
   return (
-    <section className="pt-6 pb-2">
+    <section className="pt-2 pb-2">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-1">
           {tabs.map((tab) => (
@@ -370,17 +364,16 @@ export function PaperBundleViewer({
                       <span className="text-[10px] text-ink-faint">.bib</span>
                     </a>
                   )}
-                  {saveAction && (
-                    <form action={saveAction} method="post">
-                      {redirectTo && <input type="hidden" name="redirectTo" value={redirectTo} />}
-                      <button
-                        type="submit"
-                        className="flex w-full items-center px-3 py-2 text-left text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
-                        onClick={() => setSaveOpen(false)}
-                      >
-                        {isSaved ? "Saved" : "Save paper"}
-                      </button>
-                    </form>
+                  {pdfUrl && (
+                    <a
+                      href={pdfUrl}
+                      download
+                      className="flex items-center justify-between px-3 py-2 text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
+                      onClick={() => setSaveOpen(false)}
+                    >
+                      PDF
+                      <span className="text-[10px] text-ink-faint">.pdf</span>
+                    </a>
                   )}
                 </div>
               </>

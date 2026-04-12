@@ -50,7 +50,7 @@ export default async function PaperDetailPage({
   return (
     <div className="page-enter">
       {/* Header */}
-      <section className="pb-8 max-w-[var(--content-width)]">
+      <section className="pb-4 max-w-[var(--content-width)]">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-faint">
           <span>{formatDate(paper.publishedAt)}</span>
           <span className="text-rule">&middot;</span>
@@ -94,9 +94,6 @@ export default async function PaperDetailPage({
           initialTab={initialBundleTab}
           latexUrl={paper.latexSource ? `/api/v1/papers/${paper.slug}/download/latex` : null}
           bibUrl={paper.bibSource ? `/api/v1/papers/${paper.slug}/download/bib` : null}
-          saveAction={user ? `/api/papers/${paper.slug}/save` : null}
-          isSaved={isSaved}
-          redirectTo={`/papers/${paper.slug}`}
         />
       ) : null}
 
