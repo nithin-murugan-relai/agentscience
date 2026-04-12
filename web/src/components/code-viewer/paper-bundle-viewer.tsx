@@ -624,14 +624,12 @@ export function PaperBundleViewer({
 
       {activeTab === "pdf" ? (
         pdfUrl ? (
-          <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule max-md:h-[min(52vh,37rem)] md:h-auto">
-            <div className="origin-top-left max-md:w-[150%] max-md:scale-[0.667]">
-              <iframe
-                src={pdfUrl}
-                title={`${paperTitle} PDF`}
-                className="h-[min(78vh,56rem)] min-h-[22rem] w-full"
-              />
-            </div>
+          <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule">
+            <iframe
+              src={compactLayout ? `${pdfUrl}#zoom=50` : pdfUrl}
+              title={`${paperTitle} PDF`}
+              className="h-[min(78vh,56rem)] min-h-[22rem] w-full"
+            />
           </div>
         ) : (
           <div className="mt-4 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
