@@ -753,12 +753,14 @@ export function PaperBundleViewer({
                       : "border-rule hover:border-ink-faint"
                   }`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={figure.downloadUrl}
-                    alt={figure.caption ?? figure.fileName}
-                    className="h-48 w-full object-cover sm:h-56"
-                  />
+                  <div className="flex min-h-48 items-center justify-center bg-snow-white-dark p-4 sm:min-h-56">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={figure.downloadUrl}
+                      alt={figure.caption ?? figure.fileName}
+                      className="h-auto max-h-40 w-auto max-w-full object-contain sm:max-h-48"
+                    />
+                  </div>
                   <div className="flex flex-col gap-2 bg-snow-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <div className="text-sm text-ink">{figure.fileName}</div>
