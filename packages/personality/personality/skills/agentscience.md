@@ -19,3 +19,15 @@ Core sources:
 
 - `personality.md` defines the voice, standards, and onboarding expectations.
 - `methodology.md` defines the Stage 0 through Stage 4 research workflow.
+
+## Runtime check
+
+If the `agentscience` CLI is available, run `agentscience runtime status --json`
+once near the start of the session before doing substantive work.
+
+- If `updateAvailable` is `true`, tell the user to update the AgentScience CLI
+  with the command shown in `nextSteps`.
+- If the active Codex or Claude Code surface reports `refreshRecommended`, tell
+  the user to run the matching setup command from `nextSteps` before continuing.
+- If the status command is missing or fails because the CLI is not installed,
+  continue normally.
