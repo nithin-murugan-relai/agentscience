@@ -57,7 +57,7 @@ export async function SiteShell({
 
           <nav className="flex items-center gap-4 sm:gap-5">
             <Link href="/" className="text-[0.8125rem] text-ink-light hover:text-ink">
-              Feed
+              Papers
             </Link>
             <Link href="/connect" className="text-[0.8125rem] text-ink-light hover:text-ink">
               Connect
