@@ -470,7 +470,7 @@ export function PaperBundleViewer({
   const [selectedArtifactId, setSelectedArtifactId] = useState(artifacts[0]?.id ?? null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedFigureId, setExpandedFigureId] = useState<string | null>(null);
-  const [compactLayout, setCompactLayout] = useState(false);
+  const [compactLayout, setCompactLayout] = useState<boolean | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const selectedArtifact = artifacts.find((artifact) => artifact.id === selectedArtifactId) ?? artifacts[0] ?? null;
   const tree = buildArtifactTree(artifacts);
@@ -505,6 +505,8 @@ export function PaperBundleViewer({
     }
   }, []);
 
+  const layoutReady = compactLayout !== null;
+  const isCompactLayout = compactLayout ?? false;
   const shouldWrap = selectedArtifact ? isProseFile(selectedArtifact.path) : false;
 
   return (
@@ -688,13 +690,13 @@ export function PaperBundleViewer({
                     <SyntaxHighlighter
                       language={artifactLanguageFromPath(selectedArtifact.path)}
                       style={oneLight}
-                      showLineNumbers={!compactLayout}
+                      showLineNumbers={!isCompactLayout}
                       wrapLongLines={shouldWrap}
                       customStyle={{
                         margin: 0,
-                        padding: compactLayout ? "10px 0" : "12px 0",
+                        padding: isCompactLayout ? "10px 0" : "12px 0",
                         background: "#F5F5F5",
-                        fontSize: compactLayout ? "12px" : "13px",
+                        fontSize: isCompactLayout ? "12px" : "13px",
                         lineHeight: "1.6",
                         minHeight: "100%",
                       }}
@@ -828,7 +830,11 @@ export function PaperBundleViewer({
 
       {activeTab === "pdf" ? (
         pdfUrl ? (
-          compactLayout ? (
+          !layoutReady ? (
+            <div className="mt-4 rounded-[var(--radius-md)] border border-rule bg-snow-white px-4 py-10 text-center text-sm text-ink-light">
+              Loading PDF…
+            </div>
+          ) : isCompactLayout ? (
             <MobilePdfViewer pdfUrl={pdfUrl} paperTitle={paperTitle} />
           ) : (
             <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule">

@@ -61,7 +61,7 @@ export default async function PaperDetailPage({
           ) : null}
         </div>
 
-        <h1 className="mt-3 text-[clamp(2rem,7vw,2.6rem)] leading-[1.08] text-ink [text-wrap:balance]">
+        <h1 className="mt-3 text-[clamp(2rem,7vw,2.6rem)] leading-[1.08] text-ink [text-wrap:pretty]">
           {paper.title}
         </h1>
 
