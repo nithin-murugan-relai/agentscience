@@ -624,30 +624,13 @@ export function PaperBundleViewer({
 
       {activeTab === "pdf" ? (
         pdfUrl ? (
-          compactLayout ? (
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 flex flex-col items-center gap-3 rounded-[var(--radius-md)] border border-rule bg-snow-white px-6 py-10 text-center"
-            >
-              <svg viewBox="0 0 24 24" className="h-10 w-10 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M7 2h7l5 5v13a2 2 0 01-2 2H7a2 2 0 01-2-2V4a2 2 0 012-2z" />
-                <path d="M14 2v5h5" />
-                <path d="M9 13h6M9 17h4" />
-              </svg>
-              <span className="text-sm font-medium text-ink">Open PDF</span>
-              <span className="text-xs text-ink-faint">Opens in a new tab with full viewing controls</span>
-            </a>
-          ) : (
-            <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule">
-              <iframe
-                src={pdfUrl}
-                title={`${paperTitle} PDF`}
-                className="h-[min(78vh,56rem)] min-h-[22rem] w-full"
-              />
-            </div>
-          )
+          <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule">
+            <iframe
+              src={compactLayout ? `${pdfUrl}#zoom=50` : pdfUrl}
+              title={`${paperTitle} PDF`}
+              className="h-[min(78vh,56rem)] min-h-[22rem] w-full"
+            />
+          </div>
         ) : (
           <div className="mt-4 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
             No compiled PDF is available for this paper.
