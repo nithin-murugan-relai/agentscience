@@ -251,25 +251,37 @@ export function PaperBundleViewer({
   pdfUrl,
   paperTitle,
   initialTab,
+  latexUrl,
+  bibUrl,
+  saveAction,
+  isSaved,
+  redirectTo,
 }: {
   artifacts: ArtifactEntry[];
   figures: FigureEntry[];
   pdfUrl: string | null;
   paperTitle: string;
   initialTab: BundleTab;
+  latexUrl?: string | null;
+  bibUrl?: string | null;
+  saveAction?: string | null;
+  isSaved?: boolean;
+  redirectTo?: string;
 }) {
   const [activeTab, setActiveTab] = useState<BundleTab>(initialTab);
   const [selectedArtifactId, setSelectedArtifactId] = useState(artifacts[0]?.id ?? null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedFigureId, setExpandedFigureId] = useState<string | null>(null);
   const [compactLayout, setCompactLayout] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const selectedArtifact = artifacts.find((artifact) => artifact.id === selectedArtifactId) ?? artifacts[0] ?? null;
   const tree = buildArtifactTree(artifacts);
   const tabs: Array<{ id: BundleTab; label: string; disabled: boolean }> = [
-    { id: "code", label: "Code", disabled: artifacts.length === 0 },
-    { id: "figures", label: "Figures", disabled: figures.length === 0 },
     { id: "pdf", label: "PDF", disabled: !pdfUrl },
+    { id: "figures", label: "Figures", disabled: figures.length === 0 },
+    { id: "code", label: "Code", disabled: artifacts.length === 0 },
   ];
+  const hasSaveOptions = latexUrl || bibUrl || saveAction;
 
   /* close sidebar on small screens by default */
   useEffect(() => {
@@ -298,52 +310,92 @@ export function PaperBundleViewer({
   const shouldWrap = selectedArtifact ? isProseFile(selectedArtifact.path) : false;
 
   return (
-    <section id="bundle" className="border-t border-rule py-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="text-base font-medium text-ink">
-            Research Bundle
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-light">
-            Browse the uploaded workspace directly on AgentScience. Code, figures, and the compiled
-            paper stay attached to the publication instead of living in an external repo.
-          </p>
+    <section className="pt-6 pb-2">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              disabled={tab.disabled}
+              onClick={() => setActiveTab(tab.id)}
+              className={`rounded-[var(--radius-sm)] px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? "bg-ink text-snow-white"
+                  : "text-ink-light hover:bg-snow-white-dark hover:text-ink"
+              } ${tab.disabled ? "cursor-not-allowed opacity-30" : ""}`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        <div className="flex flex-wrap gap-2 font-[family-name:var(--font-mono)] text-xs text-ink-faint">
-          <span className="rounded-[var(--radius-sm)] border border-rule px-3 py-1">
-            {artifacts.length} code artifacts
-          </span>
-          <span className="rounded-[var(--radius-sm)] border border-rule px-3 py-1">
-            {figures.length} figures
-          </span>
-        </div>
-      </div>
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            disabled={tab.disabled}
-            onClick={() => setActiveTab(tab.id)}
-            className={`min-w-[5.5rem] rounded-[var(--radius-sm)] px-4 py-2 text-sm ${
-              activeTab === tab.id
-                ? "bg-ink text-snow-white"
-                : "border border-rule text-ink-light hover:border-ink-faint hover:text-ink"
-            } ${tab.disabled ? "cursor-not-allowed opacity-40" : ""}`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {hasSaveOptions && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setSaveOpen(!saveOpen)}
+              className="flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-2 text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
+            >
+              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
+              </svg>
+              Save
+              <svg viewBox="0 0 10 6" className={`h-2 w-2.5 transition-transform ${saveOpen ? "rotate-180" : ""}`} fill="currentColor">
+                <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {saveOpen && (
+              <>
+                {/* backdrop to close on click outside */}
+                <div className="fixed inset-0 z-10" onClick={() => setSaveOpen(false)} />
+                <div className="absolute right-0 z-20 mt-1 w-36 rounded-[var(--radius-md)] border border-rule bg-white py-1 shadow-sm">
+                  {latexUrl && (
+                    <a
+                      href={latexUrl}
+                      className="flex items-center justify-between px-3 py-2 text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
+                      onClick={() => setSaveOpen(false)}
+                    >
+                      LaTeX
+                      <span className="text-[10px] text-ink-faint">.tex</span>
+                    </a>
+                  )}
+                  {bibUrl && (
+                    <a
+                      href={bibUrl}
+                      className="flex items-center justify-between px-3 py-2 text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
+                      onClick={() => setSaveOpen(false)}
+                    >
+                      BibTeX
+                      <span className="text-[10px] text-ink-faint">.bib</span>
+                    </a>
+                  )}
+                  {saveAction && (
+                    <form action={saveAction} method="post">
+                      {redirectTo && <input type="hidden" name="redirectTo" value={redirectTo} />}
+                      <button
+                        type="submit"
+                        className="flex w-full items-center px-3 py-2 text-left text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
+                        onClick={() => setSaveOpen(false)}
+                      >
+                        {isSaved ? "Saved" : "Save paper"}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {activeTab === "code" ? (
         artifacts.length === 0 ? (
-          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
+          <div className="mt-4 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
             No code artifacts were uploaded with this paper.
           </div>
         ) : (
-          <div className="mt-6 overflow-hidden rounded-[var(--radius-md)] border border-rule bg-snow-white">
+          <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule bg-snow-white">
             {/* toolbar */}
             <div className="flex flex-col gap-2 border-b border-rule bg-snow-white-dark px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-center gap-1">
@@ -487,12 +539,12 @@ export function PaperBundleViewer({
 
       {activeTab === "figures" ? (
         figures.length === 0 ? (
-          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
+          <div className="mt-4 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
             No figures were uploaded with this paper.
           </div>
         ) : (
           <>
-            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {figures.map((figure) => (
                 <button
                   key={figure.id}
@@ -577,7 +629,7 @@ export function PaperBundleViewer({
 
       {activeTab === "pdf" ? (
         pdfUrl ? (
-          <div className="mt-6 overflow-hidden rounded-[var(--radius-md)] border border-rule">
+          <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule">
             <iframe
               src={pdfUrl}
               title={`${paperTitle} PDF`}
@@ -585,7 +637,7 @@ export function PaperBundleViewer({
             />
           </div>
         ) : (
-          <div className="mt-6 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
+          <div className="mt-4 rounded-[var(--radius-md)] border border-dashed border-rule px-6 py-12 text-sm text-ink-light">
             No compiled PDF is available for this paper.
           </div>
         )

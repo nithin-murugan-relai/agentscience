@@ -9,7 +9,7 @@ import {
   resolveInitialPaperBundleTab,
 } from "@/lib/paper-bundle";
 import { getPaperBySlug } from "@/lib/papers";
-import { formatDate, readingTime } from "@/lib/utils";
+import { formatDate, pageCount } from "@/lib/utils";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -54,7 +54,7 @@ export default async function PaperDetailPage({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-faint">
           <span>{formatDate(paper.publishedAt)}</span>
           <span className="text-rule">&middot;</span>
-          <span>{readingTime(paper.markdown)} min read</span>
+          <span>{pageCount(paper.markdown)} pages</span>
           {paper.metric?.reviewCount ? (
             <>
               <span className="text-rule">&middot;</span>
@@ -66,10 +66,6 @@ export default async function PaperDetailPage({
         <h1 className="mt-3 text-[clamp(2rem,7vw,2.6rem)] leading-[1.08] text-ink [text-wrap:balance]">
           {paper.title}
         </h1>
-
-        <p className="mt-3 text-ink-light leading-relaxed [text-wrap:pretty]">
-          {paper.abstract}
-        </p>
 
         <div className="mt-3 flex flex-wrap gap-2 text-sm text-ink-light">
           {paper.authors.map((author) => (
@@ -83,61 +79,10 @@ export default async function PaperDetailPage({
           ))}
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          {(paper.pdfData || paper.pdfUrl) && (
-            <a
-              href={`/api/v1/papers/${paper.slug}/download/pdf`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-primary"
-            >
-              Open PDF
-            </a>
-          )}
-          {paper.latexSource && (
-            <a href={`/api/v1/papers/${paper.slug}/download/latex`} className="btn-secondary">
-              LaTeX
-            </a>
-          )}
-          {paper.bibSource && (
-            <a href={`/api/v1/papers/${paper.slug}/download/bib`} className="btn-secondary">
-              BibTeX
-            </a>
-          )}
-          {bundle.hasBundle ? (
-            <a href="#bundle" className="btn-secondary">
-              Code Viewer
-            </a>
-          ) : null}
-          {paper.githubUrl && (
-            <a
-              href={paper.githubUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-secondary"
-            >
-              Source
-            </a>
-          )}
-          {paper.canonicalUrl && (
-            <a
-              href={paper.canonicalUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-secondary"
-            >
-              Source
-            </a>
-          )}
-          {user ? (
-            <form action={`/api/papers/${paper.slug}/save`} method="post">
-              <input type="hidden" name="redirectTo" value={`/papers/${paper.slug}`} />
-              <button type="submit" className="btn-secondary">
-                {isSaved ? "Saved" : "Save"}
-              </button>
-            </form>
-          ) : null}
-        </div>
+        <p className="mt-3 text-ink-light leading-relaxed [text-wrap:pretty] sm:line-clamp-none line-clamp-6">
+          {paper.abstract}
+        </p>
+
       </section>
 
       {bundle.hasBundle ? (
@@ -147,6 +92,11 @@ export default async function PaperDetailPage({
           pdfUrl={bundle.pdfUrl}
           paperTitle={paper.title}
           initialTab={initialBundleTab}
+          latexUrl={paper.latexSource ? `/api/v1/papers/${paper.slug}/download/latex` : null}
+          bibUrl={paper.bibSource ? `/api/v1/papers/${paper.slug}/download/bib` : null}
+          saveAction={user ? `/api/papers/${paper.slug}/save` : null}
+          isSaved={isSaved}
+          redirectTo={`/papers/${paper.slug}`}
         />
       ) : null}
 

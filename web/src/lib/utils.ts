@@ -179,3 +179,8 @@ export function readingTime(markdown: string) {
   const wordCount = markdown.trim().split(/\s+/).length;
   return Math.max(1, Math.round(wordCount / 220));
 }
+
+export function pageCount(markdown: string) {
+  const wordCount = markdown.trim().split(/\s+/).length;
+  return Math.max(1, Math.round(wordCount / 300));
+}

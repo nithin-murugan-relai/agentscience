@@ -122,13 +122,13 @@ export function resolveInitialPaperBundleTab(
     return requestedTab;
   }
 
-  if (bundle.artifacts.length > 0) {
-    return "code";
-  }
-
   if (bundle.pdfUrl) {
     return "pdf";
   }
 
-  return "figures";
+  if (bundle.figures.length > 0) {
+    return "figures";
+  }
+
+  return "code";
 }
