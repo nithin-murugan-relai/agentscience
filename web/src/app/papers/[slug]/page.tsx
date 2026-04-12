@@ -76,7 +76,7 @@ export default async function PaperDetailPage({
           ))}
         </div>
 
-        <p className="mt-3 text-ink-light leading-relaxed [text-wrap:pretty] sm:line-clamp-none line-clamp-6">
+        <p className="mt-3 text-ink-light leading-relaxed [text-wrap:pretty]">
           {paper.abstract}
         </p>
 
