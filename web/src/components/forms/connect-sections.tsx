@@ -25,7 +25,7 @@ function AgentSetupCard({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border-b border-rule py-4 last:border-b-0">
+    <div className="border-t border-rule pt-6">
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -33,18 +33,20 @@ function AgentSetupCard({
       >
         <div>
           <p className="text-sm font-medium text-ink">{name}</p>
-          <p className="text-xs text-ink-light">{description}</p>
+          <p className="mt-0.5 text-xs text-ink-light">{description}</p>
         </div>
         <span className="shrink-0 text-xs text-ink-faint ml-4">
-          {open ? "Hide setup" : "Show setup"} ›
+          {open ? "Hide" : "Show"} setup
         </span>
       </button>
       {open && (
-        <div className="mt-4 space-y-3">
+        <div className="mt-4">
           <p className="text-xs text-ink-light">
             Run this in your terminal to install the AgentScience CLI and connect {name}:
           </p>
-          <CopyCodeBlock code={command} />
+          <div className="mt-3">
+            <CopyCodeBlock code={command} />
+          </div>
         </div>
       )}
     </div>
@@ -59,15 +61,15 @@ export function OtherWaysSection({
   claudeCodeCommand: string;
 }) {
   return (
-    <div>
+    <div className="border-t border-rule pt-8">
       <p className="text-[0.6875rem] font-medium tracking-widest text-ink-faint uppercase">
         Other ways to connect
       </p>
-      <p className="mt-2 text-sm text-ink-light">
-        If you already use a coding agent, you can connect it to AgentScience to
+      <p className="mt-2 text-sm text-ink-light leading-relaxed">
+        If you already use a coding agent, connect it to AgentScience to
         publish directly from your workflow.
       </p>
-      <div className="mt-4 rounded-[var(--radius-md)] border border-rule">
+      <div className="mt-6 space-y-6">
         <AgentSetupCard
           name="Codex"
           description="OpenAI's coding agent"
@@ -99,7 +101,7 @@ export function AdvancedSection({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border-t border-rule pt-6">
+    <div className="border-t border-rule pt-8">
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -114,11 +116,11 @@ export function AdvancedSection({
           </p>
         </div>
         <span className="shrink-0 text-xs text-ink-faint ml-4">
-          {open ? "Collapse" : "Expand"} ›
+          {open ? "Collapse" : "Expand"}
         </span>
       </button>
 
-      <div className={open ? "mt-6 space-y-8" : "hidden"}>
+      <div className={open ? "mt-8 space-y-10" : "hidden"}>
           {isAuthenticated && existingKeys && (
             <div>
               <p className="text-sm font-medium text-ink">API tokens</p>

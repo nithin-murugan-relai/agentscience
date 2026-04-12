@@ -74,7 +74,7 @@ export async function SiteShell({
                 <form action="/api/auth/sign-out" method="post">
                   <button
                     type="submit"
-                    className="text-[0.8125rem] text-ink-faint hover:text-ink"
+                    className="text-[0.8125rem] text-ink-light hover:text-ink"
                   >
                     Sign out
                   </button>
