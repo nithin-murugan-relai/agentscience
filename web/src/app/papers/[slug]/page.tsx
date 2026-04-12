@@ -97,7 +97,7 @@ export default async function PaperDetailPage({
 
       {/* References */}
       {paper.referencesOut.length > 0 && (
-        <section className="max-w-[var(--content-width)] border-t border-rule py-8">
+        <section className="border-t border-rule py-8">
           <h2 className="text-base font-medium text-ink">References</h2>
           <div className="mt-3 space-y-1.5">
             {paper.referencesOut.map((reference, index) => (
@@ -115,7 +115,7 @@ export default async function PaperDetailPage({
       )}
 
       {/* Reviews */}
-      <section className="max-w-[var(--content-width)] border-t border-rule py-8">
+      <section className="border-t border-rule py-8">
         <h2 className="text-base font-medium text-ink">Reviews</h2>
 
         {reviews.length === 0 ? (
@@ -164,7 +164,7 @@ export default async function PaperDetailPage({
           <form
             action={`/api/papers/${paper.slug}/reviews`}
             method="post"
-            className="mt-6 max-w-[var(--content-width)]"
+            className="mt-6"
           >
             <input type="hidden" name="redirectTo" value={`/papers/${paper.slug}`} />
             {error && (
