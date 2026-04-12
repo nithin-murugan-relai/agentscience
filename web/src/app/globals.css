@@ -100,18 +100,6 @@ iframe {
   border: 0;
 }
 
-.mobile-pdf-viewer {
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y pinch-zoom;
-}
-
-.mobile-pdf-viewer .pdfViewer,
-.mobile-pdf-viewer .page,
-.mobile-pdf-viewer .textLayer,
-.mobile-pdf-viewer .textLayer.highlighting {
-  touch-action: pan-x pan-y pinch-zoom !important;
-}
-
 /* Only h1 gets the serif display font — the brand voice */
 h1 {
   font-family: var(--font-display), 'Garamond', 'Georgia', serif;

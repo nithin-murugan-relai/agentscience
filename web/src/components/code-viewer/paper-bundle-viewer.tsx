@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { PDFDocumentLoadingTask, PDFDocumentProxy } from "pdfjs-dist";
-import type { PDFViewer } from "pdfjs-dist/web/pdf_viewer.mjs";
-import "pdfjs-dist/web/pdf_viewer.css";
+import type { PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy, RenderTask } from "pdfjs-dist";
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -246,6 +244,89 @@ function renderTree(
   return children;
 }
 
+function MobilePdfPage({
+  pdfDocument,
+  pageNumber,
+  pageWidth,
+}: {
+  pdfDocument: PDFDocumentProxy;
+  pageNumber: number;
+  pageWidth: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [minHeight, setMinHeight] = useState<number>(224);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+
+    if (!canvas || !pageWidth) {
+      return;
+    }
+
+    let cancelled = false;
+    let renderTask: RenderTask | null = null;
+    let pageProxy: PDFPageProxy | null = null;
+
+    const renderPage = async () => {
+      try {
+        pageProxy = await pdfDocument.getPage(pageNumber);
+
+        if (cancelled || !canvas) {
+          return;
+        }
+
+        const baseViewport = pageProxy.getViewport({ scale: 1 });
+        const cssScale = pageWidth / baseViewport.width;
+        const cssViewport = pageProxy.getViewport({ scale: cssScale });
+        const deviceScale = window.devicePixelRatio || 1;
+        const renderScale = Math.min(Math.max(deviceScale * 1.5, 3), 5);
+        const renderViewport = pageProxy.getViewport({ scale: cssScale * renderScale });
+        const context = canvas.getContext("2d", { alpha: false });
+
+        if (!context) {
+          return;
+        }
+
+        canvas.width = Math.floor(renderViewport.width);
+        canvas.height = Math.floor(renderViewport.height);
+        canvas.style.width = `${cssViewport.width}px`;
+        canvas.style.height = `${cssViewport.height}px`;
+        setMinHeight(cssViewport.height);
+
+        renderTask = pageProxy.render({
+          canvas,
+          canvasContext: context,
+          viewport: renderViewport,
+        });
+
+        await renderTask.promise;
+        pageProxy.cleanup?.();
+      } catch (error) {
+        if ((error as Error)?.name !== "RenderingCancelledException") {
+          console.error(`Unable to render PDF page ${pageNumber}.`, error);
+        }
+      }
+    };
+
+    void renderPage();
+
+    return () => {
+      cancelled = true;
+      renderTask?.cancel?.();
+      pageProxy?.cleanup?.();
+    };
+  }, [pageNumber, pageWidth, pdfDocument]);
+
+  return (
+    <div
+      className="overflow-hidden rounded-[var(--radius-md)] border border-rule bg-white shadow-[0_8px_20px_rgba(15,23,42,0.06)]"
+      style={{ minHeight: `${minHeight}px` }}
+    >
+      <canvas ref={canvasRef} className="h-auto w-full bg-white" aria-label={`PDF page ${pageNumber}`} />
+    </div>
+  );
+}
+
 function MobilePdfViewer({
   pdfUrl,
   paperTitle,
@@ -254,76 +335,54 @@ function MobilePdfViewer({
   paperTitle: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const viewerRef = useRef<HTMLDivElement | null>(null);
-  const pdfViewerRef = useRef<PDFViewer | null>(null);
+  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
+  const [pageCount, setPageCount] = useState(0);
+  const [pageWidth, setPageWidth] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [zoomPercent, setZoomPercent] = useState<number | null>(null);
 
   useEffect(() => {
-    const container = containerRef.current;
-    const viewer = viewerRef.current;
+    const element = containerRef.current;
 
-    if (!container || !viewer) {
+    if (!element) {
       return;
     }
 
+    const syncWidth = () => {
+      setPageWidth(Math.max(Math.floor(element.clientWidth - 2), 0));
+    };
+
+    syncWidth();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(syncWidth);
+      observer.observe(element);
+
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", syncWidth);
+
+    return () => window.removeEventListener("resize", syncWidth);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     let loadingTask: PDFDocumentLoadingTask | null = null;
     let loadedPdf: PDFDocumentProxy | null = null;
-    let cleanupViewer: (() => void) | null = null;
 
     const loadPdf = async () => {
       setLoading(true);
       setError(null);
-      viewer.replaceChildren();
+      setPdfDocument(null);
+      setPageCount(0);
 
       try {
-        const [pdfjs, pdfjsViewer] = await Promise.all([
-          import("pdfjs-dist/legacy/webpack.mjs"),
-          import("pdfjs-dist/web/pdf_viewer.mjs"),
-        ]);
+        const pdfjs = await import("pdfjs-dist/legacy/webpack.mjs");
 
         if (cancelled) {
           return;
         }
-
-        const eventBus = new pdfjsViewer.EventBus();
-        const linkService = new pdfjsViewer.PDFLinkService({ eventBus });
-        const pdfViewer = new pdfjsViewer.PDFViewer({
-          container,
-          viewer,
-          eventBus,
-          linkService,
-          removePageBorders: true,
-          textLayerMode: 1,
-          maxCanvasPixels: -1,
-          enableDetailCanvas: true,
-          supportsPinchToZoom: true,
-        });
-        pdfViewerRef.current = pdfViewer;
-
-        linkService.setViewer(pdfViewer);
-
-        const handlePagesInit = () => {
-          pdfViewer.currentScaleValue = "page-fit";
-          setLoading(false);
-        };
-        const handleScaleChanging = (event: { scale: number }) => {
-          if (typeof event.scale === "number" && Number.isFinite(event.scale)) {
-            setZoomPercent(Math.round(event.scale * 100));
-          }
-        };
-
-        eventBus.on("pagesinit", handlePagesInit);
-        eventBus.on("scalechanging", handleScaleChanging);
-        cleanupViewer = () => {
-          eventBus.off("pagesinit", handlePagesInit);
-          eventBus.off("scalechanging", handleScaleChanging);
-          pdfViewerRef.current = null;
-          pdfViewer.cleanup();
-          viewer.replaceChildren();
-        };
 
         const nextLoadingTask = pdfjs.getDocument({ url: pdfUrl });
         loadingTask = nextLoadingTask;
@@ -334,12 +393,15 @@ function MobilePdfViewer({
           return;
         }
 
-        linkService.setDocument(loadedPdf, null);
-        pdfViewer.setDocument(loadedPdf);
+        setPdfDocument(loadedPdf);
+        setPageCount(loadedPdf.numPages);
       } catch (error) {
         if (!cancelled) {
           console.error(`Unable to load inline PDF for ${paperTitle}.`, error);
           setError("This PDF could not be rendered inline on mobile.");
+        }
+      } finally {
+        if (!cancelled) {
           setLoading(false);
         }
       }
@@ -349,46 +411,13 @@ function MobilePdfViewer({
 
     return () => {
       cancelled = true;
-      cleanupViewer?.();
       void loadingTask?.destroy?.();
       void loadedPdf?.destroy?.();
     };
   }, [paperTitle, pdfUrl]);
 
-  const zoomOut = useCallback(() => {
-    const viewer = pdfViewerRef.current;
-    if (!viewer) {
-      return;
-    }
-    viewer.currentScale = Math.max(0.4, viewer.currentScale / 1.2);
-  }, []);
-
-  const zoomIn = useCallback(() => {
-    const viewer = pdfViewerRef.current;
-    if (!viewer) {
-      return;
-    }
-    viewer.currentScale = Math.min(4, viewer.currentScale * 1.2);
-  }, []);
-
-  const setFitScale = useCallback(() => {
-    const viewer = pdfViewerRef.current;
-    if (!viewer) {
-      return;
-    }
-    viewer.currentScaleValue = "page-fit";
-  }, []);
-
-  const setWidthScale = useCallback(() => {
-    const viewer = pdfViewerRef.current;
-    if (!viewer) {
-      return;
-    }
-    viewer.currentScaleValue = "page-width";
-  }, []);
-
   return (
-    <div className="mt-4">
+    <div ref={containerRef} className="mt-4">
       {loading ? (
         <div className="rounded-[var(--radius-md)] border border-rule bg-snow-white px-4 py-10 text-center text-sm text-ink-light">
           Loading PDF…
@@ -397,55 +426,18 @@ function MobilePdfViewer({
         <div className="rounded-[var(--radius-md)] border border-dashed border-rule px-4 py-10 text-center text-sm text-ink-light">
           {error}
         </div>
-      ) : null}
-
-      {!loading && !error ? (
-        <div className="mb-2 flex items-center justify-between gap-2 text-xs text-ink-light">
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={zoomOut}
-              className="rounded-[var(--radius-sm)] border border-rule bg-snow-white px-2.5 py-1 text-ink transition-colors hover:bg-snow-white-dark"
-            >
-              -
-            </button>
-            <span className="min-w-12 text-center font-[family-name:var(--font-mono)] text-[11px] text-ink-faint">
-              {zoomPercent ? `${zoomPercent}%` : "Fit"}
-            </span>
-            <button
-              type="button"
-              onClick={zoomIn}
-              className="rounded-[var(--radius-sm)] border border-rule bg-snow-white px-2.5 py-1 text-ink transition-colors hover:bg-snow-white-dark"
-            >
-              +
-            </button>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={setFitScale}
-              className="rounded-[var(--radius-sm)] border border-rule bg-snow-white px-2.5 py-1 text-ink transition-colors hover:bg-snow-white-dark"
-            >
-              Fit
-            </button>
-            <button
-              type="button"
-              onClick={setWidthScale}
-              className="rounded-[var(--radius-sm)] border border-rule bg-snow-white px-2.5 py-1 text-ink transition-colors hover:bg-snow-white-dark"
-            >
-              Width
-            </button>
-          </div>
+      ) : pdfDocument && pageWidth > 0 ? (
+        <div className="space-y-4">
+          {Array.from({ length: pageCount }, (_, index) => (
+            <MobilePdfPage
+              key={`${pdfUrl}-page-${index + 1}`}
+              pdfDocument={pdfDocument}
+              pageNumber={index + 1}
+              pageWidth={pageWidth}
+            />
+          ))}
         </div>
       ) : null}
-
-      <div
-        ref={containerRef}
-        className={`${loading || error ? "hidden" : "block"} mobile-pdf-viewer overflow-auto rounded-[var(--radius-md)] border border-rule bg-snow-white-dark`}
-        style={{ height: "min(78vh, 56rem)" }}
-      >
-        <div ref={viewerRef} className="pdfViewer" />
-      </div>
     </div>
   );
 }
