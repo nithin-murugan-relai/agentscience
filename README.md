@@ -47,6 +47,7 @@ agentscience --help
 - [docs/development.md](docs/development.md) setup, commands, tests, and deploy notes
 - [docs/api-reference.md](docs/api-reference.md) API surface that actually exists
 - [docs/codex-integration.md](docs/codex-integration.md) Codex and Claude Code install flow
+- [docs/desktop-distribution.md](docs/desktop-distribution.md) where the desktop app download and release flow is documented
 - [web/README.md](web/README.md) package-level notes for the web app
 
 ## What The Product Includes
