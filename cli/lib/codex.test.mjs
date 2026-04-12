@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -158,10 +158,13 @@ test("installCodexPlugin writes the compiled plugin tree and links it to the per
     const compiledPlugin = compileCodexPlugin(personality);
 
     assert.equal(installed.pluginName, "agent-science");
+    assert.equal(installed.installMode, "linked");
+    assert.equal(installed.autoUpdates, true);
     assert.equal(installed.personalityVersion, personality.version);
     assert.equal(installed.personalityContentHash, personality.contentHash);
     assert.deepEqual(installed.legacySkillRemoved, [paths.userSkillDir]);
     assert.equal(existsSync(paths.userSkillDir), false);
+    assert.equal(lstatSync(installed.pluginDir).isSymbolicLink(), true);
 
     const skillPath = join(installed.pluginDir, "skills", "agentscience", "SKILL.md");
     const manifestPath = join(installed.pluginDir, ".codex-plugin", "plugin.json");

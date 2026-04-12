@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import {
-  cpSync,
   chmodSync,
   existsSync,
   mkdirSync,
@@ -37,13 +36,21 @@ import {
   runLiteratureReview,
 } from "../lib/pipeline.mjs";
 import {
+  getPackagedPersonalityArtifacts,
+  installLinkedFile,
+} from "../lib/personality-package.mjs";
+import {
+  buildRuntimeStatus,
+  formatRuntimeAttention,
+} from "../lib/runtime-status.mjs";
+import {
   getWorkspaceBase,
   initPaperWorkspace,
   listPaperWorkspaces,
 } from "../lib/workspace.mjs";
 import { collectWorkspaceBundle } from "../lib/paper-bundle.mjs";
 
-const VERSION = "0.5.0";
+const VERSION = "0.5.1";
 const DEFAULT_BASE_URL =
   process.env.AGENTSCIENCE_BASE_URL ?? "https://agentscience.vercel.app";
 const CONFIG_DIR = join(homedir(), ".config", "agentscience");
@@ -81,6 +88,7 @@ Commands:
   papers     Browse, inspect, publish, comment on, and download papers.
   profiles   View or update public researcher profiles and digest settings.
   digest     Generate a personalized daily digest for the authenticated user.
+  runtime    Inspect CLI and local AgentScience runtime update status.
   research   Workspace bootstrap, literature review, LaTeX compilation, and paper publishing tools.
   registry   Search and manage the AgentScience dataset registry.
   research template Copy the standard LaTeX template into a directory.
@@ -100,6 +108,7 @@ Examples:
   agentscience profiles get mayaalvarez
   agentscience profiles update --interest genomics --interest causal-inference --digest-enabled
   agentscience digest get --human
+  agentscience runtime status --json
   agentscience research init --idea "Does fine-tuning improve sepsis prediction?"
   agentscience research run --idea "Adaptive sampling for outbreak triage" --workspace ./research-runs/outbreak --publish
 `;
@@ -382,6 +391,13 @@ Description:
   Returns the personalized daily digest for the authenticated user, including a
   short summary and ranked recent papers.
 `,
+  runtime: `Usage:
+  agentscience runtime status [--force-refresh]
+
+Description:
+  Reports whether the installed AgentScience CLI is behind npm and whether the
+  active Codex or Claude Code AgentScience surfaces need to be refreshed.
+`,
   research: `Usage:
   agentscience research <subcommand> [options]
 
@@ -659,6 +675,31 @@ function render(result, mode) {
     console.log(result.summary);
     for (const paper of result.papers) {
       console.log(`- ${paper.title}`);
+    }
+    return;
+  }
+
+  if (result?.runtime?.cli?.version) {
+    const status = result.runtime;
+    console.log(
+      `AgentScience CLI ${status.cli.version} (personality ${status.cli.personalityVersion}, hash ${status.cli.personalityContentHash})`,
+    );
+    if (status.cli.latestVersion) {
+      console.log(`Latest npm version: ${status.cli.latestVersion}`);
+    }
+    console.log(
+      `Codex active surface: ${status.codex.active.installed ? status.codex.active.scope : "missing"} (${status.codex.active.installMode})`,
+    );
+    console.log(
+      `Claude Code active surface: ${status.claudeCode.active.installed ? status.claudeCode.active.scope : "missing"} (${status.claudeCode.active.installMode})`,
+    );
+
+    const attention = formatRuntimeAttention(status);
+    if (attention.length > 0) {
+      console.log("");
+      for (const line of attention) {
+        console.log(`- ${line}`);
+      }
     }
     return;
   }
@@ -1319,6 +1360,35 @@ async function handleDigest(args, globalOptions, config) {
   render(result, globalOptions.outputMode);
 }
 
+async function handleRuntime(args, globalOptions) {
+  const [subcommand, ...rest] = args;
+
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log(HELP.runtime);
+    return;
+  }
+
+  if (subcommand !== "status") {
+    fail(`Unknown runtime subcommand: ${subcommand}`);
+  }
+
+  if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+    console.log(HELP.runtime);
+    return;
+  }
+
+  const status = await buildRuntimeStatus({
+    currentVersion: VERSION,
+    currentPersonalityVersion: PERSONALITY_VERSION,
+    currentPersonalityContentHash: PERSONALITY_CONTENT_HASH,
+    cwd: process.cwd(),
+    homeDir: homedir(),
+    forceRefresh: hasFlag(rest, "--force-refresh"),
+  });
+
+  render({ runtime: status }, globalOptions.outputMode);
+}
+
 async function handleFeed(args, globalOptions) {
   const [subcommand, ...rest] = args;
   if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
@@ -1701,6 +1771,7 @@ async function resolveClaudeCodeSlashCommand(baseUrl) {
     return {
       commandName: "agentscience",
       content: methodology.content,
+      packagedCommandPath: null,
       methodologyUrl: methodology.methodologyUrl,
       personalityVersion: null,
       personalityContentHash: null,
@@ -1710,10 +1781,16 @@ async function resolveClaudeCodeSlashCommand(baseUrl) {
 
   const personality = loadPersonality();
   const compiled = compileClaudeCodeSlashCommand(personality);
+  const packagedArtifacts = getPackagedPersonalityArtifacts();
 
   return {
     commandName: compiled.commandName,
-    content: compiled.content,
+    content: existsSync(packagedArtifacts.claudeCodeCommandPath)
+      ? readFileSync(packagedArtifacts.claudeCodeCommandPath, "utf8")
+      : compiled.content,
+    packagedCommandPath: existsSync(packagedArtifacts.claudeCodeCommandPath)
+      ? packagedArtifacts.claudeCodeCommandPath
+      : null,
     methodologyUrl: null,
     personalityVersion: personality.version,
     personalityContentHash: personality.contentHash,
@@ -1972,6 +2049,9 @@ async function handleSetup(args, globalOptions, config) {
         marketplacePath: installedPlugin.marketplacePath,
         legacySkillRemoved: installedPlugin.legacySkillRemoved,
         scope: installedPlugin.scope,
+        installMode: installedPlugin.installMode,
+        autoUpdates: installedPlugin.autoUpdates,
+        pluginSourcePath: installedPlugin.pluginSourcePath,
         configPath: CONFIG_PATH,
         personalityVersion: installedPlugin.personalityVersion,
         personalityContentHash: installedPlugin.personalityContentHash,
@@ -2033,7 +2113,20 @@ async function handleSetup(args, globalOptions, config) {
   });
 
   mkdirSync(commandDir, { recursive: true });
-  writeFileSync(resolvedCommandPath, slashCommand.content, "utf8");
+  const commandInstall =
+    slashCommand.packagedCommandPath && existsSync(slashCommand.packagedCommandPath)
+      ? installLinkedFile({
+          sourcePath: slashCommand.packagedCommandPath,
+          targetPath: resolvedCommandPath,
+        })
+      : (() => {
+          writeFileSync(resolvedCommandPath, slashCommand.content, "utf8");
+          return {
+            installMode: "copied",
+            sourcePath: null,
+            autoUpdates: false,
+          };
+        })();
 
   const verification = [];
   try {
@@ -2055,6 +2148,9 @@ async function handleSetup(args, globalOptions, config) {
       scope: isProject ? "project" : "user",
       configPath: CONFIG_PATH,
       methodologyUrl: slashCommand.methodologyUrl,
+      installMode: commandInstall.installMode,
+      autoUpdates: commandInstall.autoUpdates,
+      commandSourcePath: commandInstall.sourcePath,
       personalityVersion: slashCommand.personalityVersion,
       personalityContentHash: slashCommand.personalityContentHash,
       commandSource: slashCommand.source,
@@ -2085,6 +2181,35 @@ async function handleCodex(args, globalOptions, config) {
   await handleSetup(["codex", ...rest], globalOptions, config);
 }
 
+async function maybePrintRuntimeUpdateNotice(command, globalOptions) {
+  if (globalOptions.outputMode !== "human") {
+    return;
+  }
+
+  if (!command || command === "runtime") {
+    return;
+  }
+
+  const status = await buildRuntimeStatus({
+    currentVersion: VERSION,
+    currentPersonalityVersion: PERSONALITY_VERSION,
+    currentPersonalityContentHash: PERSONALITY_CONTENT_HASH,
+    cwd: process.cwd(),
+    homeDir: homedir(),
+  });
+  const attention = formatRuntimeAttention(status);
+
+  if (attention.length === 0) {
+    return;
+  }
+
+  console.log("AgentScience runtime notice:");
+  for (const line of attention) {
+    console.log(`- ${line}`);
+  }
+  console.log("");
+}
+
 async function main() {
   ensureExecutable();
 
@@ -2110,6 +2235,8 @@ async function main() {
   }
 
   const [command, ...rest] = globalOptions.args;
+
+  await maybePrintRuntimeUpdateNotice(command, globalOptions);
 
   if (!command || (globalOptions.help && rest.length === 0)) {
     console.log(TOP_HELP);
@@ -2148,6 +2275,9 @@ async function main() {
       break;
     case "digest":
       await handleDigest(rest, globalOptions, config);
+      break;
+    case "runtime":
+      await handleRuntime(rest, globalOptions);
       break;
     case "research":
       await handleResearch(rest, globalOptions, config);

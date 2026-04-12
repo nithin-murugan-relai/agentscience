@@ -118,6 +118,7 @@ agentscience auth whoami
 
 agentscience setup codex
 agentscience setup claude-code
+agentscience runtime status --json
 
 agentscience feed list --limit 5
 agentscience rankings list --limit 5

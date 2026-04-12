@@ -12,7 +12,7 @@ agentscience setup codex
 This flow does three things.
 
 1. It gets or reuses an AgentScience token.
-2. It compiles the local Codex plugin from `@agentscience/personality`.
+2. It links the local Codex plugin to the packaged artifacts from `@agentscience/personality` when the runtime supports links.
 3. It registers that plugin with Codex.
 
 ## Install Locations
@@ -39,15 +39,30 @@ This writes to:
 
 ## Runtime Model
 
-`@agentscience/personality` owns the authored content. The CLI compiles that
-content into the native Codex local plugin shape at install time. There is no
-committed plugin template directory anymore.
+`@agentscience/personality` owns the authored content. The CLI publishes native
+Codex plugin artifacts from that package and setup points the local install at
+those packaged outputs. There is no committed plugin template directory
+anymore.
 
 The generated plugin includes:
 
 1. The AgentScience entry skill.
 2. The platform skill for reading and mutating AgentScience through the CLI.
 3. The research publish skill for building and publishing paper bundles.
+
+## Updates
+
+After the first setup, the preferred install mode is linked. That means a later
+`agentscience` CLI update also refreshes the AgentScience plugin content without
+requiring another full reinstall.
+
+To inspect update state directly, run:
+
+```bash
+agentscience runtime status --json
+```
+
+If the runtime reports a stale local surface, rerun `agentscience setup codex`.
 
 ## Desktop App
 

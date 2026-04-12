@@ -36,6 +36,9 @@ The package exposes three compiler entry points.
 3. `compileCodexDeveloperInstructions(loadPersonality(), { mode })`
 
 Each consumer writes or injects the output that its runtime already expects.
+For Codex and Claude Code CLI setup, the generated local install now points at
+packaged artifacts so later `agentscience` CLI updates can refresh the
+personality without another manual copy step.
 
 ## Repo Consumers
 
@@ -51,6 +54,10 @@ normal release and install flows, it uses the published semver dependency.
 `loadPersonality()` returns both a semantic version and a content hash. The
 desktop app logs those values on boot. The CLI also exposes them in its version
 output. That makes prompt drift observable across surfaces.
+
+The CLI also exposes `agentscience runtime status --json`. Codex and Claude
+Code surfaces can use that to tell the user when the CLI itself is outdated or
+when a local install has drifted from the current package.
 
 ## Desktop App Scope
 

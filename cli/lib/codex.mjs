@@ -2,6 +2,10 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import { compileCodexPlugin, loadPersonality } from "@agentscience/personality";
+import {
+  getPackagedPersonalityArtifacts,
+  installLinkedDirectory,
+} from "./personality-package.mjs";
 
 export const DEFAULT_CODEX_SKILL_NAME = "agentscience";
 export const DEFAULT_CODEX_PLUGIN_NAME = "agent-science";
@@ -197,13 +201,28 @@ export function installCodexPlugin(
   const target = getCodexInstallTarget({ isProject, paths });
   const personality = loadPersonality();
   const compiledPlugin = compileCodexPlugin(personality);
+  const packagedArtifacts = getPackagedPersonalityArtifacts();
 
-  mkdirSync(dirname(target.pluginDir), { recursive: true });
-  removePathIfPresent(target.pluginDir);
-  for (const [relativePath, contents] of Object.entries(compiledPlugin.files)) {
-    const destination = join(target.pluginDir, relativePath);
-    mkdirSync(dirname(destination), { recursive: true });
-    writeFileSync(destination, contents);
+  let installDetails;
+
+  if (existsSync(packagedArtifacts.codexPluginDir)) {
+    installDetails = installLinkedDirectory({
+      sourceDir: packagedArtifacts.codexPluginDir,
+      targetDir: target.pluginDir,
+    });
+  } else {
+    mkdirSync(dirname(target.pluginDir), { recursive: true });
+    removePathIfPresent(target.pluginDir);
+    for (const [relativePath, contents] of Object.entries(compiledPlugin.files)) {
+      const destination = join(target.pluginDir, relativePath);
+      mkdirSync(dirname(destination), { recursive: true });
+      writeFileSync(destination, contents);
+    }
+    installDetails = {
+      installMode: "copied",
+      sourcePath: null,
+      autoUpdates: false,
+    };
   }
 
   const marketplace = existsSync(target.marketplacePath)
@@ -221,6 +240,9 @@ export function installCodexPlugin(
     ...target,
     pluginName: compiledPlugin.pluginName,
     legacySkillRemoved: removeLegacyCodexSkill(target),
+    installMode: installDetails.installMode,
+    autoUpdates: installDetails.autoUpdates,
+    pluginSourcePath: installDetails.sourcePath,
     personalityVersion: personality.version,
     personalityContentHash: personality.contentHash,
   };
