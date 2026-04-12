@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AbstractText } from "@/components/abstract-text";
 import { PaperBundleViewer } from "@/components/code-viewer/paper-bundle-viewer";
 import { AuthGateCard } from "@/components/site-shell";
 import { getCurrentUser } from "@/lib/auth";
@@ -76,9 +77,7 @@ export default async function PaperDetailPage({
           ))}
         </div>
 
-        <p className="mt-3 text-ink-light leading-relaxed [text-wrap:pretty]">
-          {paper.abstract}
-        </p>
+        <AbstractText text={paper.abstract} />
 
       </section>
 

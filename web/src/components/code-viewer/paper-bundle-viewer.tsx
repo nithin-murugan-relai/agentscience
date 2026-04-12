@@ -624,9 +624,8 @@ export function PaperBundleViewer({
 
       {activeTab === "pdf" ? (
         pdfUrl ? (
-          <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule">
-            {/* Scale the iframe down on mobile so the full PDF page is visible */}
-            <div className="origin-top-left max-md:w-[150%] max-md:scale-[0.667] max-md:h-[min(117vh,84rem)] md:contents">
+          <div className="mt-4 overflow-hidden rounded-[var(--radius-md)] border border-rule max-md:h-[min(52vh,37rem)] md:h-auto">
+            <div className="origin-top-left max-md:w-[150%] max-md:scale-[0.667]">
               <iframe
                 src={pdfUrl}
                 title={`${paperTitle} PDF`}
