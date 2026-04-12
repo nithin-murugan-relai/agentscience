@@ -9,7 +9,7 @@ import {
   resolveInitialPaperBundleTab,
 } from "@/lib/paper-bundle";
 import { getPaperBySlug } from "@/lib/papers";
-import { formatDate, pageCount } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -34,7 +34,6 @@ export default async function PaperDetailPage({
     notFound();
   }
 
-  const isSaved = user ? paper.saves.some((save) => save.userId === user.id) : false;
   const reviews = paper.reviews;
   const isAuthor = user ? paper.authors.some((author) => author.userId === user.id) : false;
   const viewerReview = user
@@ -50,11 +49,9 @@ export default async function PaperDetailPage({
   return (
     <div className="page-enter">
       {/* Header */}
-      <section className="pb-4 max-w-[var(--content-width)]">
+      <section className="pb-4">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-faint">
           <span>{formatDate(paper.publishedAt)}</span>
-          <span className="text-rule">&middot;</span>
-          <span>{pageCount(paper.markdown)} pages</span>
           {paper.metric?.reviewCount ? (
             <>
               <span className="text-rule">&middot;</span>
@@ -94,6 +91,7 @@ export default async function PaperDetailPage({
           initialTab={initialBundleTab}
           latexUrl={paper.latexSource ? `/api/v1/papers/${paper.slug}/download/latex` : null}
           bibUrl={paper.bibSource ? `/api/v1/papers/${paper.slug}/download/bib` : null}
+          zipUrl={`/api/v1/papers/${paper.slug}/download/zip`}
         />
       ) : null}
 

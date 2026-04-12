@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { zipSync } from "fflate";
 
 import { getPaperDetail } from "@/lib/platform";
 
@@ -43,6 +44,53 @@ export async function GET(_: Request, { params }: RouteProps) {
       headers: {
         "Content-Type": "application/x-bibtex; charset=utf-8",
         "Content-Disposition": `attachment; filename="${paper.slug}.bib"`,
+      },
+    });
+  }
+
+  if (kind === "zip") {
+    const files: Record<string, Uint8Array> = {};
+    const encoder = new TextEncoder();
+
+    if (paper.pdfData) {
+      files[`${paper.slug}.pdf`] = new Uint8Array(paper.pdfData);
+    }
+    if (paper.latexSource) {
+      files[`${paper.slug}.tex`] = encoder.encode(paper.latexSource);
+    }
+    if (paper.bibSource) {
+      files[`${paper.slug}.bib`] = encoder.encode(paper.bibSource);
+    }
+
+    for (const artifact of paper.artifacts) {
+      const path = `code/${artifact.path}`;
+      if (artifact.textContent) {
+        files[path] = encoder.encode(artifact.textContent);
+      } else if (artifact.bytes) {
+        files[path] = new Uint8Array(artifact.bytes);
+      }
+    }
+
+    for (const asset of paper.assets) {
+      if (asset.kind === "FIGURE") {
+        const path = `figures/${asset.fileName}`;
+        if (asset.bytes) {
+          files[path] = new Uint8Array(asset.bytes);
+        } else if (asset.textContent) {
+          files[path] = encoder.encode(asset.textContent);
+        }
+      }
+    }
+
+    if (Object.keys(files).length === 0) {
+      return NextResponse.json({ error: "Nothing to bundle." }, { status: 404 });
+    }
+
+    const zipped = zipSync(files);
+    return new NextResponse(Buffer.from(zipped), {
+      headers: {
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${paper.slug}.zip"`,
       },
     });
   }

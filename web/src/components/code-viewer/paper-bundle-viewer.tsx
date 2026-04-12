@@ -253,6 +253,7 @@ export function PaperBundleViewer({
   initialTab,
   latexUrl,
   bibUrl,
+  zipUrl,
 }: {
   artifacts: ArtifactEntry[];
   figures: FigureEntry[];
@@ -261,6 +262,7 @@ export function PaperBundleViewer({
   initialTab: BundleTab;
   latexUrl?: string | null;
   bibUrl?: string | null;
+  zipUrl?: string | null;
 }) {
   const [activeTab, setActiveTab] = useState<BundleTab>(initialTab);
   const [selectedArtifactId, setSelectedArtifactId] = useState(artifacts[0]?.id ?? null);
@@ -364,15 +366,15 @@ export function PaperBundleViewer({
                       <span className="text-[10px] text-ink-faint">.bib</span>
                     </a>
                   )}
-                  {pdfUrl && (
+                  {zipUrl && (
                     <a
-                      href={pdfUrl}
+                      href={zipUrl}
                       download
                       className="flex items-center justify-between px-3 py-2 text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
                       onClick={() => setSaveOpen(false)}
                     >
-                      PDF
-                      <span className="text-[10px] text-ink-faint">.pdf</span>
+                      Download All
+                      <span className="text-[10px] text-ink-faint">.zip</span>
                     </a>
                   )}
                 </div>
