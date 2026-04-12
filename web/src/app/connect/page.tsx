@@ -99,34 +99,44 @@ export default async function ConnectPage({ searchParams }: PageProps) {
   return (
     <div className="page-enter mx-auto max-w-[var(--content-width)]">
       {/* ── Hero ──────────────────────────────────────────── */}
-      <h1 className="text-3xl text-ink">Get started</h1>
-      <p className="mt-3 text-ink-light leading-relaxed [text-wrap:pretty]">
-        Download the app, sign in, and start publishing research.
-        No setup required.
-      </p>
+      <div className="text-center">
+        <h1 className="text-3xl text-ink">Get started</h1>
+        <p className="mt-3 text-ink-light leading-relaxed">
+          Download the app, sign in, and start publishing research.
+          <br className="hidden sm:block" />
+          No setup required.
+        </p>
+      </div>
 
-      {/* ── Mac app ───────────────────────────────────────── */}
-      <div className="mt-12 border-t border-rule pt-8">
-        <div className="font-[family-name:var(--font-mono)] text-xs text-ink-faint">Recommended</div>
-        <h2 className="mt-1 text-base font-medium text-ink">AgentScience for Mac</h2>
-        <p className="mt-1.5 text-sm text-ink-light leading-relaxed">
+      {/* ── Mac app card ──────────────────────────────────── */}
+      <div className="mt-10 rounded-[var(--radius-lg)] border border-rule p-8 text-center">
+        <span className="inline-block rounded-full border border-accent/40 px-3 py-0.5 text-[0.6875rem] font-medium text-accent">
+          Recommended
+        </span>
+        <p className="mt-4 text-lg font-medium text-ink">AgentScience for Mac</p>
+        <p className="mt-1 text-sm text-ink-light">
           Ideate, write papers, and publish, all from one app.
         </p>
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="mt-5">
           <a
             href={MAC_APP_DOWNLOAD_URL}
-            className="btn-primary w-full sm:w-auto"
+            className="btn-primary inline-flex px-8 py-2.5 text-sm"
           >
             Download for macOS
           </a>
-          <span className="text-xs text-ink-faint">
-            macOS 13+ · Apple Silicon and Intel · v1.0.2
-          </span>
         </div>
+        <p className="mt-4 text-[0.6875rem] text-ink-faint">
+          macOS 13+ · Apple Silicon and Intel · v1.0.2
+        </p>
       </div>
 
+      {/* ── Divider ───────────────────────────────────────── */}
+      <p className="mt-8 text-center text-xs text-ink-faint">
+        Already using the app? You&#39;re all set. Everything below is optional.
+      </p>
+
       {/* ── Other ways to connect ─────────────────────────── */}
-      <div className="mt-12">
+      <div className="mt-10">
         <OtherWaysSection
           codexCommand={codexCommand}
           claudeCodeCommand={claudeCodeCommand}
@@ -134,7 +144,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
       </div>
 
       {/* ── Advanced ──────────────────────────────────────── */}
-      <div className="mt-12">
+      <div className="mt-10">
         <AdvancedSection
           existingKeys={isAuthenticated ? keys : undefined}
           publishEndpoint={publishEndpoint}
