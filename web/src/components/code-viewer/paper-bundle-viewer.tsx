@@ -251,20 +251,23 @@ export function PaperBundleViewer({
   pdfUrl,
   paperTitle,
   initialTab,
-  zipUrl,
+  latexUrl,
+  bibUrl,
 }: {
   artifacts: ArtifactEntry[];
   figures: FigureEntry[];
   pdfUrl: string | null;
   paperTitle: string;
   initialTab: BundleTab;
-  zipUrl?: string | null;
+  latexUrl?: string | null;
+  bibUrl?: string | null;
 }) {
   const [activeTab, setActiveTab] = useState<BundleTab>(initialTab);
   const [selectedArtifactId, setSelectedArtifactId] = useState(artifacts[0]?.id ?? null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedFigureId, setExpandedFigureId] = useState<string | null>(null);
   const [compactLayout, setCompactLayout] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const selectedArtifact = artifacts.find((artifact) => artifact.id === selectedArtifactId) ?? artifacts[0] ?? null;
   const tree = buildArtifactTree(artifacts);
   const tabs: Array<{ id: BundleTab; label: string; disabled: boolean }> = [
@@ -272,6 +275,7 @@ export function PaperBundleViewer({
     { id: "figures", label: "Figures", disabled: figures.length === 0 },
     { id: "code", label: "Code", disabled: artifacts.length === 0 },
   ];
+  const hasSaveOptions = latexUrl || bibUrl || pdfUrl;
 
   /* close sidebar on small screens by default */
   useEffect(() => {
@@ -300,7 +304,7 @@ export function PaperBundleViewer({
   const shouldWrap = selectedArtifact ? isProseFile(selectedArtifact.path) : false;
 
   return (
-    <section className="pt-2 pb-2 max-w-[var(--content-width)]">
+    <section className="pt-2 pb-2">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-1">
           {tabs.map((tab) => (
@@ -320,18 +324,62 @@ export function PaperBundleViewer({
           ))}
         </div>
 
-        {zipUrl ? (
-          <a
-            href={zipUrl}
-            download
-            className="flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-2 text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
-          >
-            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
-            </svg>
-            Save
-          </a>
-        ) : null}
+        {hasSaveOptions && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setSaveOpen(!saveOpen)}
+              className="flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-2 text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
+            >
+              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
+              </svg>
+              Save
+              <svg viewBox="0 0 10 6" className={`h-2 w-2.5 transition-transform ${saveOpen ? "rotate-180" : ""}`} fill="currentColor">
+                <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {saveOpen && (
+              <>
+                {/* backdrop to close on click outside */}
+                <div className="fixed inset-0 z-10" onClick={() => setSaveOpen(false)} />
+                <div className="absolute right-0 z-20 mt-1 w-36 rounded-[var(--radius-md)] border border-rule bg-white py-1 shadow-sm">
+                  {latexUrl && (
+                    <a
+                      href={latexUrl}
+                      className="flex items-center justify-between px-3 py-2 text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
+                      onClick={() => setSaveOpen(false)}
+                    >
+                      LaTeX
+                      <span className="text-[10px] text-ink-faint">.tex</span>
+                    </a>
+                  )}
+                  {bibUrl && (
+                    <a
+                      href={bibUrl}
+                      className="flex items-center justify-between px-3 py-2 text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
+                      onClick={() => setSaveOpen(false)}
+                    >
+                      BibTeX
+                      <span className="text-[10px] text-ink-faint">.bib</span>
+                    </a>
+                  )}
+                  {pdfUrl && (
+                    <a
+                      href={pdfUrl}
+                      download
+                      className="flex items-center justify-between px-3 py-2 text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
+                      onClick={() => setSaveOpen(false)}
+                    >
+                      PDF
+                      <span className="text-[10px] text-ink-faint">.pdf</span>
+                    </a>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {activeTab === "code" ? (
