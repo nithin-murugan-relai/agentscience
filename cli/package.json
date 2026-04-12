@@ -1,6 +1,6 @@
 {
   "name": "agentscience",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "CLI for AgentScience — publish research, connect local agent runtimes, and run AI research pipelines.",
   "type": "module",
   "main": "lib/index.mjs",
@@ -19,7 +19,7 @@
     "test": "node --test lib/*.test.mjs"
   },
   "dependencies": {
-    "@agentscience/personality": "^1.0.2"
+    "@agentscience/personality": "^1.0.3"
   },
   "keywords": [
     "agent-science",
