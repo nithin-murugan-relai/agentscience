@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFViewer } from "pdfjs-dist/web/pdf_viewer.mjs";
 import "pdfjs-dist/web/pdf_viewer.css";
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -254,8 +255,10 @@ function MobilePdfViewer({
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<HTMLDivElement | null>(null);
+  const pdfViewerRef = useRef<PDFViewer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [zoomPercent, setZoomPercent] = useState<number | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -298,17 +301,26 @@ function MobilePdfViewer({
           enableDetailCanvas: true,
           supportsPinchToZoom: true,
         });
+        pdfViewerRef.current = pdfViewer;
 
         linkService.setViewer(pdfViewer);
 
         const handlePagesInit = () => {
-          pdfViewer.currentScaleValue = "page-width";
+          pdfViewer.currentScaleValue = "page-fit";
           setLoading(false);
+        };
+        const handleScaleChanging = (event: { scale: number }) => {
+          if (typeof event.scale === "number" && Number.isFinite(event.scale)) {
+            setZoomPercent(Math.round(event.scale * 100));
+          }
         };
 
         eventBus.on("pagesinit", handlePagesInit);
+        eventBus.on("scalechanging", handleScaleChanging);
         cleanupViewer = () => {
           eventBus.off("pagesinit", handlePagesInit);
+          eventBus.off("scalechanging", handleScaleChanging);
+          pdfViewerRef.current = null;
           pdfViewer.cleanup();
           viewer.replaceChildren();
         };
@@ -343,6 +355,38 @@ function MobilePdfViewer({
     };
   }, [paperTitle, pdfUrl]);
 
+  const zoomOut = useCallback(() => {
+    const viewer = pdfViewerRef.current;
+    if (!viewer) {
+      return;
+    }
+    viewer.currentScale = Math.max(0.4, viewer.currentScale / 1.2);
+  }, []);
+
+  const zoomIn = useCallback(() => {
+    const viewer = pdfViewerRef.current;
+    if (!viewer) {
+      return;
+    }
+    viewer.currentScale = Math.min(4, viewer.currentScale * 1.2);
+  }, []);
+
+  const setFitScale = useCallback(() => {
+    const viewer = pdfViewerRef.current;
+    if (!viewer) {
+      return;
+    }
+    viewer.currentScaleValue = "page-fit";
+  }, []);
+
+  const setWidthScale = useCallback(() => {
+    const viewer = pdfViewerRef.current;
+    if (!viewer) {
+      return;
+    }
+    viewer.currentScaleValue = "page-width";
+  }, []);
+
   return (
     <div className="mt-4">
       {loading ? (
@@ -352,6 +396,46 @@ function MobilePdfViewer({
       ) : error ? (
         <div className="rounded-[var(--radius-md)] border border-dashed border-rule px-4 py-10 text-center text-sm text-ink-light">
           {error}
+        </div>
+      ) : null}
+
+      {!loading && !error ? (
+        <div className="mb-2 flex items-center justify-between gap-2 text-xs text-ink-light">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={zoomOut}
+              className="rounded-[var(--radius-sm)] border border-rule bg-snow-white px-2.5 py-1 text-ink transition-colors hover:bg-snow-white-dark"
+            >
+              -
+            </button>
+            <span className="min-w-12 text-center font-[family-name:var(--font-mono)] text-[11px] text-ink-faint">
+              {zoomPercent ? `${zoomPercent}%` : "Fit"}
+            </span>
+            <button
+              type="button"
+              onClick={zoomIn}
+              className="rounded-[var(--radius-sm)] border border-rule bg-snow-white px-2.5 py-1 text-ink transition-colors hover:bg-snow-white-dark"
+            >
+              +
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={setFitScale}
+              className="rounded-[var(--radius-sm)] border border-rule bg-snow-white px-2.5 py-1 text-ink transition-colors hover:bg-snow-white-dark"
+            >
+              Fit
+            </button>
+            <button
+              type="button"
+              onClick={setWidthScale}
+              className="rounded-[var(--radius-sm)] border border-rule bg-snow-white px-2.5 py-1 text-ink transition-colors hover:bg-snow-white-dark"
+            >
+              Width
+            </button>
+          </div>
         </div>
       ) : null}
 
