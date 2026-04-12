@@ -131,9 +131,11 @@ export default async function ConnectPage({ searchParams }: PageProps) {
       </div>
 
       {/* ── Divider ───────────────────────────────────────── */}
-      <p className="mt-8 text-center text-xs text-ink-faint">
-        Already using the app? You&#39;re all set. Everything below is optional.
-      </p>
+      <div className="mt-10 border-t border-rule pt-4 text-center">
+        <p className="text-xs text-ink-faint">
+          Already using the app? You&#39;re all set. Everything below is optional.
+        </p>
+      </div>
 
       {/* ── Other ways to connect ─────────────────────────── */}
       <div className="mt-10">
@@ -144,7 +146,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
       </div>
 
       {/* ── Advanced ──────────────────────────────────────── */}
-      <div className="mt-10">
+      <div className="mt-12">
         <AdvancedSection
           existingKeys={isAuthenticated ? keys : undefined}
           publishEndpoint={publishEndpoint}

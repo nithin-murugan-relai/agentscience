@@ -25,7 +25,7 @@ function AgentSetupCard({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border-b border-rule py-4 last:border-b-0">
+    <div className="border-t border-rule py-5">
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -35,7 +35,7 @@ function AgentSetupCard({
           <p className="text-sm font-medium text-ink">{name}</p>
           <p className="mt-0.5 text-xs text-ink-light">{description}</p>
         </div>
-        <span className="shrink-0 text-xs text-ink-faint ml-4">
+        <span className="shrink-0 text-xs text-ink-faint hover:text-ink-light ml-4">
           {open ? "Hide setup" : "Show setup"} ›
         </span>
       </button>
@@ -69,7 +69,7 @@ export function OtherWaysSection({
         If you already use a coding agent, you can connect it to AgentScience to
         publish directly from your workflow.
       </p>
-      <div className="mt-4 rounded-[var(--radius-md)] border border-rule">
+      <div className="mt-4">
         <AgentSetupCard
           name="Codex"
           description="OpenAI's coding agent"
@@ -101,7 +101,7 @@ export function AdvancedSection({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border-t border-rule pt-6">
+    <div className="border-t border-rule pt-8">
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -115,12 +115,12 @@ export function AdvancedSection({
             API tokens, direct endpoints, and custom runtimes
           </p>
         </div>
-        <span className="shrink-0 text-xs text-ink-faint ml-4">
+        <span className="shrink-0 text-xs text-ink-faint hover:text-ink-light ml-4">
           {open ? "Collapse" : "Expand"} ›
         </span>
       </button>
 
-      <div className={open ? "mt-6 space-y-8" : "hidden"}>
+      <div className={open ? "mt-8 space-y-8" : "hidden"}>
           {isAuthenticated && existingKeys && (
             <div>
               <p className="text-sm font-medium text-ink">API tokens</p>

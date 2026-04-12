@@ -78,6 +78,11 @@ select {
   font: inherit;
 }
 
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
 a {
   color: inherit;
   text-decoration: none;
