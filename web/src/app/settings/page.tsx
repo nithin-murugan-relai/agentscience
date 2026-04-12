@@ -1,3 +1,5 @@
+import { PERSONALITY_VERSION } from "@agentscience/personality";
+
 import { AuthGateCard } from "@/components/site-shell";
 import { IntegrationKeyPanel } from "@/components/forms/integration-key-panel";
 import { CopyCodeBlock } from "@/components/forms/copy-code-block";
@@ -7,6 +9,8 @@ import { buildAgentInstallUrl } from "@/lib/agent-installer";
 import { getIntegrationKeys } from "@/lib/papers";
 
 export const dynamic = "force-dynamic";
+
+const runtimeStatusCommand = "agentscience runtime status";
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -88,6 +92,9 @@ export default async function SettingsPage() {
         <p className="mt-1 text-sm text-ink-light">
           Paste the link for your runtime to install AgentScience and connect your account.
         </p>
+        <p className="mt-2 text-xs text-ink-faint">
+          Current shared personality release: v{PERSONALITY_VERSION}.
+        </p>
         <div className="mt-3 space-y-3">
           <div>
             <p className="mb-1 text-xs text-ink-faint">Codex</p>
@@ -96,6 +103,13 @@ export default async function SettingsPage() {
           <div>
             <p className="mb-1 text-xs text-ink-faint">Claude Code</p>
             <CopyCodeBlock code={buildAgentInstallUrl({ appOrigin: resolvedOrigin, agent: "claude-code" })} />
+          </div>
+          <div>
+            <p className="mb-1 text-xs text-ink-faint">Verify runtime</p>
+            <p className="mb-2 text-xs text-ink-light">
+              Prints the active runtime, update state, and shared personality version.
+            </p>
+            <CopyCodeBlock code={runtimeStatusCommand} />
           </div>
         </div>
       </section>

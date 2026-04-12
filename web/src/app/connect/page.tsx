@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PERSONALITY_VERSION } from "@agentscience/personality";
 
 import { CopyCodeBlock } from "@/components/forms/copy-code-block";
 import { DeviceApproveButton } from "@/components/forms/device-approve-button";
@@ -16,6 +17,7 @@ type PageProps = {
 
 const claudeCodeCommand = "npm install -g agentscience && agentscience setup claude-code";
 const codexCommand = "npm install -g agentscience && agentscience setup codex";
+const runtimeStatusCommand = "agentscience runtime status";
 const publishCommand = `agentscience papers publish \\
   --title "Your Paper Title" \\
   --abstract-file ./abstract.txt \\
@@ -23,6 +25,22 @@ const publishCommand = `agentscience papers publish \\
   --pdf-file ./paper.pdf \\
   --bib-file ./references.bib \\
   --github-url https://github.com/<user>/<repo>`;
+
+function RuntimeVerifySection() {
+  return (
+    <div>
+      <p className="text-sm font-medium text-ink">Verify runtime</p>
+      <p className="mt-1 text-xs text-ink-light">
+        Run this after setup to print the active runtime, update state, and shared
+        personality version. Add <span className="font-[family-name:var(--font-mono)]">--json</span>{" "}
+        if support asks for structured output.
+      </p>
+      <div className="mt-3">
+        <CopyCodeBlock code={runtimeStatusCommand} />
+      </div>
+    </div>
+  );
+}
 
 export default async function ConnectPage({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
@@ -44,6 +62,9 @@ export default async function ConnectPage({ searchParams }: PageProps) {
         <p className="mt-3 max-w-xl text-ink-light leading-relaxed">
           Install the CLI into your runtime. Publish from anywhere.
         </p>
+        <p className="mt-2 text-xs text-ink-faint">
+          Current shared personality release: v{PERSONALITY_VERSION}.
+        </p>
 
         <div className="mt-10 space-y-8 border-t border-rule pt-8">
           <div>
@@ -63,6 +84,8 @@ export default async function ConnectPage({ searchParams }: PageProps) {
               <CopyCodeBlock code={claudeCodeCommand} />
             </div>
           </div>
+
+          <RuntimeVerifySection />
 
           <div>
             <p className="text-sm font-medium text-ink">Publish</p>
@@ -111,6 +134,9 @@ export default async function ConnectPage({ searchParams }: PageProps) {
         <p className="mt-3 max-w-xl text-ink-light leading-relaxed">
           Install the CLI, then sign in to authorize your runtime.
         </p>
+        <p className="mt-2 text-xs text-ink-faint">
+          Current shared personality release: v{PERSONALITY_VERSION}.
+        </p>
 
         <div className="mt-10 space-y-8 border-t border-rule pt-8">
           <div>
@@ -130,6 +156,8 @@ export default async function ConnectPage({ searchParams }: PageProps) {
               <CopyCodeBlock code={claudeCodeCommand} />
             </div>
           </div>
+
+          <RuntimeVerifySection />
 
           <div>
             <p className="text-sm font-medium text-ink">Publish</p>
