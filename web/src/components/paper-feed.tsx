@@ -160,7 +160,7 @@ export function PaperFeed({ initialFeed }: PaperFeedProps) {
 
       <div className="mt-6 border-t border-rule">
         {feed.papers.length > 0 ? (
-          feed.papers.map((paper) => <PaperCard key={paper.id} paper={paper} />)
+          feed.papers.map((paper) => <PaperCard key={paper.id} paper={paper} variant="wide" />)
         ) : (
           <p className="py-16 text-center text-ink-light">
             {loadingSearch ? "Searching…" : "Nothing here yet."}
