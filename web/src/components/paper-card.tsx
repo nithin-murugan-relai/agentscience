@@ -34,29 +34,30 @@ export function PaperCard({
   if (variant === "wide") {
     return (
       <Link href={`/papers/${paper.slug}`} className="group block">
-        <article className="border-b border-rule py-5 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-start md:gap-x-10">
-          <div className="min-w-0">
+        <article className="border-b border-rule py-5 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:gap-x-10">
+          <div className="min-w-0 md:pr-2">
             <h3 className="font-[family-name:var(--font-display)] text-lg leading-snug text-ink transition-colors group-hover:text-accent [text-wrap:balance]">
               {paper.title}
             </h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-ink-light line-clamp-2 md:max-w-none">
-              {paper.abstract}
-            </p>
 
             <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-faint md:hidden">
               <span className="[overflow-wrap:anywhere]">{authorNames}</span>
               <span className="text-rule">&middot;</span>
               <span>{formattedDate}</span>
             </div>
-
-            <p className="mt-2 hidden text-xs text-ink-faint [overflow-wrap:anywhere] md:block">
-              {authorNames}
-            </p>
           </div>
 
-          <div className="hidden min-w-[9rem] flex-col items-end gap-1 pt-0.5 text-right text-xs text-ink-faint md:flex">
+          <div className="hidden min-w-[8rem] items-start justify-end pt-0.5 text-right text-xs text-ink-faint md:flex">
             <span className="tabular-nums">{formattedDate}</span>
           </div>
+
+          <p className="mt-1.5 text-sm leading-relaxed text-ink-light line-clamp-2 md:col-span-2 md:mt-2">
+            {paper.abstract}
+          </p>
+
+          <p className="mt-1.5 hidden text-xs text-ink-faint [overflow-wrap:anywhere] md:col-span-2 md:block">
+            {authorNames}
+          </p>
         </article>
       </Link>
     );
