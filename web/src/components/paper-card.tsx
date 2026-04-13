@@ -47,12 +47,6 @@ export function PaperCard({
               <span className="[overflow-wrap:anywhere]">{authorNames}</span>
               <span className="text-rule">&middot;</span>
               <span>{formattedDate}</span>
-              {reviewCountLabel ? (
-                <>
-                  <span className="text-rule">&middot;</span>
-                  <span>{reviewCountLabel}</span>
-                </>
-              ) : null}
             </div>
 
             <p className="mt-2 hidden text-xs text-ink-faint [overflow-wrap:anywhere] md:block">
@@ -62,11 +56,6 @@ export function PaperCard({
 
           <div className="hidden min-w-[9rem] flex-col items-end gap-1 pt-0.5 text-right text-xs text-ink-faint md:flex">
             <span className="tabular-nums">{formattedDate}</span>
-            {reviewCountLabel ? (
-              <span className="font-[family-name:var(--font-mono)] text-[0.8125rem] text-ink-light">
-                {reviewCountLabel}
-              </span>
-            ) : null}
           </div>
         </article>
       </Link>
