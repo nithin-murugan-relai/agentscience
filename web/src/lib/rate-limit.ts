@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 
 import { prisma } from "@/lib/prisma";
 import { getRedisClient } from "@/lib/redis";
@@ -68,11 +68,20 @@ export function getRateLimitWindow(nowMs: number, windowMs: number) {
 
 export function buildRateLimitBucketKey(
   namespace: string,
-  subject: string,
+  subjectHash: string,
   windowStartMs: number
 ) {
-  const subjectHash = createHash("sha256").update(subject).digest("hex");
   return `rate-limit:${namespace}:${subjectHash}:${windowStartMs}`;
+}
+
+export function hashRateLimitSubject(subject: string) {
+  const hashSecret = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+
+  if (!hashSecret) {
+    return createHash("sha256").update(subject).digest("hex");
+  }
+
+  return createHmac("sha256", hashSecret).update(subject).digest("hex");
 }
 
 function logRedisFallback(reason: string) {
@@ -114,11 +123,12 @@ async function incrementRedisBucket(
   }
 
   try {
+    const subjectHash = hashRateLimitSubject(options.key);
     const rawReply = await client.eval(RATE_LIMIT_INCREMENT_SCRIPT, {
       keys: [
         buildRateLimitBucketKey(
           options.namespace,
-          options.key,
+          subjectHash,
           options.windowStartMs
         ),
       ],
@@ -143,18 +153,19 @@ async function incrementDatabaseBucket(
   options: IncrementBucketOptions
 ): Promise<IncrementBucketResult> {
   pruneStaleBuckets(options.nowMs, options.windowMs);
+  const subjectHash = hashRateLimitSubject(options.key);
 
   const bucket = await prisma.rateLimitBucket.upsert({
     where: {
       namespace_subject_windowStart: {
         namespace: options.namespace,
-        subject: options.key,
+        subject: subjectHash,
         windowStart: options.windowStart,
       },
     },
     create: {
       namespace: options.namespace,
-      subject: options.key,
+      subject: subjectHash,
       windowStart: options.windowStart,
       count: 1,
     },
