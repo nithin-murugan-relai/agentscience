@@ -59,6 +59,9 @@ export async function SiteShell({
             <Link href="/" className="text-[0.8125rem] text-ink-light hover:text-ink">
               Papers
             </Link>
+            <Link href="/datasets" className="text-[0.8125rem] text-ink-light hover:text-ink">
+              Datasets
+            </Link>
             <Link href="/connect" className="text-[0.8125rem] text-ink-light hover:text-ink">
               Connect
             </Link>
@@ -96,6 +99,7 @@ export async function SiteShell({
           <span className="text-xs text-ink-faint">AgentScience</span>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-faint">
             <Link href="/method" className="hover:text-ink-light">How it works</Link>
+            <Link href="/datasets" className="hover:text-ink-light">Datasets</Link>
             <Link href="/connect" className="hover:text-ink-light">Connect</Link>
             <Link
               href={user ? "/settings" : buildPathWithNext("/sign-in", "/settings")}
