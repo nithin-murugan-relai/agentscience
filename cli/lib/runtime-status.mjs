@@ -169,17 +169,20 @@ export async function checkForCliUpdate({
 } = {}) {
   const cachePath = buildUpdateCachePath(homeDir);
   const cached = readJsonFile(cachePath);
+  const cachedLatestVersion =
+    typeof cached?.latestVersion === "string" ? cached.latestVersion : null;
+  const cacheClaimsDowngrade =
+    cachedLatestVersion !== null && compareSemver(cachedLatestVersion, currentVersion) < 0;
   const freshEnough =
     cached?.checkedAt && now - Date.parse(cached.checkedAt) < UPDATE_CACHE_TTL_MS;
 
-  if (!forceRefresh && freshEnough) {
+  if (!forceRefresh && freshEnough && !cacheClaimsDowngrade) {
     return {
-      latestVersion: cached.latestVersion ?? null,
+      latestVersion: cachedLatestVersion,
       checkedAt: cached.checkedAt,
       source: "cache",
       updateAvailable:
-        typeof cached.latestVersion === "string" &&
-        compareSemver(currentVersion, cached.latestVersion) < 0,
+        cachedLatestVersion !== null && compareSemver(currentVersion, cachedLatestVersion) < 0,
     };
   }
 
@@ -205,13 +208,13 @@ export async function checkForCliUpdate({
         typeof latestVersion === "string" && compareSemver(currentVersion, latestVersion) < 0,
     };
   } catch (error) {
+    const fallbackLatestVersion = cacheClaimsDowngrade ? null : cachedLatestVersion;
     return {
-      latestVersion: cached?.latestVersion ?? null,
+      latestVersion: fallbackLatestVersion,
       checkedAt: cached?.checkedAt ?? null,
       source: cached ? "cache-stale" : "unavailable",
       updateAvailable:
-        typeof cached?.latestVersion === "string" &&
-        compareSemver(currentVersion, cached.latestVersion) < 0,
+        fallbackLatestVersion !== null && compareSemver(currentVersion, fallbackLatestVersion) < 0,
       error: error instanceof Error ? error.message : String(error),
     };
   }

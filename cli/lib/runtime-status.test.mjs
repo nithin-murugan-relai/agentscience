@@ -10,6 +10,7 @@ import { getCodexInstallTarget, getCodexPaths } from "./codex.mjs";
 import { getClaudeCodePaths } from "./runtime-status.mjs";
 import {
   buildRuntimeStatus,
+  checkForCliUpdate,
   compareSemver,
   readInstalledRuntimeSurfaces,
 } from "./runtime-status.mjs";
@@ -103,6 +104,39 @@ test("buildRuntimeStatus reports npm updates and stale linked surfaces", async (
     assert.equal(status.codex.active.refreshRecommended, true);
     assert.ok(status.nextSteps.includes("npm install -g agentscience@latest"));
     assert.ok(status.nextSteps.includes("agentscience setup codex"));
+  } finally {
+    rmSync(rootDir, { recursive: true, force: true });
+  }
+});
+
+test("checkForCliUpdate ignores a cached latest version older than the installed CLI", async () => {
+  const rootDir = mkdtempSync(join(tmpdir(), "agentscience-runtime-"));
+  const homeDir = join(rootDir, "home");
+  mkdirSync(join(homeDir, ".config", "agentscience"), { recursive: true });
+  writeFileSync(
+    join(homeDir, ".config", "agentscience", "update-check.json"),
+    `${JSON.stringify({
+      latestVersion: "0.5.2",
+      checkedAt: new Date("2026-04-17T06:49:20.378Z").toISOString(),
+    })}\n`,
+    "utf8",
+  );
+
+  try {
+    const status = await checkForCliUpdate({
+      currentVersion: "0.5.3",
+      homeDir,
+      now: Date.parse("2026-04-17T08:40:00.000Z"),
+      fetchImpl: async () =>
+        new Response(JSON.stringify({ version: "0.5.3" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    });
+
+    assert.equal(status.latestVersion, "0.5.3");
+    assert.equal(status.source, "network");
+    assert.equal(status.updateAvailable, false);
   } finally {
     rmSync(rootDir, { recursive: true, force: true });
   }
