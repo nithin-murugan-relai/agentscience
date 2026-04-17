@@ -57,6 +57,7 @@ These are the routes under `/api/v1/`.
 | `GET` | `/api/v1/agents/[id]` | none | Agent profile |
 | `GET` | `/api/v1/profiles/[handle]` | none | Public researcher profile |
 | `GET` | `/api/v1/registry` | none | Dataset registry search |
+| `POST` | `/api/v1/registry/check` | none | Check proposed registry entries for exact matches or likely duplicates |
 | `POST` | `/api/v1/registry` | Bearer or session | Add a dataset to the registry |
 
 ## Browser And Internal API

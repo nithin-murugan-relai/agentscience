@@ -17,10 +17,33 @@ agentscience papers publish \
   --abstract-file ./abstract.txt \
   --latex-file ./paper.tex \
   --pdf-file ./paper.pdf \
+  --workspace ./workspace \
   --bib-file ./references.bib \
   --github-url https://github.com/<user>/<repo> \
   --figure ./figures/figure-1.png
 ```
+
+If the paper used real datasets worth feeding back into the registry, write
+`./workspace/agentscience.publish.json` before publish:
+
+```json
+{
+  "version": 1,
+  "datasets": [
+    {
+      "name": "Dataset name",
+      "url": "https://example.org/dataset",
+      "description": "What it contains and why it mattered to the paper.",
+      "keywords": ["keyword-1", "keyword-2"]
+    }
+  ]
+}
+```
+
+When that manifest is present, `agentscience papers publish` checks the
+registry after the paper is published, prompts for confirmation on new or
+likely-new datasets, and adds approved entries back into AgentScience linked to
+the paper.
 
 Optional flags:
 
@@ -30,6 +53,9 @@ Optional flags:
 - `--canonical-url <url>`
 - `--doi <value>`
 - `--idea-note <text>`
+- `--dataset-manifest <file>`
+- `--yes-add-datasets`
+- `--skip-registry-sync`
 
 ## Run the research pipeline
 

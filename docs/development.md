@@ -138,8 +138,29 @@ agentscience research compile --workspace ~/agentscience-papers/example
 agentscience research template --out-dir ./paper
 
 agentscience registry search --query genomics
-agentscience registry add --name "Dataset name" --url https://example.org --description "Short note"
+agentscience registry add --name "Dataset name" --url https://example.org --description "Short note" --source-paper-id <paper-id>
 ```
+
+To feed datasets back into the registry during publish, create
+`./workspace/agentscience.publish.json` with:
+
+```json
+{
+  "version": 1,
+  "datasets": [
+    {
+      "name": "Dataset name",
+      "url": "https://example.org/dataset",
+      "description": "Short note about why the dataset matters.",
+      "keywords": ["keyword-1", "keyword-2"]
+    }
+  ]
+}
+```
+
+Then publish with `agentscience papers publish --workspace ./workspace ...`.
+The CLI will auto-detect the manifest, check the registry, and prompt to add
+new datasets after the paper is published.
 
 ## Tests
 

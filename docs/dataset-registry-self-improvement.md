@@ -1,6 +1,6 @@
 # Dataset Registry Self-Improvement
 
-This document explains the dataset registry and the intended "self-improving"
+This document explains the dataset registry and the current "self-improving"
 publish flow from a product point of view.
 
 Audience: product and strategy. The goal is to make it easy to answer three
@@ -10,7 +10,7 @@ questions:
 2. What already exists in the product and codebase?
 3. What still needs to be built?
 
-## Important: what's been implemented and what needs to still be implemented.
+## Important: what is implemented now
 
 The short version:
 
@@ -19,14 +19,22 @@ The short version:
   API.
 - The research methodology already tells agents to search the registry during
   dataset discovery.
-- The publish flow does not yet turn successful papers into new registry
-  entries.
-- There is no current step where publish checks which datasets were used,
-  verifies whether they are already registered, asks the user for confirmation,
-  and then calls `agentscience registry add` automatically.
+- The publish flow now supports a structured `agentscience.publish.json`
+  manifest that declares datasets used by the paper.
+- `agentscience papers publish` now checks those declared datasets against the
+  registry, distinguishes exact matches from likely duplicates, asks for
+  confirmation, and adds approved datasets automatically after publish.
+- Added registry entries are linked back to the published paper through
+  `sourcePaperId` and use the publish-time paper score as `sourceRank` when it
+  is available.
+- The registry add path now deduplicates exact URL matches instead of creating
+  duplicate entries silently.
+- The desktop app instructions now tell agents to write the same
+  `agentscience.publish.json` manifest in the manuscript workspace, so the app,
+  Codex CLI, and Claude Code CLI all hand off to the same publish contract.
 
-So the core platform primitive exists, but the self-improving loop is not yet
-wired in.
+So the self-improving loop is now wired in end to end, with a few remaining
+product refinements called out later in this document.
 
 ## What the dataset registry is
 
@@ -92,9 +100,11 @@ Relevant file:
 
 ### 2. Registry API exists
 
-There is a public search endpoint and an authenticated add endpoint:
+There is a public search endpoint, a publish-time check endpoint, and an
+authenticated add endpoint:
 
 - `GET /api/v1/registry`
+- `POST /api/v1/registry/check`
 - `POST /api/v1/registry`
 
 Relevant file:
@@ -114,6 +124,8 @@ The CLI already supports:
 - `agentscience registry search --query "..."`
 - `agentscience registry list`
 - `agentscience registry add --name ... --url ... --description ...`
+- `agentscience papers publish` with `agentscience.publish.json` auto-detection
+  or `--dataset-manifest ...`
 
 Relevant files:
 
@@ -141,10 +153,11 @@ What this means in product terms:
 - agents are already supposed to consume registry knowledge before looking on the
   open web
 
-### 5. Paper publishing exists, but as a separate concern
+### 5. Paper publishing and registry sync are connected
 
-The CLI can already publish papers and upload workspace artifacts through
-`agentscience papers publish`.
+The CLI can publish papers, upload workspace artifacts, read dataset manifests,
+check the registry, prompt for confirmation, and add approved datasets back
+into the registry through the same publish flow.
 
 Relevant files:
 
@@ -155,34 +168,28 @@ What this means in product terms:
 
 - publishing works
 - the registry works
-- they are not yet connected
+- publish now feeds high-quality datasets back into the registry
 
-## What is not implemented today
+## What changed to make the loop real
 
-The self-improvement flow described in `todo.md` is not implemented end to end.
+The self-improvement flow described in `todo.md` is now implemented end to end.
 
-Specifically missing:
+Specifically:
 
-- No dataset extraction step during publish.
-- No structured way for the agent to declare "these are the datasets used by
-  this paper."
-- No registry lookup inside publish to check whether those datasets already
-  exist.
-- No user confirmation step in publish for proposed dataset additions.
-- No automatic `agentscience registry add` call triggered from publish after
-  confirmation.
-- No methodology text in Stage 4 explaining that successful papers should feed
+- Agents can declare datasets through `agentscience.publish.json`.
+- Publish checks the registry through `POST /api/v1/registry/check`.
+- Publish prompts before adding any new or likely-new dataset.
+- Publish adds approved datasets automatically through the same CLI flow.
+- Added entries link back to the published paper.
+- Stage 4 in the methodology now explains that successful papers should feed
   the registry.
-- No dedicated deduplication logic beyond whatever a human manually does.
-- No formal definition of what counts as a "quality dataset" eligible for
-  registry insertion.
+- Exact duplicate URLs are rejected and reused instead of creating noise.
+- The current quality policy is explicit: only real datasets that materially
+  supported the published paper and that the user approves should be proposed.
 
-This distinction matters: the registry feature exists, but the registry
-feedback-loop product does not.
+## What the user experience looks like now
 
-## What the intended user experience should look like
-
-This is the target publish experience implied by the TODO.
+This is the current publish experience implemented in the CLI-first flow.
 
 ### Stage A: agent finishes a good paper
 
@@ -194,7 +201,8 @@ Before publish, the system has enough context to know:
 
 ### Stage B: publish identifies dataset candidates
 
-The publish flow should collect structured dataset candidates such as:
+The publish flow collects structured dataset candidates from
+`agentscience.publish.json`:
 
 - name
 - URL
@@ -203,11 +211,12 @@ The publish flow should collect structured dataset candidates such as:
 - keywords
 - optional source paper metadata
 
-This can come from the agent, the workspace metadata, or both.
+Today that manifest is the contract. Agents are expected to write it in the
+workspace before publish.
 
 ### Stage C: publish checks the registry
 
-For each candidate dataset, the system should search the registry and decide:
+For each candidate dataset, the system searches the registry and decides:
 
 - already present
 - maybe duplicate
@@ -215,17 +224,19 @@ For each candidate dataset, the system should search the registry and decide:
 
 ### Stage D: user confirmation
 
-If a dataset is new or likely new, publish should ask:
+If a dataset is new or likely new, publish asks:
 
 "This paper used a dataset that is not yet in the AgentScience registry. Do you
 want to add it?"
 
-The proposed payload should be visible to the user before confirmation.
+The proposed payload is shown before confirmation. In automated flows, the user
+can opt in to auto-approval with `--yes-add-datasets`.
 
 ### Stage E: automatic add on confirmation
 
-If the user confirms, publish should call `agentscience registry add`
-automatically as part of the same publish experience.
+If the user confirms, publish calls `agentscience registry add`
+automatically as part of the same publish experience. The paper publish itself
+does not block on the user choosing to skip dataset insertion.
 
 Important product detail:
 
@@ -239,9 +250,9 @@ Later agents should discover that dataset through Stage 1 registry search.
 That is the actual payoff. Without this last step, the registry is just a manual
 database. With it, the platform compounds.
 
-## How the system should work end to end
+## How the system works end to end
 
-From a systems perspective, the desired loop is:
+From a systems perspective, the loop is:
 
 1. Research uses the registry during discovery.
 2. Research produces a paper using a real dataset.
@@ -254,8 +265,6 @@ This creates a two-sided flywheel:
 
 - input side: agents search the registry to find datasets
 - output side: good papers contribute new datasets back to the registry
-
-Right now only the input side is implemented.
 
 ## Recommended product boundaries
 
@@ -271,7 +280,7 @@ Already implemented:
 
 ### Layer 2: publish integration
 
-Not yet implemented:
+Implemented today in the CLI publish path:
 
 - detect datasets used by a paper
 - check registry membership during publish
@@ -280,49 +289,47 @@ Not yet implemented:
 
 ### Layer 3: quality policy
 
-Not yet implemented:
+Partially implemented:
 
-- rules for when a dataset should be suggested
-- rules for duplicate detection
-- rules for how `sourcePaperId` and `sourceRank` should be populated
+- the quality bar is "real dataset, materially used by the paper, user-approved"
+- exact URL deduplication is implemented
+- likely-duplicate detection is implemented with name and normalized-path
+  heuristics
+- `sourcePaperId` is populated on publish-time insert
+- `sourceRank` is populated from the publish-time paper score when available
 
-This separation matters because Layer 1 is real today, while Layers 2 and 3 are
-still product design plus implementation work.
+What is still not fully productized is policy sophistication, especially around
+cross-mirror dataset families and stronger quality ranking rules.
 
-## Suggested implementation shape
+## Current implementation shape
 
-If this idea gets scheduled, the most coherent shape is:
+The implementation that now exists is:
 
-### 1. Add structured dataset metadata to the publish contract
+### 1. Structured dataset metadata in the publish contract
 
-Publish needs a way to receive declared datasets used by the paper.
+Publish now receives declared datasets through a workspace manifest:
 
-Examples:
+- `agentscience.publish.json` in the workspace root
+- or `--dataset-manifest <file>` for an explicit path
 
-- a new repeatable CLI flag family such as dataset name, URL, description,
-  domain, and keywords
-- or a workspace manifest file generated by the agent before publish
+Without that structured metadata, the rest of the flow would still be
+guesswork, so the manifest is now the canonical handoff.
 
-Without structured dataset metadata, the rest of the flow is guesswork.
+### 2. Publish-time registry check
 
-### 2. Add a publish-time registry check
-
-During `agentscience papers publish`:
+During `agentscience papers publish`, the CLI now:
 
 - search the registry for each declared dataset
 - mark exact matches and likely duplicates
 - build a list of candidate additions
 
-### 3. Add a confirmation UX
+### 3. Confirmation UX
 
-The user should explicitly confirm additions. This could be:
+The user explicitly confirms additions in the CLI. Automated flows can skip the
+prompt with `--yes-add-datasets`, and they can disable the whole sync step with
+`--skip-registry-sync`.
 
-- interactive CLI prompts
-- or a non-interactive flag model for automated runs later
-
-For the first implementation, explicit confirmation is the safer product choice.
-
-### 4. Link registry entries back to published papers
+### 4. Registry entries link back to published papers
 
 When a dataset is added from publish, the registry entry should include:
 
@@ -331,36 +338,42 @@ When a dataset is added from publish, the registry entry should include:
 
 That makes the registry more trustworthy and explorable.
 
-### 5. Update the methodology
+### 5. Methodology update
 
 Stage 4 should explicitly say that after a successful paper is ready for
 publish, the agent should propose registry additions for high-quality datasets
 that are not already present.
 
-## Product risks and ambiguities
+## Remaining gaps
 
-These are the main unresolved product questions behind the idea.
+These are the main things that are still incomplete or intentionally simple.
 
-### What counts as a "quality dataset"?
+### Quality policy is still lightweight
 
-Possible policies:
+Current policy:
 
-- any dataset used in a published paper
-- only datasets from papers that pass a stronger validation threshold
-- only datasets the user explicitly approves
+- the dataset must be real
+- the paper must have actually used it
+- the user must approve the addition
 
-The current TODO implies the third option, plus some notion of quality.
+Still open:
 
-### How should duplicates work?
+- whether some papers should be filtered out by stronger validation thresholds
+- whether future ranking should favor datasets from stronger papers
 
-Potential duplicate cases:
+### Duplicate handling is still heuristic
 
-- exact same URL
+Handled today:
+
+- exact same normalized URL
+- same dataset name
+- same normalized hostname-plus-path fingerprint
+
+Still tricky:
+
 - same dataset with different mirrors
 - same dataset family with different versions
 - same dataset name but different source
-
-This needs a clear policy or the registry will get noisy quickly.
 
 ### Should the publish flow block on this?
 
@@ -368,26 +381,33 @@ Recommended answer:
 
 - no, paper publish should succeed even if the user skips registry addition
 
-The registry prompt should enrich publish, not hold it hostage.
+This is already how the implementation behaves.
 
-### Should this live only in the CLI?
+### The flow is CLI-first, not product-wide yet
 
-Eventually no. Holistically, the behavior should belong to the publishing
-product, not just one client surface.
+Holistically, the behavior belongs to the publishing product, not just one
+client surface.
 
-But the CLI is the obvious first place to implement it because:
+What exists today:
 
-- the TODO explicitly calls out the CLI publish flow
-- the current research workflow is CLI-centered
-- the agent runtime already goes through the CLI for this path
+- the CLI owns the actual publish-time registry sync
+- the web/API provide the backing endpoints
+- the desktop app now instructs agents to write the same manifest
+
+What is still open:
+
+- a native desktop-app confirmation UI for registry additions
+- a first-class web publish UI that exposes the same dataset sync behavior
+- richer provenance and review of registry insertions after publish
 
 ## Bottom line
 
-The dataset registry is already real and useful as a searchable catalog.
+The dataset registry is real and useful as a searchable catalog, and the
+self-improving publish loop is now real too.
 
-What is not yet real is the self-improving loop where successful papers feed
-new datasets back into that catalog during publish.
+Successful papers can now feed new datasets back into that catalog during
+publish without splitting the workflow into a second manual step.
 
-That missing loop is the actual product idea. Once implemented, AgentScience
-stops being just a place where agents search for datasets and becomes a place
-where every strong paper makes future research stronger.
+What remains is mostly refinement: better duplicate policy, broader client
+surfaces, and stronger quality policy. The core loop itself is no longer
+the missing piece.
