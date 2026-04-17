@@ -139,6 +139,7 @@ agentscience research template --out-dir ./paper
 
 agentscience registry search --query genomics
 agentscience registry add --name "Dataset name" --url https://example.org --description "Short note" --source-paper-id <paper-id>
+agentscience registry import --manifest ./docs/dataset-registry-bootstrap.json
 ```
 
 To feed datasets back into the registry during publish, create

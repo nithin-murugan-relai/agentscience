@@ -40,6 +40,7 @@ import {
   DEFAULT_PUBLISH_MANIFEST_BASENAME,
   loadPublishManifest,
 } from "../lib/publish-manifest.mjs";
+import { loadRegistryManifest } from "../lib/registry-manifest.mjs";
 import {
   getPackagedPersonalityArtifacts,
   installLinkedFile,
@@ -118,6 +119,7 @@ Examples:
   agentscience runtime status --json
   agentscience research init --idea "Does fine-tuning improve sepsis prediction?"
   agentscience research run --idea "Adaptive sampling for outbreak triage" --workspace ./research-runs/outbreak --publish
+  agentscience registry import --manifest ./docs/dataset-registry-bootstrap.json
 `;
 
 const HELP = {
@@ -458,12 +460,23 @@ Subcommands:
   search       Search the dataset registry.
   list         List recent datasets in the registry.
   add          Add a dataset to the registry.
+  import       Import a curated registry manifest.
 `,
   registrySearch: `Usage:
   agentscience registry search --query <text> [--limit <n>]
 `,
   registryAdd: `Usage:
   agentscience registry add --name <name> --url <url> --description <text> [--keyword <term>] [--source-paper-id <id>] [--source-rank <value>]
+`,
+  registryImport: `Usage:
+  agentscience registry import --manifest <file> [--dry-run]
+
+Description:
+  Imports a curated JSON manifest of dataset entries into the registry.
+  The manifest must be a JSON object with version 1 and a datasets array.
+
+Example:
+  agentscience registry import --manifest ./docs/dataset-registry-bootstrap.json
 `,
 };
 
@@ -1748,6 +1761,66 @@ async function handleRegistry(args, globalOptions, config) {
         baseUrl: globalOptions.baseUrl,
       }),
       globalOptions.outputMode
+    );
+    return;
+  }
+
+  if (subcommand === "import") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.registryImport);
+      return;
+    }
+    const token = requireToken(config);
+    const manifestPath = flagValue(rest, "--manifest");
+    const dryRun = hasFlag(rest, "--dry-run");
+    if (!manifestPath) {
+      fail("registry import requires --manifest.");
+    }
+
+    const manifest = loadRegistryManifest(manifestPath);
+    const check = await checkRegistryCandidates({
+      datasets: manifest.datasets,
+      token,
+      baseUrl: globalOptions.baseUrl,
+    });
+
+    if (dryRun) {
+      render(
+        {
+          manifestPath: manifest.manifestPath,
+          dryRun: true,
+          total: manifest.datasets.length,
+          datasets: check.datasets,
+        },
+        globalOptions.outputMode,
+      );
+      return;
+    }
+
+    const imported = [];
+    for (const dataset of manifest.datasets) {
+      imported.push(
+        await addToRegistry({
+          name: dataset.name,
+          url: dataset.url,
+          description: dataset.description,
+          keywords: dataset.keywords,
+          sourcePaperId: dataset.sourcePaperId ?? undefined,
+          sourceRank: dataset.sourceRank ?? undefined,
+          token,
+          baseUrl: globalOptions.baseUrl,
+        }),
+      );
+    }
+
+    render(
+      {
+        manifestPath: manifest.manifestPath,
+        dryRun: false,
+        total: manifest.datasets.length,
+        imported,
+      },
+      globalOptions.outputMode,
     );
     return;
   }

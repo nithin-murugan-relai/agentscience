@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "datasets": [
+    {
+      "name": "DepMap 24Q2 Public",
+      "url": "https://doi.org/10.25452/figshare.plus.25880521.v1",
+      "description": "Broad DepMap public CRISPR dependency and expression release used to rank noncanonical vulnerabilities in high-risk B-ALL.",
+      "keywords": ["depmap", "b-all", "crispr", "dependency", "leukemia"],
+      "sourcePaperId": "cmnvixfm00000l4045bi0uwjf",
+      "sourceRank": 0.4641
+    },
+    {
+      "name": "DFCI 16-001 Pediatric ALL RNA-seq Cohort (GSE181157)",
+      "url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE181157",
+      "description": "Primary-patient pediatric ALL RNA-seq cohort with molecular subtype calls used to integrate subtype expression into the B-ALL target-prioritization analysis.",
+      "keywords": ["geo", "gse181157", "b-all", "rna-seq", "pediatric leukemia"],
+      "sourcePaperId": "cmnvixfm00000l4045bi0uwjf",
+      "sourceRank": 0.4641
+    },
+    {
+      "name": "Paired Diagnosis/Relapse Pediatric B-ALL Cohort (GSE28460)",
+      "url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE28460",
+      "description": "Paired diagnosis-versus-relapse pediatric B-precursor ALL expression cohort used to measure relapse-direction support in the B-ALL integration study.",
+      "keywords": ["geo", "gse28460", "b-all", "relapse", "microarray"],
+      "sourcePaperId": "cmnvixfm00000l4045bi0uwjf",
+      "sourceRank": 0.4641
+    },
+    {
+      "name": "PRISM Repurposing Public 23Q2",
+      "url": "https://doi.org/10.6084/m9.figshare.23600310.v4",
+      "description": "Broad PRISM repurposing screen release used for exploratory pharmacology in B-ALL, including trimetrexate activity in annotated B-ALL lines.",
+      "keywords": ["prism", "drug screen", "b-all", "repurposing", "pharmacology"],
+      "sourcePaperId": "cmnvixfm00000l4045bi0uwjf",
+      "sourceRank": 0.4641
+    },
+    {
+      "name": "World Development Indicators",
+      "url": "https://databank.worldbank.org/source/world-development-indicators",
+      "description": "World Bank country panel used to compare fixed telephony, mobile subscriptions, fixed broadband, and internet use across communications-policy peer countries.",
+      "keywords": ["world bank", "wdi", "broadband", "telecommunications", "comparative panel"],
+      "sourcePaperId": "cmnvggqpq0000l2042d26w25p",
+      "sourceRank": 0.33844
+    },
+    {
+      "name": "OpenNeuro ds005398",
+      "url": "https://openneuro.org/datasets/ds005398/versions/1.1.1",
+      "description": "Open pediatric-dominant iEEG epilepsy surgery dataset with derivative HFO event tables used for pathology-conditional outcome modeling.",
+      "keywords": ["openneuro", "ds005398", "ieeg", "epilepsy", "hfo"],
+      "sourcePaperId": "cmnveqld10000l504g92vji58",
+      "sourceRank": 0.43789
+    },
+    {
+      "name": "National Survey of Children's Health",
+      "url": "https://www.census.gov/programs-surveys/nsch/data/datasets.html",
+      "description": "Annual U.S. child health survey public-use files pooled across 2016-2024 to study smoking exposure and functional burden in pediatric epilepsy.",
+      "keywords": ["nsch", "pediatric epilepsy", "survey", "secondhand smoke", "health disparities"],
+      "sourcePaperId": "cmnnqjs5b0000jm04j13glmkv",
+      "sourceRank": 0.49725
+    },
+    {
+      "name": "TCGA Lower Grade Glioma and Glioblastoma Cohort via cBioPortal (lgggbm_tcga_pub)",
+      "url": "https://www.cbioportal.org/study/summary?id=lgggbm_tcga_pub",
+      "description": "Merged TCGA glioma cohort accessed through cBioPortal and filtered to IDH-wildtype glioblastoma cases for the MGMT-by-age survival interaction analysis.",
+      "keywords": ["tcga", "cbioportal", "glioblastoma", "mgmt", "survival"],
+      "sourcePaperId": "cmnk0k3mt0000jj04s16gbhm7",
+      "sourceRank": 0.36465
+    }
+  ]
+}
