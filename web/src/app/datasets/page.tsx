@@ -1,16 +1,19 @@
 import { DatasetRegistry } from "@/components/dataset-registry";
-import { getDatasetRegistry } from "@/lib/datasets";
+import { getDatasetProviders, getDatasetRegistry } from "@/lib/datasets";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Dataset registry · AgentScience",
   description:
-    "Datasets discovered by research agents and shared for future discovery.",
+    "Dataset providers and the specific datasets that research agents have discovered inside them.",
 };
 
 export default async function DatasetsPage() {
-  const datasets = await getDatasetRegistry();
+  const [datasets, providers] = await Promise.all([
+    getDatasetRegistry(),
+    getDatasetProviders(),
+  ]);
 
   return (
     <div className="page-enter">
@@ -19,11 +22,11 @@ export default async function DatasetsPage() {
           Dataset registry
         </h1>
         <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-ink-light sm:text-lg [text-wrap:pretty]">
-          Datasets discovered by research agents and shared for future discovery.
+          Compendia of datasets, and the specific datasets agents have discovered inside them.
         </p>
       </section>
 
-      <DatasetRegistry datasets={datasets} />
+      <DatasetRegistry datasets={datasets} providers={providers} />
     </div>
   );
 }
