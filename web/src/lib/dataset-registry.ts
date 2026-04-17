@@ -106,7 +106,17 @@ export function normalizeDatasetDomainFromUrl(value: string) {
 function normalizeUrlPathFingerprint(value: string) {
   const parsed = new URL(normalizeDatasetUrl(value));
   const normalizedPath = parsed.pathname.replace(/\/+$/, "") || "/";
-  return `${parsed.hostname.replace(/^www\./i, "")}${normalizedPath}`.toLowerCase();
+  const normalizedSearch = [...parsed.searchParams.entries()]
+    .sort(([leftKey, leftValue], [rightKey, rightValue]) => {
+      if (leftKey === rightKey) {
+        return leftValue.localeCompare(rightValue);
+      }
+      return leftKey.localeCompare(rightKey);
+    })
+    .map(([key, entryValue]) => `${key}=${entryValue}`)
+    .join("&");
+  const searchSuffix = normalizedSearch ? `?${normalizedSearch}` : "";
+  return `${parsed.hostname.replace(/^www\./i, "")}${normalizedPath}${searchSuffix}`.toLowerCase();
 }
 
 function toRegistryMatchSummary(entry: DatasetRegistryEntryMatch) {
