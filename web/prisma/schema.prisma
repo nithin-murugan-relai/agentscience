@@ -460,9 +460,40 @@ model SidekickSignalEvent {
   @@index([paperId, createdAt])
 }
 
+enum DatasetProviderSearchKind {
+  GRAPHQL
+  REST
+  HTML
+}
+
+/// A discovery surface that catalogs many datasets (OpenNeuro, HuggingFace, etc.).
+/// Providers carry the recipe an agent needs to search inside them; without this
+/// row the registry cannot tell an agent *how* to query the catalog.
+model DatasetProvider {
+  id                  String                     @id @default(cuid())
+  slug                String                     @unique
+  name                String
+  homeUrl             String
+  domain              String                     @unique
+  description         String
+  logoUrl             String?
+  searchKind          DatasetProviderSearchKind?
+  searchEndpoint      String?
+  searchQueryTemplate String?
+  datasetUrlTemplate  String?
+  agentInstructions   String?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+
+  datasets            DatasetEntry[]
+
+  @@index([domain])
+}
+
 model DatasetEntry {
   id          String   @id @default(cuid())
   name        String
+  shortName   String?
   url         String
   domain      String
   description String
@@ -473,6 +504,10 @@ model DatasetEntry {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  providerId String?
+  provider   DatasetProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
   @@index([domain])
   @@index([sourceRank(sort: Desc)])
+  @@index([providerId])
 }

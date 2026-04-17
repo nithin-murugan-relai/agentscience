@@ -181,6 +181,115 @@ test("POST /api/v1/registry stores a normalized hostname from the validated URL"
   assert.deepEqual(stored.keywords, ["climate", "archive"]);
 });
 
+test("POST /api/v1/registry auto-links a new dataset to the existing provider for its domain", async () => {
+  const { token, user } = await createApiUserWithToken();
+
+  const provider = await prisma.datasetProvider.create({
+    data: {
+      slug: "openneuro",
+      name: "OpenNeuro",
+      homeUrl: "https://openneuro.org",
+      domain: "openneuro.org",
+      description: "Neuroimaging datasets.",
+      searchKind: "GRAPHQL",
+      searchEndpoint: "https://openneuro.org/crn/graphql",
+      searchQueryTemplate: "query { datasets(search: {{query}}) { ... } }",
+      datasetUrlTemplate: "https://openneuro.org/datasets/{{accession}}",
+      agentInstructions: "Use GraphQL to search.",
+    },
+  });
+
+  const response = await postRegistryRoute(
+    new Request("http://localhost/api/v1/registry", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "OpenNeuro ds099999",
+        url: "https://openneuro.org/datasets/ds099999",
+        description: "A newly registered OpenNeuro dataset used to verify provider auto-linking.",
+      }),
+    }),
+  );
+
+  assert.equal(response.status, 201);
+
+  const payload = await response.json();
+  assert.equal(payload.created, true);
+  assert.equal(payload.dataset.provider?.id, provider.id);
+  assert.equal(payload.dataset.provider?.slug, "openneuro");
+  assert.equal(payload.dataset.provider?.name, "OpenNeuro");
+
+  const stored = await prisma.datasetEntry.findFirstOrThrow({
+    where: { addedBy: user.id },
+  });
+  assert.equal(stored.providerId, provider.id);
+});
+
+test("POST /api/v1/registry honors explicit providerSlug when supplied", async () => {
+  const { token } = await createApiUserWithToken();
+
+  const provider = await prisma.datasetProvider.create({
+    data: {
+      slug: "huggingface",
+      name: "Hugging Face Datasets",
+      homeUrl: "https://huggingface.co",
+      domain: "huggingface.co",
+      description: "ML dataset hub.",
+    },
+  });
+
+  const response = await postRegistryRoute(
+    new Request("http://localhost/api/v1/registry", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Mirror of squad on custom host",
+        url: "https://mirror.example.com/datasets/squad",
+        description: "A dataset mirrored on an unrelated host but conceptually hosted by HuggingFace.",
+        providerSlug: "huggingface",
+      }),
+    }),
+  );
+
+  assert.equal(response.status, 201);
+  const payload = await response.json();
+  assert.equal(payload.dataset.provider?.id, provider.id);
+  assert.equal(payload.dataset.provider?.slug, "huggingface");
+});
+
+test("POST /api/v1/registry falls back to domain-based provider linking when providerSlug is unknown", async () => {
+  const { token } = await createApiUserWithToken();
+
+  const response = await postRegistryRoute(
+    new Request("http://localhost/api/v1/registry", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Dataset on fresh domain",
+        url: "https://fresh-domain.example.org/datasets/foo",
+        description:
+          "Unknown providerSlug should not block registration; the resolver falls back to the URL domain and auto-creates a stub provider.",
+        providerSlug: "not-a-real-provider-slug",
+      }),
+    }),
+  );
+
+  assert.equal(response.status, 201);
+  const payload = await response.json();
+  assert.ok(payload.dataset.provider, "dataset should be linked to an auto-created provider");
+  assert.equal(payload.dataset.provider.domain, "fresh-domain.example.org");
+  assert.equal(payload.dataset.provider.slug, "fresh-domain-example-org");
+});
+
 test("POST /api/v1/registry reuses an existing dataset when the normalized URL already exists", async () => {
   const { token, user } = await createApiUserWithToken();
 

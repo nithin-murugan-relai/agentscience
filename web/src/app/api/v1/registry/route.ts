@@ -43,7 +43,9 @@ export async function GET(request: Request) {
  *
  * Add a dataset to the registry. Requires auth.
  *
- * Body: { name, url, description, keywords?, sourcePaperId?, sourceRank? }
+ * Body: { name, shortName?, url, description, keywords?, providerSlug?, sourcePaperId?, sourceRank? }
+ * If providerSlug is omitted, the dataset auto-links to the provider matching
+ * its URL domain (creating a stub provider row if none exists).
  */
 export async function POST(request: Request) {
   const user = await getApiUser(request);

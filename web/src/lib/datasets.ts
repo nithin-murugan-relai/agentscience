@@ -1,6 +1,9 @@
+import type { DatasetProviderSearchKind } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 
 const MAX_DATASET_REGISTRY_ENTRIES = 500;
+const MAX_DATASET_PROVIDER_ENTRIES = 200;
 
 export type DatasetSourcePaper = {
   slug: string;
@@ -10,9 +13,17 @@ export type DatasetSourcePaper = {
   url: string;
 };
 
+export type DatasetProviderSummary = {
+  id: string;
+  slug: string;
+  name: string;
+  domain: string;
+};
+
 export type DatasetListItem = {
   id: string;
   name: string;
+  shortName: string | null;
   url: string;
   domain: string;
   description: string;
@@ -23,6 +34,24 @@ export type DatasetListItem = {
   createdAt: Date;
   sourcePaper: DatasetSourcePaper | null;
   usedInPaperCount: number;
+  provider: DatasetProviderSummary | null;
+};
+
+export type DatasetProviderListItem = {
+  id: string;
+  slug: string;
+  name: string;
+  homeUrl: string;
+  domain: string;
+  description: string;
+  logoUrl: string | null;
+  searchKind: DatasetProviderSearchKind | null;
+  searchEndpoint: string | null;
+  searchQueryTemplate: string | null;
+  datasetUrlTemplate: string | null;
+  agentInstructions: string | null;
+  datasetCount: number;
+  createdAt: Date;
 };
 
 function parseHttpUrl(value: string) {
@@ -73,6 +102,16 @@ export async function getDatasetRegistry(options?: {
     where,
     orderBy: [{ sourceRank: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
     take: limit,
+    include: {
+      provider: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          domain: true,
+        },
+      },
+    },
   });
 
   const paperIds = registryEntries
@@ -118,6 +157,7 @@ export async function getDatasetRegistry(options?: {
       {
         id: dataset.id,
         name: dataset.name,
+        shortName: dataset.shortName ?? null,
         url: parsedUrl.toString(),
         domain:
           normalizeDomain(dataset.domain) ||
@@ -139,7 +179,71 @@ export async function getDatasetRegistry(options?: {
             }
           : null,
         usedInPaperCount: paper ? 1 : 0,
+        provider: dataset.provider
+          ? {
+              id: dataset.provider.id,
+              slug: dataset.provider.slug,
+              name: dataset.provider.name,
+              domain: dataset.provider.domain,
+            }
+          : null,
       },
     ];
   });
+}
+
+/**
+ * List dataset providers (OpenNeuro, HuggingFace, etc.). Each provider carries
+ * the agent-facing search recipe (endpoint + query template + instructions)
+ * so a caller can query the underlying catalog without hardcoded knowledge.
+ */
+export async function getDatasetProviders(options?: {
+  query?: string;
+  limit?: number;
+}): Promise<DatasetProviderListItem[]> {
+  const query = options?.query?.trim() ?? "";
+  const limit = parsePositiveInt(
+    options?.limit,
+    MAX_DATASET_PROVIDER_ENTRIES,
+    MAX_DATASET_PROVIDER_ENTRIES,
+  );
+
+  const where = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          { slug: { contains: query, mode: "insensitive" as const } },
+          { description: { contains: query, mode: "insensitive" as const } },
+          { domain: { contains: query, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+
+  const providers = await prisma.datasetProvider.findMany({
+    where,
+    orderBy: [{ name: "asc" }],
+    take: limit,
+    include: {
+      _count: {
+        select: { datasets: true },
+      },
+    },
+  });
+
+  return providers.map((provider) => ({
+    id: provider.id,
+    slug: provider.slug,
+    name: provider.name,
+    homeUrl: provider.homeUrl,
+    domain: normalizeDomain(provider.domain),
+    description: provider.description,
+    logoUrl: provider.logoUrl,
+    searchKind: provider.searchKind,
+    searchEndpoint: provider.searchEndpoint,
+    searchQueryTemplate: provider.searchQueryTemplate,
+    datasetUrlTemplate: provider.datasetUrlTemplate,
+    agentInstructions: provider.agentInstructions,
+    datasetCount: provider._count.datasets,
+    createdAt: provider.createdAt,
+  }));
 }
