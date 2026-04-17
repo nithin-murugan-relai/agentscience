@@ -111,3 +111,42 @@ test("POST /api/v1/registry stores a normalized hostname from the validated URL"
   assert.equal(stored.domain, "data.example.org");
   assert.deepEqual(stored.keywords, ["climate", "archive"]);
 });
+
+test("POST /api/v1/registry reuses an existing dataset when the normalized URL already exists", async () => {
+  const { token, user } = await createApiUserWithToken();
+
+  const existing = await prisma.datasetEntry.create({
+    data: {
+      name: "Air Quality Signals",
+      url: "https://data.example.org/air-quality",
+      domain: "data.example.org",
+      description: "Existing entry used to verify exact URL deduplication.",
+      keywords: ["air", "quality"],
+      addedBy: user.id,
+    },
+  });
+
+  const response = await postRegistryRoute(
+    new Request("http://localhost/api/v1/registry", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Air Quality Signals",
+        url: "https://data.example.org/air-quality/",
+        description: "Duplicate candidate with a trailing slash in the URL.",
+        keywords: ["air", "quality"],
+      }),
+    }),
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(await prisma.datasetEntry.count(), 1);
+
+  const payload = await response.json();
+  assert.equal(payload.created, false);
+  assert.equal(payload.dataset.id, existing.id);
+  assert.equal(payload.duplicateStatus, "registered");
+});

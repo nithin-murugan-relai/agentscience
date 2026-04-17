@@ -2,30 +2,19 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getApiUser, unauthorizedJson } from "@/lib/api-auth";
+import {
+  createDatasetRegistryEntry,
+  datasetRegistryCandidateSchema,
+} from "@/lib/dataset-registry";
 import { prisma } from "@/lib/prisma";
 import { parsePositiveInt } from "@/lib/public-api";
 
 export const dynamic = "force-dynamic";
 
-const registryDatasetInputSchema = z.object({
-  name: z.string().trim().min(2).max(160),
-  url: z
-    .string()
-    .trim()
-    .url()
-    .refine((value) => {
-      const parsed = new URL(value);
-      return parsed.protocol === "http:" || parsed.protocol === "https:";
-    }, "url must use http or https."),
-  description: z.string().trim().min(12).max(2000),
-  keywords: z.array(z.string().trim().min(1).max(60)).max(16).default([]),
+const registryDatasetInputSchema = datasetRegistryCandidateSchema.extend({
   sourcePaperId: z.string().trim().min(1).max(64).optional().nullable(),
   sourceRank: z.coerce.number().finite().optional().nullable(),
 });
-
-function normalizeDomainFromUrl(value: string) {
-  return new URL(value).hostname.replace(/^www\./i, "");
-}
 
 /**
  * GET /api/v1/registry?q=<query>&limit=<n>
@@ -62,7 +51,7 @@ export async function GET(request: Request) {
  *
  * Add a dataset to the registry. Requires auth.
  *
- * Body: { name, url, domain, description, keywords?, sourcePaperId?, sourceRank? }
+ * Body: { name, url, description, keywords?, sourcePaperId?, sourceRank? }
  */
 export async function POST(request: Request) {
   const user = await getApiUser(request);
@@ -88,20 +77,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const keywords = [...new Set(parsed.data.keywords.map((keyword) => keyword.toLowerCase()))];
-
-  const dataset = await prisma.datasetEntry.create({
-    data: {
-      name: parsed.data.name,
-      url: parsed.data.url,
-      domain: normalizeDomainFromUrl(parsed.data.url),
-      description: parsed.data.description,
-      keywords,
-      sourcePaperId: parsed.data.sourcePaperId ?? null,
-      sourceRank: parsed.data.sourceRank ?? null,
-      addedBy: user.id,
-    },
+  const result = await createDatasetRegistryEntry({
+    userId: user.id,
+    dataset: parsed.data,
+    sourcePaperId: parsed.data.sourcePaperId ?? null,
+    sourceRank: parsed.data.sourceRank ?? null,
   });
 
-  return NextResponse.json({ dataset }, { status: 201 });
+  return NextResponse.json(
+    {
+      dataset: result.dataset,
+      created: result.created,
+      duplicateStatus: result.duplicateStatus,
+      check: result.check,
+    },
+    { status: result.created ? 201 : 200 },
+  );
 }

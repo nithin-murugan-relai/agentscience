@@ -30,11 +30,16 @@ import {
   compilePaper,
   copyTemplate,
   publishPaper,
+  checkRegistryCandidates,
   searchRegistry,
   listRegistry,
   addToRegistry,
   runLiteratureReview,
 } from "../lib/pipeline.mjs";
+import {
+  DEFAULT_PUBLISH_MANIFEST_BASENAME,
+  loadPublishManifest,
+} from "../lib/publish-manifest.mjs";
 import {
   getPackagedPersonalityArtifacts,
   installLinkedFile,
@@ -50,7 +55,9 @@ import {
 } from "../lib/workspace.mjs";
 import { collectWorkspaceBundle } from "../lib/paper-bundle.mjs";
 
-const VERSION = "0.5.1";
+const VERSION = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+).version;
 const DEFAULT_BASE_URL =
   process.env.AGENTSCIENCE_BASE_URL ?? "https://agentscience.vercel.app";
 const CONFIG_DIR = join(homedir(), ".config", "agentscience");
@@ -310,10 +317,16 @@ Optional options:
   --canonical-url <url>       Canonical paper URL
   --doi <value>               DOI
   --idea-note <text>          Origin note for the publication
+  --dataset-manifest <file>   Publish manifest with datasets used by the paper
+  --yes-add-datasets          Auto-add new dataset candidates after publish
+  --skip-registry-sync        Skip the publish-time dataset registry sync
 
 Description:
   Uploads a real paper bundle to the live production API, including code artifacts
   discovered from the workspace so the paper detail page can render an internal code viewer.
+  If ${DEFAULT_PUBLISH_MANIFEST_BASENAME} exists in the workspace (or --dataset-manifest
+  is provided), the CLI checks the registry after publish and can add new datasets
+  back into AgentScience as part of the same flow.
 `,
   papersComment: `Usage:
   agentscience papers comment <slug> --body <text>|--body-file <file>
@@ -450,7 +463,7 @@ Subcommands:
   agentscience registry search --query <text> [--limit <n>]
 `,
   registryAdd: `Usage:
-  agentscience registry add --name <name> --url <url> --description <text> [--domain <domain>] [--keyword <term>]
+  agentscience registry add --name <name> --url <url> --description <text> [--keyword <term>] [--source-paper-id <id>] [--source-rank <value>]
 `,
 };
 
@@ -504,14 +517,25 @@ function loadJsonFile(filePath, fallback) {
   }
 }
 
-function promptUser(question) {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
+function promptUser(question, output = process.stdout) {
+  const rl = createInterface({ input: process.stdin, output });
   return new Promise((resolve) => {
     rl.question(question, (answer) => {
       rl.close();
       resolve(answer.trim());
     });
   });
+}
+
+async function confirmYesNo(question, { output = process.stderr, defaultValue = false } = {}) {
+  const hint = defaultValue ? " [Y/n] " : " [y/N] ";
+  const answer = (await promptUser(`${question}${hint}`, output)).toLowerCase();
+
+  if (!answer) {
+    return defaultValue;
+  }
+
+  return answer === "y" || answer === "yes";
 }
 
 function openBrowser(url) {
@@ -747,6 +771,14 @@ function render(result, mode) {
     }
     if (Array.isArray(result.paper.artifacts)) {
       console.log(`Artifacts: ${result.paper.artifacts.length}`);
+    }
+    if (result.registrySync?.manifestPath) {
+      console.log(`Dataset manifest: ${result.registrySync.manifestPath}`);
+      console.log(
+        `Registry sync: ${result.registrySync.added.length} added, ${result.registrySync.alreadyRegisteredCount} already registered, ${result.registrySync.skipped.length} skipped.`,
+      );
+    } else if (result.registrySync?.reason === "disabled") {
+      console.log("Dataset registry sync skipped.");
     }
     return;
   }
@@ -1030,6 +1062,9 @@ async function handlePapers(args, globalOptions, config) {
     const canonicalUrl = flagValue(rest, "--canonical-url");
     const doi = flagValue(rest, "--doi");
     const ideaNote = flagValue(rest, "--idea-note");
+    const datasetManifestPath = flagValue(rest, "--dataset-manifest");
+    const autoAddDatasets = hasFlag(rest, "--yes-add-datasets");
+    const skipRegistrySync = hasFlag(rest, "--skip-registry-sync");
     const keywordFlags = takeFlag(rest, "--keyword").values.filter(Boolean);
     const referenceFlags = takeFlag(rest, "--reference").values.filter(Boolean);
     const figureFlags = takeFlag(rest, "--figure").values.filter(Boolean);
@@ -1043,6 +1078,13 @@ async function handlePapers(args, globalOptions, config) {
     const resolvedLatexFile = resolve(latexFile);
     const resolvedPdfFile = resolve(pdfFile);
     const resolvedWorkspace = resolve(workspace ?? dirname(resolvedLatexFile));
+    const datasetManifest =
+      skipRegistrySync
+        ? null
+        : loadPublishManifest({
+            workspaceDir: resolvedWorkspace,
+            manifestPath: datasetManifestPath,
+          });
     const bundle = collectWorkspaceBundle({
       workspaceDir: resolvedWorkspace,
       figurePaths: figureFlags,
@@ -1100,7 +1142,111 @@ async function handlePapers(args, globalOptions, config) {
       token,
       formData: form,
     });
-    render(result, globalOptions.outputMode);
+
+    let registrySync;
+    if (skipRegistrySync) {
+      registrySync = {
+        reason: "disabled",
+        manifestPath: null,
+        declaredCount: 0,
+        alreadyRegisteredCount: 0,
+        proposedCount: 0,
+        added: [],
+        skipped: [],
+      };
+    } else if (datasetManifest?.datasets.length) {
+      const checked = await checkRegistryCandidates({
+        datasets: datasetManifest.datasets,
+        token,
+        baseUrl: globalOptions.baseUrl,
+      });
+      const proposals = checked.datasets.filter((entry) => entry.status !== "registered");
+      const added = [];
+      const skipped = [];
+
+      for (const proposal of proposals) {
+        let approved = autoAddDatasets;
+
+        if (!approved) {
+          if (!process.stdin.isTTY) {
+            skipped.push({
+              name: proposal.candidate.name,
+              reason: "non-interactive",
+            });
+            continue;
+          }
+
+          const lines = [
+            "",
+            `Dataset candidate from ${datasetManifest.manifestPath}:`,
+            `- Name: ${proposal.candidate.name}`,
+            `- URL: ${proposal.candidate.url}`,
+            `- Domain: ${proposal.candidate.domain}`,
+            `- Description: ${proposal.candidate.description}`,
+            `- Keywords: ${proposal.candidate.keywords.join(", ") || "none"}`,
+          ];
+
+          if (proposal.matches.length > 0) {
+            lines.push("- Existing registry matches:");
+            for (const match of proposal.matches) {
+              lines.push(`  - ${match.name} (${match.url})`);
+            }
+          }
+
+          process.stderr.write(`${lines.join("\n")}\n`);
+          approved = await confirmYesNo(
+            proposal.status === "possible-duplicate"
+              ? "Add this dataset anyway?"
+              : "Add this dataset to the AgentScience registry?",
+            { output: process.stderr },
+          );
+        }
+
+        if (!approved) {
+          skipped.push({
+            name: proposal.candidate.name,
+            reason: "declined",
+          });
+          continue;
+        }
+
+        const addResult = await addToRegistry({
+          ...proposal.candidate,
+          sourcePaperId: result.paper.id,
+          sourceRank: typeof result.paper.score === "number" ? result.paper.score : undefined,
+          token,
+          baseUrl: globalOptions.baseUrl,
+        });
+
+        added.push({
+          name: addResult.dataset.name,
+          datasetId: addResult.dataset.id,
+          created: addResult.created !== false,
+        });
+      }
+
+      registrySync = {
+        manifestPath: datasetManifest.manifestPath,
+        declaredCount: datasetManifest.datasets.length,
+        alreadyRegisteredCount: checked.datasets.filter((entry) => entry.status === "registered")
+          .length,
+        proposedCount: proposals.length,
+        added,
+        skipped,
+      };
+    } else {
+      registrySync = {
+        reason: "no-manifest",
+        manifestPath: null,
+        declaredCount: 0,
+        alreadyRegisteredCount: 0,
+        proposedCount: 0,
+        added: [],
+        skipped: [],
+      };
+    }
+
+    render({ ...result, registrySync }, globalOptions.outputMode);
     return;
   }
 
@@ -1505,7 +1651,10 @@ async function handleResearch(args, globalOptions, config) {
     if (!query) {
       fail("research literature requires --query.");
     }
-    render(await runLiteratureReview({ query, keywords, limit }), globalOptions.outputMode);
+    render(
+      await runLiteratureReview({ query, keywords, limit, baseUrl: globalOptions.baseUrl }),
+      globalOptions.outputMode,
+    );
     return;
   }
 
@@ -1559,13 +1708,16 @@ async function handleRegistry(args, globalOptions, config) {
     if (!query) {
       fail("registry search requires --query.");
     }
-    render(await searchRegistry({ query, limit }), globalOptions.outputMode);
+    render(
+      await searchRegistry({ query, limit, baseUrl: globalOptions.baseUrl }),
+      globalOptions.outputMode,
+    );
     return;
   }
 
   if (subcommand === "list") {
     const limit = Number(flagValue(rest, "--limit") ?? "20");
-    render(await listRegistry({ limit }), globalOptions.outputMode);
+    render(await listRegistry({ limit, baseUrl: globalOptions.baseUrl }), globalOptions.outputMode);
     return;
   }
 
@@ -1578,13 +1730,23 @@ async function handleRegistry(args, globalOptions, config) {
     const name = flagValue(rest, "--name");
     const url = flagValue(rest, "--url");
     const description = flagValue(rest, "--description");
-    const domain = flagValue(rest, "--domain");
     const keywords = takeFlag(rest, "--keyword").values.filter(Boolean);
+    const sourcePaperId = flagValue(rest, "--source-paper-id");
+    const sourceRank = flagValue(rest, "--source-rank");
     if (!name || !url || !description) {
       fail("registry add requires --name, --url, and --description.");
     }
     render(
-      await addToRegistry({ name, url, description, domain, keywords, token }),
+      await addToRegistry({
+        name,
+        url,
+        description,
+        keywords,
+        sourcePaperId,
+        sourceRank: sourceRank ? Number(sourceRank) : undefined,
+        token,
+        baseUrl: globalOptions.baseUrl,
+      }),
       globalOptions.outputMode
     );
     return;

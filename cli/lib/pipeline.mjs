@@ -23,8 +23,8 @@ function runCommand(command, args, options = {}) {
   });
 }
 
-async function requestJson(path, { method = "GET", token, body } = {}) {
-  const response = await fetch(new URL(path, DEFAULT_BASE_URL), {
+async function requestJson(path, { method = "GET", token, body, baseUrl = DEFAULT_BASE_URL } = {}) {
+  const response = await fetch(new URL(path, baseUrl), {
     method,
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -123,6 +123,9 @@ export async function publishPaper({ token, cliPath, ...paperArgs }) {
   if (paperArgs.workspaceDir) {
     commandArgs.push("--workspace", paperArgs.workspaceDir);
   }
+  if (paperArgs.datasetManifestPath) {
+    commandArgs.push("--dataset-manifest", paperArgs.datasetManifestPath);
+  }
   if (paperArgs.bibPath) {
     commandArgs.push("--bib-file", paperArgs.bibPath);
   }
@@ -138,12 +141,18 @@ export async function publishPaper({ token, cliPath, ...paperArgs }) {
   for (const figurePath of paperArgs.figurePaths ?? []) {
     commandArgs.push("--figure", figurePath);
   }
+  if (paperArgs.autoAddDatasets) {
+    commandArgs.push("--yes-add-datasets");
+  }
+  if (paperArgs.skipRegistrySync) {
+    commandArgs.push("--skip-registry-sync");
+  }
 
   const output = runCommand(commandArgs[0], commandArgs.slice(1), {
     env: {
       ...process.env,
       AGENTSCIENCE_TOKEN: token,
-      AGENTSCIENCE_BASE_URL: DEFAULT_BASE_URL,
+      AGENTSCIENCE_BASE_URL: paperArgs.baseUrl ?? DEFAULT_BASE_URL,
     },
   });
 
@@ -154,23 +163,43 @@ export async function publishPaper({ token, cliPath, ...paperArgs }) {
 // Dataset registry
 // ---------------------------------------------------------------------------
 
-export async function searchRegistry({ query, limit = 20, token }) {
+export async function searchRegistry({ query, limit = 20, token, baseUrl } = {}) {
   const encodedQuery = encodeURIComponent(query);
   return requestJson(
     `/api/v1/registry?q=${encodedQuery}&limit=${limit}`,
-    { token }
+    { token, baseUrl }
   );
 }
 
-export async function listRegistry({ limit = 20, token }) {
-  return requestJson(`/api/v1/registry?limit=${limit}`, { token });
+export async function listRegistry({ limit = 20, token, baseUrl } = {}) {
+  return requestJson(`/api/v1/registry?limit=${limit}`, { token, baseUrl });
 }
 
-export async function addToRegistry({ name, url, description, domain, keywords, sourcePaperId, sourceRank, token }) {
+export async function addToRegistry({
+  name,
+  url,
+  description,
+  domain,
+  keywords,
+  sourcePaperId,
+  sourceRank,
+  token,
+  baseUrl,
+}) {
   return requestJson("/api/v1/registry", {
     method: "POST",
     token,
+    baseUrl,
     body: { name, url, description, domain, keywords, sourcePaperId, sourceRank },
+  });
+}
+
+export async function checkRegistryCandidates({ datasets, token, baseUrl }) {
+  return requestJson("/api/v1/registry/check", {
+    method: "POST",
+    token,
+    baseUrl,
+    body: { datasets },
   });
 }
 
@@ -178,7 +207,7 @@ export async function addToRegistry({ name, url, description, domain, keywords, 
 // Literature review (OpenAlex + internal papers — no LLM needed)
 // ---------------------------------------------------------------------------
 
-export async function runLiteratureReview({ query, keywords = [], limit = 5 }) {
+export async function runLiteratureReview({ query, keywords = [], limit = 5, baseUrl } = {}) {
   const searchTerms = [query, ...keywords].filter(Boolean).join(" ");
   const encoded = encodeURIComponent(searchTerms);
   const openAlexUrl = `https://api.openalex.org/works?search=${encoded}&per-page=${limit}`;
@@ -187,7 +216,8 @@ export async function runLiteratureReview({ query, keywords = [], limit = 5 }) {
   const externalWorks = (openAlexPayload.results ?? []).slice(0, limit);
 
   const internalPayload = await requestJson(
-    `/api/v1/papers?q=${encodeURIComponent(keywords[0] ?? query)}&limit=5`
+    `/api/v1/papers?q=${encodeURIComponent(keywords[0] ?? query)}&limit=5`,
+    { baseUrl }
   );
 
   return {
