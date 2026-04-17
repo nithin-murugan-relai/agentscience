@@ -2,6 +2,14 @@ import { prisma } from "@/lib/prisma";
 
 const MAX_DATASET_REGISTRY_ENTRIES = 500;
 
+export type DatasetSourcePaper = {
+  slug: string;
+  title: string;
+  authors: string[];
+  publishedAt: Date;
+  url: string;
+};
+
 export type DatasetListItem = {
   id: string;
   name: string;
@@ -10,8 +18,11 @@ export type DatasetListItem = {
   description: string;
   keywords: string[];
   sourcePaperId: string | null;
+  sourceRank: number | null;
+  addedBy: string | null;
   createdAt: Date;
-  sourcePaper: { slug: string; title: string } | null;
+  sourcePaper: DatasetSourcePaper | null;
+  usedInPaperCount: number;
 };
 
 function parseHttpUrl(value: string) {
@@ -32,10 +43,36 @@ function uniqueStrings(values: string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 }
 
-export async function getDatasetRegistry(): Promise<DatasetListItem[]> {
+function parsePositiveInt(value: number | undefined, fallback: number, max = MAX_DATASET_REGISTRY_ENTRIES) {
+  if (!Number.isFinite(value) || value === undefined || value <= 0) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.floor(value));
+}
+
+export async function getDatasetRegistry(options?: {
+  query?: string;
+  limit?: number;
+}): Promise<DatasetListItem[]> {
+  const query = options?.query?.trim() ?? "";
+  const limit = parsePositiveInt(options?.limit, MAX_DATASET_REGISTRY_ENTRIES);
+
+  const where = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          { description: { contains: query, mode: "insensitive" as const } },
+          { domain: { contains: query, mode: "insensitive" as const } },
+          { keywords: { hasSome: query.toLowerCase().split(/\s+/).filter(Boolean) } },
+        ],
+      }
+    : {};
+
   const registryEntries = await prisma.datasetEntry.findMany({
+    where,
     orderBy: [{ sourceRank: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
-    take: MAX_DATASET_REGISTRY_ENTRIES,
+    take: limit,
   });
 
   const paperIds = registryEntries
@@ -48,7 +85,22 @@ export async function getDatasetRegistry(): Promise<DatasetListItem[]> {
           id: { in: paperIds },
           visibility: "PUBLIC",
         },
-        select: { id: true, slug: true, title: true },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          publishedAt: true,
+          authors: {
+            orderBy: { position: "asc" },
+            select: {
+              user: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
       })
     : [];
 
@@ -74,8 +126,19 @@ export async function getDatasetRegistry(): Promise<DatasetListItem[]> {
         description: dataset.description,
         keywords: uniqueStrings(dataset.keywords).slice(0, 8),
         sourcePaperId: dataset.sourcePaperId,
+        sourceRank: dataset.sourceRank,
+        addedBy: dataset.addedBy,
         createdAt: dataset.createdAt,
-        sourcePaper: paper ? { slug: paper.slug, title: paper.title } : null,
+        sourcePaper: paper
+          ? {
+              slug: paper.slug,
+              title: paper.title,
+              authors: uniqueStrings(paper.authors.map((author) => author.user.name)),
+              publishedAt: paper.publishedAt,
+              url: `/papers/${paper.slug}`,
+            }
+          : null,
+        usedInPaperCount: paper ? 1 : 0,
       },
     ];
   });

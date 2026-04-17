@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getApiUser, unauthorizedJson } from "@/lib/api-auth";
+import { getDatasetRegistry } from "@/lib/datasets";
 import {
   createDatasetRegistryEntry,
   datasetRegistryCandidateSchema,
 } from "@/lib/dataset-registry";
-import { prisma } from "@/lib/prisma";
 import { parsePositiveInt } from "@/lib/public-api";
 
 export const dynamic = "force-dynamic";
@@ -24,24 +24,16 @@ const registryDatasetInputSchema = datasetRegistryCandidateSchema.extend({
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q") ?? "";
-  const limit = parsePositiveInt(url.searchParams.get("limit"), 20, 100);
-
-  const where = query
-    ? {
-        OR: [
-          { name: { contains: query, mode: "insensitive" as const } },
-          { description: { contains: query, mode: "insensitive" as const } },
-          { domain: { contains: query, mode: "insensitive" as const } },
-          { keywords: { hasSome: query.toLowerCase().split(/\s+/) } },
-        ],
-      }
-    : {};
-
-  const datasets = await prisma.datasetEntry.findMany({
-    where,
-    orderBy: [{ sourceRank: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
-    take: limit,
-  });
+  const limit = parsePositiveInt(url.searchParams.get("limit"), 20, 500);
+  const datasets = (await getDatasetRegistry({ query, limit })).map((dataset) => ({
+    ...dataset,
+    sourcePaper: dataset.sourcePaper
+      ? {
+          ...dataset.sourcePaper,
+          url: new URL(dataset.sourcePaper.url, url).toString(),
+        }
+      : null,
+  }));
 
   return NextResponse.json({ datasets });
 }
