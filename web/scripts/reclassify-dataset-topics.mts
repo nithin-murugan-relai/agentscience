@@ -1,8 +1,9 @@
-import { prisma } from "@/lib/prisma";
-import {
-  inferDatasetTopicIdsForCandidate,
-  INTERDISCIPLINARY_TOPIC_SLUG,
-} from "@/lib/dataset-topic-inference";
+import prismaModule from "@/lib/prisma";
+import datasetTopicInferenceModule from "@/lib/dataset-topic-inference";
+
+const { prisma } = prismaModule;
+const { inferDatasetTopicIdsForCandidate, INTERDISCIPLINARY_TOPIC_SLUG } =
+  datasetTopicInferenceModule;
 
 function parseLimit(args: string[]) {
   const index = args.indexOf("--limit");
