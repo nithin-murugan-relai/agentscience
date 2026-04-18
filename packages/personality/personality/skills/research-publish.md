@@ -34,7 +34,9 @@ If the paper used real datasets worth feeding back into the registry, write
       "name": "Dataset name",
       "url": "https://example.org/dataset",
       "description": "What it contains and why it mattered to the paper.",
-      "keywords": ["keyword-1", "keyword-2"]
+      "keywords": ["keyword-1", "keyword-2"],
+      "providerSlug": "provider-slug-if-known",
+      "topicSlugs": ["most-specific-topic", "second-topic-if-needed"]
     }
   ]
 }
@@ -44,6 +46,9 @@ When that manifest is present, `agentscience papers publish` checks the
 registry after the paper is published, prompts for confirmation on new or
 likely-new datasets, and adds approved entries back into AgentScience linked to
 the paper.
+
+Prefer setting `providerSlug` and `topicSlugs` when you know them so the
+registry keeps the agent's classification instead of guessing later.
 
 Optional flags:
 

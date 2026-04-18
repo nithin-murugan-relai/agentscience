@@ -181,6 +181,8 @@ export async function addToRegistry({
   description,
   domain,
   keywords,
+  providerSlug,
+  topicSlugs,
   sourcePaperId,
   sourceRank,
   token,
@@ -190,7 +192,17 @@ export async function addToRegistry({
     method: "POST",
     token,
     baseUrl,
-    body: { name, url, description, domain, keywords, sourcePaperId, sourceRank },
+    body: {
+      name,
+      url,
+      description,
+      domain,
+      keywords,
+      providerSlug,
+      topicSlugs,
+      sourcePaperId,
+      sourceRank,
+    },
   });
 }
 

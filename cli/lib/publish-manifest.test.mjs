@@ -20,6 +20,8 @@ test("parsePublishManifest normalizes dataset URLs and keywords", () => {
           url: "https://data.example.org/archive/",
           description: "Public climate archive used in the paper bundle.",
           keywords: ["Climate", "archive", "climate"],
+          providerSlug: " Data-Example ",
+          topicSlugs: ["Climate", "public-health", "climate"],
         },
       ],
     }),
@@ -32,6 +34,8 @@ test("parsePublishManifest normalizes dataset URLs and keywords", () => {
       url: "https://data.example.org/archive",
       description: "Public climate archive used in the paper bundle.",
       keywords: ["climate", "archive"],
+      providerSlug: "data-example",
+      topicSlugs: ["climate", "public-health"],
       registryEligible: true,
     },
   ]);

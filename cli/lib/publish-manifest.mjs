@@ -11,6 +11,44 @@ function normalizeKeywords(values) {
   return [...new Set(values.map((value) => normalizeWhitespace(value).toLowerCase()).filter(Boolean))];
 }
 
+function normalizeSlugList(values, sourceLabel) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  const normalized = [...new Set(
+    values
+      .filter((value) => typeof value === "string")
+      .map((value) => normalizeWhitespace(value).toLowerCase())
+      .filter(Boolean),
+  )];
+
+  for (const slug of normalized) {
+    if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) {
+      throw new Error(`${sourceLabel} topicSlugs must contain lowercase slugs.`);
+    }
+  }
+
+  return normalized.slice(0, 12);
+}
+
+function normalizeProviderSlug(value, sourceLabel) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = normalizeWhitespace(value).toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  if (!/^[a-z0-9-]+$/.test(normalized)) {
+    throw new Error(`${sourceLabel} providerSlug must be lowercase letters, digits, or hyphens.`);
+  }
+
+  return normalized;
+}
+
 function normalizeDatasetUrl(value, sourceLabel) {
   let parsed;
   try {
@@ -47,6 +85,8 @@ function normalizePublishDataset(entry, sourceLabel) {
   const keywords = Array.isArray(entry.keywords)
     ? normalizeKeywords(entry.keywords.filter((value) => typeof value === "string"))
     : [];
+  const providerSlug = normalizeProviderSlug(entry.providerSlug, sourceLabel);
+  const topicSlugs = normalizeSlugList(entry.topicSlugs, sourceLabel);
   const registryEligible =
     typeof entry.registryEligible === "boolean" ? entry.registryEligible : true;
 
@@ -63,6 +103,8 @@ function normalizePublishDataset(entry, sourceLabel) {
     url: normalizeDatasetUrl(String(entry.url ?? ""), sourceLabel),
     description,
     keywords: keywords.slice(0, 16),
+    providerSlug,
+    topicSlugs,
     registryEligible,
   };
 }

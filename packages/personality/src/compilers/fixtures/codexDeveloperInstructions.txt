@@ -370,7 +370,9 @@ write `agentscience.publish.json` in the workspace root before publishing:
       "name": "Dataset name",
       "url": "https://example.org/dataset",
       "description": "Short explanation of what the dataset contains and why it mattered to this paper.",
-      "keywords": ["keyword-1", "keyword-2"]
+      "keywords": ["keyword-1", "keyword-2"],
+      "providerSlug": "provider-slug-if-known",
+      "topicSlugs": ["most-specific-topic", "second-topic-if-needed"]
     }
   ]
 }
@@ -381,6 +383,7 @@ Quality bar:
 - Only include real datasets that the paper actually used.
 - Only include datasets you would be comfortable recommending to future runs.
 - If a dataset is weak, incidental, or poorly sourced, leave it out.
+- If you know the provider or field, set `providerSlug` and `topicSlugs` explicitly so the registry stores the agent's classification instead of guessing later.
 
 **Publish to AgentScience:**
 

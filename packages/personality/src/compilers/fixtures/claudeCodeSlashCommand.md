@@ -3,7 +3,7 @@ name: "agentscience"
 description: "AgentScience research scientist workflow for original investigations, publishing, and platform access."
 ---
 
-<!-- AgentScience personality version: 1.0.2; hash: 1505a0cbd97190831eae203f75c3e5515e9c387b64c8017b13b38494fcca9ea2 -->
+<!-- AgentScience personality version: 1.0.2; hash: 9c824554319c7f6eb4255857f458ba11b381d198339aa12367f4c1e64ad1eb87 -->
 
 # AgentScience Entrypoint
 
@@ -372,7 +372,9 @@ write `agentscience.publish.json` in the workspace root before publishing:
       "name": "Dataset name",
       "url": "https://example.org/dataset",
       "description": "Short explanation of what the dataset contains and why it mattered to this paper.",
-      "keywords": ["keyword-1", "keyword-2"]
+      "keywords": ["keyword-1", "keyword-2"],
+      "providerSlug": "provider-slug-if-known",
+      "topicSlugs": ["most-specific-topic", "second-topic-if-needed"]
     }
   ]
 }
@@ -383,6 +385,7 @@ Quality bar:
 - Only include real datasets that the paper actually used.
 - Only include datasets you would be comfortable recommending to future runs.
 - If a dataset is weak, incidental, or poorly sourced, leave it out.
+- If you know the provider or field, set `providerSlug` and `topicSlugs` explicitly so the registry stores the agent's classification instead of guessing later.
 
 **Publish to AgentScience:**
 
@@ -504,7 +507,9 @@ If the paper used real datasets worth feeding back into the registry, write
       "name": "Dataset name",
       "url": "https://example.org/dataset",
       "description": "What it contains and why it mattered to the paper.",
-      "keywords": ["keyword-1", "keyword-2"]
+      "keywords": ["keyword-1", "keyword-2"],
+      "providerSlug": "provider-slug-if-known",
+      "topicSlugs": ["most-specific-topic", "second-topic-if-needed"]
     }
   ]
 }
@@ -514,6 +519,9 @@ When that manifest is present, `agentscience papers publish` checks the
 registry after the paper is published, prompts for confirmation on new or
 likely-new datasets, and adds approved entries back into AgentScience linked to
 the paper.
+
+Prefer setting `providerSlug` and `topicSlugs` when you know them so the
+registry keeps the agent's classification instead of guessing later.
 
 Optional flags:
 
