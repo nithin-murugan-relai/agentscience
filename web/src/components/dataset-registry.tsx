@@ -574,7 +574,6 @@ function HeroSearch({
 
 function AreaTile({
   area,
-  providerCount,
   datasetCount,
   onClick,
 }: {
@@ -583,10 +582,13 @@ function AreaTile({
   datasetCount: number;
   onClick: () => void;
 }) {
-  const empty = providerCount === 0 && datasetCount === 0;
+  // Headline the browsable count. Seeded providers without datasets used
+  // to surface as "4 providers" and then click into an empty list; the
+  // overview now reflects only what the user can actually open.
+  const empty = datasetCount === 0;
   const countLabel = empty
     ? "Empty"
-    : `${providerCount} ${providerCount === 1 ? "provider" : "providers"}`;
+    : `${datasetCount} ${datasetCount === 1 ? "dataset" : "datasets"}`;
 
   return (
     <button
