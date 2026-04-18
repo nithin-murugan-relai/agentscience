@@ -8,6 +8,7 @@ import {
   datasetRegistryCandidateSchema,
 } from "@/lib/dataset-registry";
 import { parsePositiveInt } from "@/lib/public-api";
+import { DATASET_AREA_KEYS, type DatasetAreaKey } from "@/lib/topics";
 
 export const dynamic = "force-dynamic";
 
@@ -16,16 +17,40 @@ const registryDatasetInputSchema = datasetRegistryCandidateSchema.extend({
   sourceRank: z.coerce.number().finite().optional().nullable(),
 });
 
+function isDatasetAreaKey(value: string): value is DatasetAreaKey {
+  return (DATASET_AREA_KEYS as readonly string[]).includes(value);
+}
+
 /**
- * GET /api/v1/registry?q=<query>&limit=<n>
+ * GET /api/v1/registry?q=<query>&limit=<n>&area=<AREA>&topic=<slug>
  *
- * Search the dataset registry. Public, no auth required.
+ * Search the dataset registry. Public, no auth required. Supports filtering
+ * by taxonomy: `area` (closed enum) and `topic` slug (open vocabulary).
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q") ?? "";
   const limit = parsePositiveInt(url.searchParams.get("limit"), 20, 500);
-  const datasets = (await getDatasetRegistry({ query, limit })).map((dataset) => ({
+  const rawArea = url.searchParams.get("area");
+  const rawTopic = url.searchParams.get("topic");
+
+  if (rawArea && !isDatasetAreaKey(rawArea)) {
+    return NextResponse.json(
+      {
+        error: `Unknown area '${rawArea}'. Valid areas: ${DATASET_AREA_KEYS.join(", ")}.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  const datasets = (
+    await getDatasetRegistry({
+      query,
+      limit,
+      area: rawArea ? (rawArea as DatasetAreaKey) : undefined,
+      topicSlug: rawTopic ?? undefined,
+    })
+  ).map((dataset) => ({
     ...dataset,
     sourcePaper: dataset.sourcePaper
       ? {
@@ -43,9 +68,17 @@ export async function GET(request: Request) {
  *
  * Add a dataset to the registry. Requires auth.
  *
- * Body: { name, shortName?, url, description, keywords?, providerSlug?, sourcePaperId?, sourceRank? }
+ * Body: { name, shortName?, url, description, keywords?, providerSlug?,
+ *         topicSlugs?, sourcePaperId?, sourceRank? }
+ *
  * If providerSlug is omitted, the dataset auto-links to the provider matching
  * its URL domain (creating a stub provider row if none exists).
+ *
+ * If topicSlugs is omitted, the dataset inherits its provider's ACTIVE topics.
+ * Unknown topic slugs are dropped (not auto-created) — agents must propose new
+ * topics via POST /api/v1/registry/topics/suggestions first. The response's
+ * `check.candidate.unknownTopicSlugs` surfaces any dropped slugs so callers
+ * can react.
  */
 export async function POST(request: Request) {
   const user = await getApiUser(request);

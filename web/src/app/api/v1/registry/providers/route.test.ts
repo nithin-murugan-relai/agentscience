@@ -163,3 +163,77 @@ test("GET /api/v1/registry/providers includes datasetCount for linked datasets",
   assert.equal(payload.providers.length, 1);
   assert.equal(payload.providers[0].datasetCount, 2);
 });
+
+test("GET /api/v1/registry/providers filters by area and topic and returns topic summaries", async () => {
+  const neuroscience = await prisma.datasetTopic.create({
+    data: {
+      slug: "neuroscience",
+      name: "Neuroscience",
+      area: "LIFE_SCIENCES",
+      status: "ACTIVE",
+    },
+  });
+  const ml = await prisma.datasetTopic.create({
+    data: {
+      slug: "machine-learning",
+      name: "Machine Learning",
+      area: "COMPUTING_ENGINEERING",
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.datasetProvider.create({
+    data: {
+      slug: "openneuro",
+      name: "OpenNeuro",
+      homeUrl: "https://openneuro.org",
+      domain: "openneuro.org",
+      description: "Neuroimaging datasets.",
+      topics: { connect: [{ id: neuroscience.id }] },
+    },
+  });
+  await prisma.datasetProvider.create({
+    data: {
+      slug: "huggingface",
+      name: "Hugging Face Datasets",
+      homeUrl: "https://huggingface.co",
+      domain: "huggingface.co",
+      description: "Open hub of ML datasets.",
+      topics: { connect: [{ id: ml.id }] },
+    },
+  });
+
+  const lifeResponse = await getProvidersRoute(
+    new Request("http://localhost/api/v1/registry/providers?area=LIFE_SCIENCES"),
+  );
+  assert.equal(lifeResponse.status, 200);
+  const lifePayload = await lifeResponse.json();
+  assert.deepEqual(
+    lifePayload.providers.map((p: { slug: string }) => p.slug),
+    ["openneuro"],
+  );
+  // Topic summaries travel with the provider so the client can render chips without a second fetch.
+  assert.deepEqual(
+    lifePayload.providers[0].topics.map((t: { slug: string }) => t.slug),
+    ["neuroscience"],
+  );
+
+  const topicResponse = await getProvidersRoute(
+    new Request("http://localhost/api/v1/registry/providers?topic=machine-learning"),
+  );
+  assert.equal(topicResponse.status, 200);
+  const topicPayload = await topicResponse.json();
+  assert.deepEqual(
+    topicPayload.providers.map((p: { slug: string }) => p.slug),
+    ["huggingface"],
+  );
+});
+
+test("GET /api/v1/registry/providers rejects unknown area values", async () => {
+  const response = await getProvidersRoute(
+    new Request("http://localhost/api/v1/registry/providers?area=BOGUS"),
+  );
+  assert.equal(response.status, 400);
+  const payload = await response.json();
+  assert.match(payload.error, /Unknown area/);
+});

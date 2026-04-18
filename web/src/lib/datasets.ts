@@ -1,6 +1,7 @@
-import type { DatasetProviderSearchKind } from "@prisma/client";
+import type { DatasetArea, DatasetProviderSearchKind, Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import type { DatasetAreaKey } from "@/lib/topics";
 
 const MAX_DATASET_REGISTRY_ENTRIES = 500;
 const MAX_DATASET_PROVIDER_ENTRIES = 200;
@@ -20,6 +21,13 @@ export type DatasetProviderSummary = {
   domain: string;
 };
 
+export type DatasetTopicSummary = {
+  id: string;
+  slug: string;
+  name: string;
+  area: DatasetAreaKey;
+};
+
 export type DatasetListItem = {
   id: string;
   name: string;
@@ -35,6 +43,7 @@ export type DatasetListItem = {
   sourcePaper: DatasetSourcePaper | null;
   usedInPaperCount: number;
   provider: DatasetProviderSummary | null;
+  topics: DatasetTopicSummary[];
 };
 
 export type DatasetProviderListItem = {
@@ -52,6 +61,7 @@ export type DatasetProviderListItem = {
   agentInstructions: string | null;
   datasetCount: number;
   createdAt: Date;
+  topics: DatasetTopicSummary[];
 };
 
 function parseHttpUrl(value: string) {
@@ -83,20 +93,32 @@ function parsePositiveInt(value: number | undefined, fallback: number, max = MAX
 export async function getDatasetRegistry(options?: {
   query?: string;
   limit?: number;
+  area?: DatasetAreaKey;
+  topicSlug?: string;
 }): Promise<DatasetListItem[]> {
   const query = options?.query?.trim() ?? "";
   const limit = parsePositiveInt(options?.limit, MAX_DATASET_REGISTRY_ENTRIES);
 
-  const where = query
-    ? {
-        OR: [
-          { name: { contains: query, mode: "insensitive" as const } },
-          { description: { contains: query, mode: "insensitive" as const } },
-          { domain: { contains: query, mode: "insensitive" as const } },
-          { keywords: { hasSome: query.toLowerCase().split(/\s+/).filter(Boolean) } },
-        ],
-      }
-    : {};
+  const andClauses: Prisma.DatasetEntryWhereInput[] = [];
+  if (query) {
+    andClauses.push({
+      OR: [
+        { name: { contains: query, mode: "insensitive" } },
+        { description: { contains: query, mode: "insensitive" } },
+        { domain: { contains: query, mode: "insensitive" } },
+        { keywords: { hasSome: query.toLowerCase().split(/\s+/).filter(Boolean) } },
+      ],
+    });
+  }
+  if (options?.area) {
+    andClauses.push({ topics: { some: { area: options.area as DatasetArea } } });
+  }
+  if (options?.topicSlug) {
+    andClauses.push({ topics: { some: { slug: options.topicSlug } } });
+  }
+
+  const where: Prisma.DatasetEntryWhereInput =
+    andClauses.length === 0 ? {} : andClauses.length === 1 ? andClauses[0]! : { AND: andClauses };
 
   const registryEntries = await prisma.datasetEntry.findMany({
     where,
@@ -110,6 +132,11 @@ export async function getDatasetRegistry(options?: {
           name: true,
           domain: true,
         },
+      },
+      topics: {
+        where: { status: "ACTIVE" },
+        select: { id: true, slug: true, name: true, area: true },
+        orderBy: { name: "asc" },
       },
     },
   });
@@ -187,6 +214,12 @@ export async function getDatasetRegistry(options?: {
               domain: dataset.provider.domain,
             }
           : null,
+        topics: dataset.topics.map((topic) => ({
+          id: topic.id,
+          slug: topic.slug,
+          name: topic.name,
+          area: topic.area,
+        })),
       },
     ];
   });
@@ -200,6 +233,8 @@ export async function getDatasetRegistry(options?: {
 export async function getDatasetProviders(options?: {
   query?: string;
   limit?: number;
+  area?: DatasetAreaKey;
+  topicSlug?: string;
 }): Promise<DatasetProviderListItem[]> {
   const query = options?.query?.trim() ?? "";
   const limit = parsePositiveInt(
@@ -208,16 +243,26 @@ export async function getDatasetProviders(options?: {
     MAX_DATASET_PROVIDER_ENTRIES,
   );
 
-  const where = query
-    ? {
-        OR: [
-          { name: { contains: query, mode: "insensitive" as const } },
-          { slug: { contains: query, mode: "insensitive" as const } },
-          { description: { contains: query, mode: "insensitive" as const } },
-          { domain: { contains: query, mode: "insensitive" as const } },
-        ],
-      }
-    : {};
+  const andClauses: Prisma.DatasetProviderWhereInput[] = [];
+  if (query) {
+    andClauses.push({
+      OR: [
+        { name: { contains: query, mode: "insensitive" } },
+        { slug: { contains: query, mode: "insensitive" } },
+        { description: { contains: query, mode: "insensitive" } },
+        { domain: { contains: query, mode: "insensitive" } },
+      ],
+    });
+  }
+  if (options?.area) {
+    andClauses.push({ topics: { some: { area: options.area as DatasetArea } } });
+  }
+  if (options?.topicSlug) {
+    andClauses.push({ topics: { some: { slug: options.topicSlug } } });
+  }
+
+  const where: Prisma.DatasetProviderWhereInput =
+    andClauses.length === 0 ? {} : andClauses.length === 1 ? andClauses[0]! : { AND: andClauses };
 
   const providers = await prisma.datasetProvider.findMany({
     where,
@@ -226,6 +271,11 @@ export async function getDatasetProviders(options?: {
     include: {
       _count: {
         select: { datasets: true },
+      },
+      topics: {
+        where: { status: "ACTIVE" },
+        select: { id: true, slug: true, name: true, area: true },
+        orderBy: { name: "asc" },
       },
     },
   });
@@ -245,5 +295,11 @@ export async function getDatasetProviders(options?: {
     agentInstructions: provider.agentInstructions,
     datasetCount: provider._count.datasets,
     createdAt: provider.createdAt,
+    topics: provider.topics.map((topic) => ({
+      id: topic.id,
+      slug: topic.slug,
+      name: topic.name,
+      area: topic.area,
+    })),
   }));
 }

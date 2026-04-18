@@ -2,6 +2,11 @@ import type { DatasetEntry } from "@prisma/client";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import type { DatasetAreaKey } from "@/lib/topics";
+import {
+  datasetTopicSlugsSchema,
+  resolveTopicIds,
+} from "@/lib/topics";
 
 const datasetRegistryMatchSelect = {
   id: true,
@@ -21,6 +26,11 @@ const datasetRegistryMatchSelect = {
       name: true,
       domain: true,
     },
+  },
+  topics: {
+    where: { status: "ACTIVE" as const },
+    select: { id: true, slug: true, name: true, area: true },
+    orderBy: { name: "asc" as const },
   },
 } satisfies Record<string, unknown>;
 
@@ -51,6 +61,7 @@ export const datasetRegistryCandidateSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "providerSlug must be lowercase letters, digits, or hyphens.")
     .optional()
     .nullable(),
+  topicSlugs: datasetTopicSlugsSchema.optional(),
   registryEligible: z.boolean().optional().default(true),
 });
 
@@ -68,11 +79,19 @@ type DatasetRegistryProviderMatch = {
   domain: string;
 };
 
+type DatasetRegistryTopicMatch = {
+  id: string;
+  slug: string;
+  name: string;
+  area: DatasetAreaKey;
+};
+
 type DatasetRegistryEntryMatch = Pick<
   DatasetEntry,
   "id" | "name" | "shortName" | "url" | "domain" | "description" | "keywords" | "sourcePaperId" | "sourceRank" | "createdAt"
 > & {
   provider: DatasetRegistryProviderMatch | null;
+  topics: DatasetRegistryTopicMatch[];
 };
 
 export type DatasetRegistryCheckStatus = "registered" | "possible-duplicate" | "new";
@@ -86,6 +105,8 @@ export type DatasetRegistryCheckResult = {
     description: string;
     keywords: string[];
     providerSlug: string | null;
+    topicSlugs: string[];
+    unknownTopicSlugs: string[];
     registryEligible: boolean;
   };
   status: DatasetRegistryCheckStatus;
@@ -101,6 +122,7 @@ export type DatasetRegistryCheckResult = {
     sourceRank: number | null;
     createdAt: string;
     provider: DatasetRegistryProviderMatch | null;
+    topics: DatasetRegistryTopicMatch[];
   }>;
 };
 
@@ -187,7 +209,22 @@ function toRegistryMatchSummary(entry: DatasetRegistryEntryMatch) {
           domain: entry.provider.domain,
         }
       : null,
+    topics: entry.topics.map((topic) => ({
+      id: topic.id,
+      slug: topic.slug,
+      name: topic.name,
+      area: topic.area as DatasetAreaKey,
+    })),
   };
+}
+
+function normalizeTopicSlugs(values: string[] | undefined): string[] {
+  if (!values) return [];
+  const parsed = datasetTopicSlugsSchema.safeParse(
+    values.map((value) => value.trim().toLowerCase()),
+  );
+  if (!parsed.success) return [];
+  return [...new Set(parsed.data.filter((slug) => slug.length > 0))];
 }
 
 /**
@@ -275,6 +312,14 @@ export async function checkDatasetRegistryCandidate(
   const normalizedName = normalizeDatasetName(candidate.name);
   const normalizedPathFingerprint = normalizeUrlPathFingerprint(normalizedUrl);
   const keywords = normalizeDatasetKeywords(candidate.keywords);
+  const normalizedTopicSlugs = normalizeTopicSlugs(candidate.topicSlugs);
+  const { ids: resolvedTopicIds, missing: unknownTopicSlugs } = await resolveTopicIds(
+    normalizedTopicSlugs,
+  );
+  const acceptedTopicSlugs = normalizedTopicSlugs.filter(
+    (_, index) => !unknownTopicSlugs.includes(normalizedTopicSlugs[index]!),
+  );
+  void resolvedTopicIds;
   const pool = await loadRegistryCandidatePool(candidate);
 
   const exactMatch = pool.find((entry) => {
@@ -299,6 +344,8 @@ export async function checkDatasetRegistryCandidate(
         description: normalizeWhitespace(candidate.description),
         keywords,
         providerSlug,
+        topicSlugs: acceptedTopicSlugs,
+        unknownTopicSlugs,
         registryEligible: candidate.registryEligible,
       },
       status: "registered",
@@ -328,6 +375,8 @@ export async function checkDatasetRegistryCandidate(
       description: normalizeWhitespace(candidate.description),
       keywords,
       providerSlug,
+      topicSlugs: acceptedTopicSlugs,
+      unknownTopicSlugs,
       registryEligible: candidate.registryEligible,
     },
     status: possibleMatches.length > 0 ? "possible-duplicate" : "new",
@@ -353,6 +402,11 @@ export async function createDatasetRegistryEntry(input: {
         provider: {
           select: { id: true, slug: true, name: true, domain: true },
         },
+        topics: {
+          where: { status: "ACTIVE" },
+          select: { id: true, slug: true, name: true, area: true },
+          orderBy: { name: "asc" },
+        },
       },
     });
 
@@ -369,6 +423,24 @@ export async function createDatasetRegistryEntry(input: {
     domain: checked.candidate.domain,
   });
 
+  // Resolve topics: explicit slugs take precedence, otherwise inherit ACTIVE
+  // topics from the parent provider so every dataset enters the registry with
+  // at least one topic when possible.
+  let topicConnect: Array<{ id: string }> = [];
+  if (checked.candidate.topicSlugs.length > 0) {
+    const resolved = await resolveTopicIds(checked.candidate.topicSlugs);
+    topicConnect = resolved.ids.map((id) => ({ id }));
+  } else if (providerId) {
+    const providerTopics = await prisma.datasetTopic.findMany({
+      where: {
+        status: "ACTIVE",
+        providers: { some: { id: providerId } },
+      },
+      select: { id: true },
+    });
+    topicConnect = providerTopics.map((topic) => ({ id: topic.id }));
+  }
+
   const created = await prisma.datasetEntry.create({
     data: {
       name: checked.candidate.name,
@@ -381,10 +453,16 @@ export async function createDatasetRegistryEntry(input: {
       sourceRank: input.sourceRank ?? null,
       addedBy: input.userId,
       providerId,
+      topics: topicConnect.length > 0 ? { connect: topicConnect } : undefined,
     },
     include: {
       provider: {
         select: { id: true, slug: true, name: true, domain: true },
+      },
+      topics: {
+        where: { status: "ACTIVE" },
+        select: { id: true, slug: true, name: true, area: true },
+        orderBy: { name: "asc" },
       },
     },
   });

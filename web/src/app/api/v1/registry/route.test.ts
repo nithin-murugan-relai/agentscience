@@ -290,6 +290,169 @@ test("POST /api/v1/registry falls back to domain-based provider linking when pro
   assert.equal(payload.dataset.provider.slug, "fresh-domain-example-org");
 });
 
+test("GET /api/v1/registry filters datasets by area and topic", async () => {
+  const neuroscience = await prisma.datasetTopic.create({
+    data: {
+      slug: "neuroscience",
+      name: "Neuroscience",
+      area: "LIFE_SCIENCES",
+      status: "ACTIVE",
+    },
+  });
+  const ml = await prisma.datasetTopic.create({
+    data: {
+      slug: "machine-learning",
+      name: "Machine Learning",
+      area: "COMPUTING_ENGINEERING",
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.datasetEntry.create({
+    data: {
+      name: "OpenNeuro ds099999",
+      url: "https://openneuro.org/datasets/ds099999",
+      domain: "openneuro.org",
+      description: "Tagged with neuroscience and used to verify area filtering.",
+      topics: { connect: [{ id: neuroscience.id }] },
+    },
+  });
+  await prisma.datasetEntry.create({
+    data: {
+      name: "SQuAD",
+      url: "https://huggingface.co/datasets/squad",
+      domain: "huggingface.co",
+      description: "Tagged with machine-learning to verify area scoping.",
+      topics: { connect: [{ id: ml.id }] },
+    },
+  });
+  await prisma.datasetEntry.create({
+    data: {
+      name: "Untagged fixture",
+      url: "https://example.org/untagged",
+      domain: "example.org",
+      description: "A dataset with no topics — must not leak into scoped listings.",
+    },
+  });
+
+  const areaResponse = await getRegistryRoute(
+    new Request("http://localhost/api/v1/registry?area=LIFE_SCIENCES"),
+  );
+  assert.equal(areaResponse.status, 200);
+  const areaPayload = await areaResponse.json();
+  assert.deepEqual(
+    areaPayload.datasets.map((d: { name: string }) => d.name),
+    ["OpenNeuro ds099999"],
+  );
+
+  const topicResponse = await getRegistryRoute(
+    new Request("http://localhost/api/v1/registry?topic=machine-learning"),
+  );
+  assert.equal(topicResponse.status, 200);
+  const topicPayload = await topicResponse.json();
+  assert.deepEqual(
+    topicPayload.datasets.map((d: { name: string }) => d.name),
+    ["SQuAD"],
+  );
+});
+
+test("GET /api/v1/registry rejects unknown area values", async () => {
+  const response = await getRegistryRoute(
+    new Request("http://localhost/api/v1/registry?area=BOGUS"),
+  );
+  assert.equal(response.status, 400);
+});
+
+test("POST /api/v1/registry tags explicit topicSlugs and surfaces unknown ones on the check payload", async () => {
+  const { token } = await createApiUserWithToken();
+  const neuroscience = await prisma.datasetTopic.create({
+    data: {
+      slug: "neuroscience",
+      name: "Neuroscience",
+      area: "LIFE_SCIENCES",
+      status: "ACTIVE",
+    },
+  });
+
+  const response = await postRegistryRoute(
+    new Request("http://localhost/api/v1/registry", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "OpenNeuro ds088888",
+        url: "https://openneuro.org/datasets/ds088888",
+        description: "Tagged explicitly with neuroscience; the unknown slug should be dropped.",
+        topicSlugs: ["neuroscience", "not-a-real-topic"],
+      }),
+    }),
+  );
+  assert.equal(response.status, 201);
+
+  const payload = await response.json();
+  assert.deepEqual(
+    payload.dataset.topics.map((t: { slug: string }) => t.slug),
+    ["neuroscience"],
+  );
+  assert.deepEqual(payload.check.candidate.unknownTopicSlugs, ["not-a-real-topic"]);
+
+  const stored = await prisma.datasetEntry.findFirstOrThrow({
+    where: { url: "https://openneuro.org/datasets/ds088888" },
+    include: { topics: { select: { id: true } } },
+  });
+  assert.deepEqual(
+    stored.topics.map((t: { id: string }) => t.id).sort(),
+    [neuroscience.id].sort(),
+  );
+});
+
+test("POST /api/v1/registry inherits ACTIVE provider topics when topicSlugs is omitted", async () => {
+  const { token } = await createApiUserWithToken();
+  const neuroscience = await prisma.datasetTopic.create({
+    data: {
+      slug: "neuroscience",
+      name: "Neuroscience",
+      area: "LIFE_SCIENCES",
+      status: "ACTIVE",
+    },
+  });
+  await prisma.datasetProvider.create({
+    data: {
+      slug: "openneuro",
+      name: "OpenNeuro",
+      homeUrl: "https://openneuro.org",
+      domain: "openneuro.org",
+      description: "Neuroimaging datasets.",
+      topics: { connect: [{ id: neuroscience.id }] },
+    },
+  });
+
+  const response = await postRegistryRoute(
+    new Request("http://localhost/api/v1/registry", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "OpenNeuro ds077777",
+        url: "https://openneuro.org/datasets/ds077777",
+        description:
+          "No explicit topicSlugs supplied; the dataset should inherit neuroscience from its auto-linked provider.",
+      }),
+    }),
+  );
+  assert.equal(response.status, 201);
+
+  const payload = await response.json();
+  assert.deepEqual(
+    payload.dataset.topics.map((t: { slug: string }) => t.slug),
+    ["neuroscience"],
+  );
+});
+
 test("POST /api/v1/registry reuses an existing dataset when the normalized URL already exists", async () => {
   const { token, user } = await createApiUserWithToken();
 
