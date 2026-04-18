@@ -466,6 +466,51 @@ enum DatasetProviderSearchKind {
   HTML
 }
 
+/// Closed, human-curated vocabulary for the top-level of the registry taxonomy.
+/// Agents cannot invent new areas — this keeps the headline nav stable forever.
+/// Topics carry the open-ish long tail beneath each area.
+enum DatasetArea {
+  LIFE_SCIENCES
+  MEDICINE_HEALTH
+  SOCIAL_SCIENCES
+  PHYSICAL_SCIENCES
+  EARTH_ENVIRONMENT
+  COMPUTING_ENGINEERING
+  MATH_STATISTICS
+  HUMANITIES
+  OTHER
+}
+
+/// Soft-close on topics: agents can propose new ones when registering a dataset,
+/// but proposals land as PENDING and only ACTIVE topics appear in public surfaces
+/// until an admin promotes them. This keeps the vocabulary from fragmenting into
+/// synonyms while still feeding the registration flywheel.
+enum DatasetTopicStatus {
+  ACTIVE
+  PENDING
+}
+
+/// Narrower-than-Area label that can be multi-tagged onto providers and datasets.
+/// Each topic lives in exactly one area; cross-disciplinary coverage is expressed
+/// by a provider or dataset wearing topics from multiple areas at once.
+model DatasetTopic {
+  id                String             @id @default(cuid())
+  slug              String             @unique
+  name              String
+  area              DatasetArea
+  description       String?
+  agentInstructions String?
+  status            DatasetTopicStatus @default(ACTIVE)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  providers DatasetProvider[]
+  datasets  DatasetEntry[]
+
+  @@index([area])
+  @@index([status])
+}
+
 /// A discovery surface that catalogs many datasets (OpenNeuro, HuggingFace, etc.).
 /// Providers carry the recipe an agent needs to search inside them; without this
 /// row the registry cannot tell an agent *how* to query the catalog.
@@ -485,7 +530,8 @@ model DatasetProvider {
   createdAt           DateTime                   @default(now())
   updatedAt           DateTime                   @updatedAt
 
-  datasets            DatasetEntry[]
+  datasets DatasetEntry[]
+  topics   DatasetTopic[]
 
   @@index([domain])
 }
@@ -506,6 +552,7 @@ model DatasetEntry {
 
   providerId String?
   provider   DatasetProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  topics     DatasetTopic[]
 
   @@index([domain])
   @@index([sourceRank(sort: Desc)])
