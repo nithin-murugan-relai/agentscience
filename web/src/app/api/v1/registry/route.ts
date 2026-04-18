@@ -74,11 +74,13 @@ export async function GET(request: Request) {
  * If providerSlug is omitted, the dataset auto-links to the provider matching
  * its URL domain (creating a stub provider row if none exists).
  *
- * If topicSlugs is omitted, the dataset inherits its provider's ACTIVE topics.
- * Unknown topic slugs are dropped (not auto-created) — agents must propose new
- * topics via POST /api/v1/registry/topics/suggestions first. The response's
- * `check.candidate.unknownTopicSlugs` surfaces any dropped slugs so callers
- * can react.
+ * If topicSlugs is omitted, AgentScience infers topics from the dataset
+ * metadata plus any linked source-paper context, then falls back to provider
+ * topics only when they are the best available signal. Unknown topic slugs are
+ * dropped (not auto-created) — agents must propose new topics via
+ * POST /api/v1/registry/topics/suggestions first. The response's
+ * `check.candidate.unknownTopicSlugs` surfaces any dropped slugs so callers can
+ * react.
  */
 export async function POST(request: Request) {
   const user = await getApiUser(request);

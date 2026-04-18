@@ -408,7 +408,7 @@ test("POST /api/v1/registry tags explicit topicSlugs and surfaces unknown ones o
   );
 });
 
-test("POST /api/v1/registry inherits ACTIVE provider topics when topicSlugs is omitted", async () => {
+test("POST /api/v1/registry falls back to canonical provider topics when metadata is sparse", async () => {
   const { token } = await createApiUserWithToken();
   const neuroscience = await prisma.datasetTopic.create({
     data: {
@@ -440,7 +440,7 @@ test("POST /api/v1/registry inherits ACTIVE provider topics when topicSlugs is o
         name: "OpenNeuro ds077777",
         url: "https://openneuro.org/datasets/ds077777",
         description:
-          "No explicit topicSlugs supplied; the dataset should inherit neuroscience from its auto-linked provider.",
+          "Minimal metadata; the dataset should still inherit neuroscience from its canonical provider.",
       }),
     }),
   );
@@ -451,6 +451,63 @@ test("POST /api/v1/registry inherits ACTIVE provider topics when topicSlugs is o
     payload.dataset.topics.map((t: { slug: string }) => t.slug),
     ["neuroscience"],
   );
+});
+
+test("POST /api/v1/registry infers specific topics before falling back to an auto-created stub provider", async () => {
+  const { token } = await createApiUserWithToken();
+  await prisma.datasetTopic.createMany({
+    data: [
+      {
+        slug: "interdisciplinary",
+        name: "Interdisciplinary",
+        area: "OTHER",
+        status: "ACTIVE",
+      },
+      {
+        slug: "public-health",
+        name: "Public Health",
+        area: "MEDICINE_HEALTH",
+        status: "ACTIVE",
+      },
+      {
+        slug: "neuroscience",
+        name: "Neuroscience",
+        area: "LIFE_SCIENCES",
+        status: "ACTIVE",
+      },
+    ],
+  });
+
+  const response = await postRegistryRoute(
+    new Request("http://localhost/api/v1/registry", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "National Survey of Children's Health",
+        url: "https://www.census.gov/programs-surveys/nsch/data.html",
+        description:
+          "Annual child health survey public-use files pooled across 2016-2024 to study smoking exposure and functional burden in pediatric epilepsy.",
+        keywords: [
+          "nsch",
+          "pediatric epilepsy",
+          "survey",
+          "secondhand smoke",
+          "health disparities",
+        ],
+      }),
+    }),
+  );
+  assert.equal(response.status, 201);
+
+  const payload = await response.json();
+  assert.deepEqual(
+    payload.dataset.topics.map((t: { slug: string }) => t.slug).sort(),
+    ["neuroscience", "public-health"],
+  );
+  assert.equal(payload.dataset.provider?.slug, "census-gov");
 });
 
 test("POST /api/v1/registry reuses an existing dataset when the normalized URL already exists", async () => {

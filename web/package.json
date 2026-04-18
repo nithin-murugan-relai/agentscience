@@ -14,6 +14,7 @@
     "db:push": "node scripts/with-env.mjs prisma db push",
     "db:migrate": "node scripts/with-env.mjs prisma migrate dev",
     "db:seed": "node scripts/with-env.mjs npx tsx prisma/seed.mts",
+    "db:reclassify-dataset-topics": "node scripts/with-env.mjs npx tsx scripts/reclassify-dataset-topics.mts",
     "db:status": "node scripts/with-env.mjs prisma migrate status",
     "db:ping": "node scripts/with-env.mjs prisma db execute --stdin --schema prisma/schema.prisma",
     "test": "node scripts/with-env.mjs sh -lc 'node --test --import tsx $(find src -name \"*.test.ts\" -print)'"

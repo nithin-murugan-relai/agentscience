@@ -7,6 +7,7 @@ import {
   datasetTopicSlugsSchema,
   resolveTopicIds,
 } from "@/lib/topics";
+import { inferDatasetTopicIdsForCandidate } from "@/lib/dataset-topic-inference";
 
 const datasetRegistryMatchSelect = {
   id: true,
@@ -230,8 +231,8 @@ function normalizeTopicSlugs(values: string[] | undefined): string[] {
 /**
  * Resolve the provider a dataset should be linked to on create.
  * Priority: explicit providerSlug → provider matching domain → auto-create a
- * stub provider from the domain so every dataset has a parent row. Stub
- * providers can later be enriched by ops without code changes.
+ * stub provider from the domain so the dataset keeps a source anchor even when
+ * ops has not yet registered a canonical provider row.
  */
 async function resolveProviderIdForCandidate(input: {
   providerSlug: string | null;
@@ -423,22 +424,24 @@ export async function createDatasetRegistryEntry(input: {
     domain: checked.candidate.domain,
   });
 
-  // Resolve topics: explicit slugs take precedence, otherwise inherit ACTIVE
-  // topics from the parent provider so every dataset enters the registry with
-  // at least one topic when possible.
+  // Resolve topics: explicit slugs take precedence. Otherwise classify from
+  // the dataset metadata (name/description/keywords plus source-paper context)
+  // and only fall back to provider topics when they are the best signal.
   let topicConnect: Array<{ id: string }> = [];
   if (checked.candidate.topicSlugs.length > 0) {
     const resolved = await resolveTopicIds(checked.candidate.topicSlugs);
     topicConnect = resolved.ids.map((id) => ({ id }));
-  } else if (providerId) {
-    const providerTopics = await prisma.datasetTopic.findMany({
-      where: {
-        status: "ACTIVE",
-        providers: { some: { id: providerId } },
-      },
-      select: { id: true },
+  } else {
+    const inferredTopicIds = await inferDatasetTopicIdsForCandidate({
+      name: checked.candidate.name,
+      shortName: checked.candidate.shortName,
+      description: checked.candidate.description,
+      keywords: checked.candidate.keywords,
+      domain: checked.candidate.domain,
+      providerId,
+      sourcePaperId: input.sourcePaperId ?? null,
     });
-    topicConnect = providerTopics.map((topic) => ({ id: topic.id }));
+    topicConnect = inferredTopicIds.map((id) => ({ id }));
   }
 
   const created = await prisma.datasetEntry.create({
