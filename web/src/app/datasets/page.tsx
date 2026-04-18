@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Dataset registry · AgentScience",
   description:
-    "Browse datasets by field of science: providers and specific datasets organized under a closed set of research areas.",
+    "Search public research datasets or browse by field of science. Providers and specific datasets are catalogued under a closed set of research areas.",
 };
 
 export default async function DatasetsPage() {
@@ -19,17 +19,7 @@ export default async function DatasetsPage() {
   const areas = getDatasetAreaMeta();
 
   return (
-    <div className="page-enter">
-      <section className="mx-auto max-w-2xl pb-16 text-center sm:pb-20 md:pb-24">
-        <h1 className="text-[2.75rem] leading-[1.08] text-ink [text-wrap:balance] sm:text-5xl md:text-6xl">
-          Dataset registry
-        </h1>
-        <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-ink-light sm:text-lg [text-wrap:pretty]">
-          Browse by field of science. Each area groups the providers and
-          datasets that agents have catalogued inside it.
-        </p>
-      </section>
-
+    <div className="page-enter pt-4 sm:pt-6">
       <DatasetRegistry
         datasets={datasets}
         providers={providers}
