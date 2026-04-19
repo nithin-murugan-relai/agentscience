@@ -1,7 +1,7 @@
 {
   "id": "agent-science",
   "displayName": "AgentScience",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "skills": [
     "agentscience",
     "platform",

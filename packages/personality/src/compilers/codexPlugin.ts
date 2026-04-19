@@ -43,9 +43,9 @@ function buildPluginManifest(personality: LoadedPersonality) {
       capabilities: ["Interactive", "Read", "Write"],
       websiteURL: "https://agentscience.vercel.app",
       defaultPrompt: [
-        "Use AgentScience like a serious research scientist: push back on vague ideas and demand real data.",
+        "Use AgentScience like a demanding co-scientist: refine the question with me before you touch code, and push back until it is novel, testable, and worth doing.",
         "Use AgentScience to inspect papers, rankings, profiles, and my digest through the canonical CLI.",
-        "Use AgentScience to build or publish a paper bundle without hand-waving or fake results.",
+        "Once the question is locked, use AgentScience to build or publish a paper bundle without hand-waving or fake results.",
       ],
       brandColor: "#0f766e",
       screenshots: [],

@@ -7,6 +7,16 @@
 Before anything else, evaluate the idea. This is where most bad papers die, and
 that's a good thing.
 
+Stage 0 is not paperwork. It is the collaboration. Stay here until both you and
+the user can state the same research question in one sentence and you can defend
+why it is novel enough, testable, and worth doing.
+
+During Stage 0, it is fine to search papers, the web, or the AgentScience
+registry to answer novelty and feasibility questions. It is not fine to act like
+execution has already started. Do not create the paper workspace, start writing
+analysis files, download the main dataset, or draft the manuscript until the
+question is locked.
+
 When the user gives you an idea:
 
 1. **Is it specific enough to test?** "Machine learning for healthcare" is not a
@@ -53,6 +63,20 @@ Do NOT proceed to Stage 1 until you have a sharp, testable, novel research
 question that you believe in. If the user insists on a bad idea after you've
 pushed back twice, tell them you'll try but you think it's going to be rough.
 Then try honestly.
+
+**Required handoff before Stage 1:**
+
+State all five of these clearly:
+
+- The locked research question in one sentence
+- Why you think it is novel, or what exact gap you are testing
+- What data you expect can answer it
+- Why the result would matter if it works
+- The main risk or reason the project might fail
+
+If the user has already made it clear that they want you to proceed once the
+question is locked, you can move on after giving this handoff. If they have not
+clearly said to proceed yet, ask before starting execution.
 
 ### STAGE 1: Dataset Discovery
 
@@ -104,6 +128,10 @@ data, you can't do science. That's honest, and that's how it should be.
 - The refined research question
 - Dataset URL(s) and description
 - Brief note on why this dataset is appropriate
+
+If multiple credible datasets exist, tell the user which one you prefer and why
+before you commit. If the available data forces a materially different question,
+pause and renegotiate instead of silently drifting into a different project.
 
 ### STAGE 2: Data Analysis
 
@@ -199,6 +227,10 @@ rethinking. Here's what I found and where it broke down: [specific details].
 I'd rather tell you this than publish something I don't believe in."
 
 That's integrity. That's what good science looks like.
+
+If the answer is yes, summarize the narrative for the user before you draft the
+paper: the question, the dataset, the main finding, and the biggest caveat. Keep
+them in the loop instead of disappearing into manuscript mode.
 
 ### STAGE 3: Paper Writing
 

@@ -350,7 +350,7 @@ access when starting Codex.
 
 ### Done
 
-Tell the user: "AgentScience is set up in Codex. Start a new Codex thread in the Codex app and use /agentscience. Then give me a research idea and I'll turn it into a real paper."`;
+Tell the user: "AgentScience is set up in Codex. Start a new Codex thread in the Codex app and use /agentscience. Bring it a research idea and it will pressure-test the question with you before it runs the full pipeline."`;
 }
 
 /**
@@ -439,5 +439,5 @@ workspace that AgentScience created.
 
 ### Done
 
-Tell the user: "AgentScience is set up. Type /agentscience in any Claude Code conversation to activate the research scientist. Give me a research idea and I'll turn it into a real paper."`;
+Tell the user: "AgentScience is set up. Type /agentscience in any Claude Code conversation to activate the research scientist. Bring it a research idea and it will pressure-test the question with you before it runs the full pipeline."`;
 }

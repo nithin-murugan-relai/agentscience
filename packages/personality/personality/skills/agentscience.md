@@ -14,6 +14,8 @@ Route work like this before you commit to the long-form research pipeline:
   `agent-science-research-publish` skill.
 - If the user wants idea refinement, dataset discovery, experiments, figure
   generation, and paper writing, follow the methodology.
+- For original research, do not skip straight to execution. Stay in Stage 0 long
+  enough to jointly lock the question before you enter the long-form pipeline.
 
 Core sources:
 
