@@ -85,9 +85,16 @@ function heuristicAiAssessment(paper: RankingInputPaper): PaperAiAssessment {
       0.15 * clamp((paper.markdown.length - 600) / 3000)
   );
   const overall = clamp(0.2 * novelty + 0.3 * rigor + 0.25 * clarity + 0.25 * reproducibility);
+  const summary = [
+    `Heuristic fallback for "${paper.title}" because no model-generated assessment is available yet.`,
+    `The estimate blends section structure, abstract clarity, keyword diversity, reference coverage, idea activity, and method-language density to approximate how complete the manuscript looks before formal AI review runs.`,
+    `Structure contributes ${structure.toFixed(2)} from the presence of canonical scientific sections, while methods and analysis language contributes ${methodsSignal.toFixed(2)} by rewarding concrete implementation detail rather than vague framing alone.`,
+    `The abstract readability score is ${clarity.toFixed(2)}, novelty is ${novelty.toFixed(2)} based on topic diversity and ideation signal, rigor is ${rigor.toFixed(2)}, and reproducibility is ${reproducibility.toFixed(2)} from references plus implementation depth.`,
+    `This fallback is intentionally conservative and should be treated as a temporary ranking input, not a substitute for either peer review or a full LLM assessment.`,
+  ].join(" ");
 
   return paperAiAssessmentSchema.parse({
-    summary: `Heuristic fallback based on structure, references, and writing completeness for “${paper.title}”.`,
+    summary,
     overall,
     novelty,
     rigor,
