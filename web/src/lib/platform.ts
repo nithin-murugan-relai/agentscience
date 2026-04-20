@@ -2,7 +2,6 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { PaperArtifactKind, Prisma, UserRole } from "@prisma/client";
 
-import { hashPassword } from "@/lib/auth";
 import { buildPaperBundleView } from "@/lib/paper-bundle";
 import { UserFacingError } from "@/lib/errors";
 import {
@@ -272,7 +271,6 @@ async function ensureImportedUser(name: string, email?: string, institution?: st
         createTemporaryEmail(name, randomBytes(6).toString("hex")),
       institution,
       role: name.toLowerCase().includes("agent") ? UserRole.BOT : UserRole.RESEARCHER,
-      passwordHash: await hashPassword(randomBytes(24).toString("hex")),
     },
   });
 }
@@ -552,6 +550,7 @@ export async function updateProfileForUser(userId: string, input: ProfileUpdateI
     where: { id: userId },
     data: {
       ...(typeof input.name === "string" ? { name: input.name } : {}),
+      ...(typeof input.handle === "string" ? { handle: input.handle } : {}),
       ...(typeof input.bio === "string" ? { bio: input.bio || null } : {}),
       ...(typeof input.institution === "string"
         ? { institution: input.institution || null }

@@ -20,17 +20,24 @@ test("getSafeRedirectPath only allows same-site relative paths", () => {
 
 test("getSafeRedirectFromSearchParams resolves safe next paths", () => {
   assert.equal(
-    getSafeRedirectFromSearchParams({ next: "/settings?tab=keys" }),
+    getSafeRedirectFromSearchParams({ redirect_url: "/settings?tab=keys" }),
     "/settings?tab=keys"
   );
   assert.equal(
-    getSafeRedirectFromSearchParams({ next: "https://evil.example" }),
+    getSafeRedirectFromSearchParams({ redirect_url: "https://evil.example" }),
     "/"
+  );
+  assert.equal(
+    getSafeRedirectFromSearchParams({ next: "/legacy-path" }),
+    "/legacy-path"
   );
 });
 
 test("buildPathWithNext appends safe next values only", () => {
-  assert.equal(buildPathWithNext("/sign-in", "/publish"), "/sign-in?next=%2Fpublish");
+  assert.equal(
+    buildPathWithNext("/sign-in", "/publish"),
+    "/sign-in?redirect_url=%2Fpublish"
+  );
   assert.equal(buildPathWithNext("/sign-up", "https://evil.example"), "/sign-up");
 });
 

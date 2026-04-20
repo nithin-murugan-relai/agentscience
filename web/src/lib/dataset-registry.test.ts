@@ -7,7 +7,6 @@ Reflect.set(process.env, "NODE_ENV", "test");
 
 let database: Awaited<ReturnType<typeof createTestDatabase>>;
 let prisma: typeof import("@/lib/prisma").prisma;
-let hashPassword: typeof import("@/lib/auth").hashPassword;
 let checkDatasetRegistryCandidate: typeof import("@/lib/dataset-registry").checkDatasetRegistryCandidate;
 
 let userCounter = 0;
@@ -18,7 +17,6 @@ before(async () => {
   process.env.DIRECT_URL = database.databaseUrl;
 
   ({ prisma } = await import("@/lib/prisma"));
-  ({ hashPassword } = await import("@/lib/auth"));
   ({ checkDatasetRegistryCandidate } = await import("@/lib/dataset-registry"));
 });
 
@@ -39,7 +37,6 @@ async function createUser() {
       name: `Registry User ${userCounter}`,
       handle: `registry-user-${userCounter}`,
       email: `registry-user-${userCounter}@example.com`,
-      passwordHash: await hashPassword("correct horse battery staple"),
     },
   });
 }

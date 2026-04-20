@@ -1,166 +1,238 @@
-import { randomBytes, createHash } from "node:crypto";
+import { createHash } from "node:crypto";
 import { cache } from "react";
 
-import { addDays } from "date-fns";
-import { type User } from "@prisma/client";
-import bcrypt from "bcryptjs";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import type { User } from "@prisma/client";
+import { auth, clerkClient, currentUser as currentClerkUser } from "@clerk/nextjs/server";
 
 import { prisma } from "@/lib/prisma";
+import { slugify } from "@/lib/utils";
 
-export const SESSION_COOKIE_NAME = "agent_science_session";
-const SESSION_DURATION_DAYS = 30;
-const MAX_ACTIVE_SESSIONS = 12;
-const SESSION_TOUCH_INTERVAL_MS = 15 * 60 * 1000;
+type ClerkEmailAddress = {
+  id?: string | null;
+  emailAddress?: string | null;
+  email_address?: string | null;
+};
 
-export async function hashPassword(password: string) {
-  return bcrypt.hash(password, 12);
+type ClerkIdentityLike = {
+  id?: string | null;
+  username?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  primaryEmailAddressId?: string | null;
+  primary_email_address_id?: string | null;
+  emailAddresses?: ClerkEmailAddress[] | null;
+  email_addresses?: ClerkEmailAddress[] | null;
+};
+
+type NormalizedClerkIdentity = {
+  clerkId: string;
+  name: string;
+  email: string | null;
+  handleCandidates: string[];
+};
+
+function normalizeEmailAddress(value: string | null | undefined) {
+  const normalized = value?.trim().toLowerCase();
+  return normalized ? normalized : null;
 }
 
-export async function verifyPassword(password: string, passwordHash: string) {
-  return bcrypt.compare(password, passwordHash);
+function getEmailList(identity: ClerkIdentityLike) {
+  return identity.emailAddresses ?? identity.email_addresses ?? [];
+}
+
+function getPrimaryEmailAddress(identity: ClerkIdentityLike) {
+  const primaryEmailAddressId =
+    identity.primaryEmailAddressId ?? identity.primary_email_address_id ?? null;
+  const emailAddresses = getEmailList(identity);
+
+  const primaryMatch = primaryEmailAddressId
+    ? emailAddresses.find((emailAddress) => emailAddress.id === primaryEmailAddressId)
+    : null;
+
+  const firstEmail = primaryMatch ?? emailAddresses[0] ?? null;
+  return normalizeEmailAddress(firstEmail?.emailAddress ?? firstEmail?.email_address ?? null);
+}
+
+function buildDisplayName(identity: ClerkIdentityLike, email: string | null) {
+  const firstName = identity.firstName ?? identity.first_name ?? "";
+  const lastName = identity.lastName ?? identity.last_name ?? "";
+  const fullName = `${firstName} ${lastName}`.trim();
+
+  if (fullName) {
+    return fullName;
+  }
+
+  if (identity.username?.trim()) {
+    return identity.username.trim();
+  }
+
+  if (email) {
+    return email.split("@")[0];
+  }
+
+  return "Researcher";
+}
+
+function uniqueHandleCandidates(values: Array<string | null | undefined>) {
+  const candidates = new Set<string>();
+
+  for (const value of values) {
+    const slug = slugify(value ?? "").slice(0, 32);
+
+    if (slug) {
+      candidates.add(slug);
+    }
+  }
+
+  return [...candidates];
+}
+
+function normalizeClerkIdentity(identity: ClerkIdentityLike): NormalizedClerkIdentity | null {
+  const clerkId = identity.id?.trim();
+
+  if (!clerkId) {
+    return null;
+  }
+
+  const email = getPrimaryEmailAddress(identity);
+  const name = buildDisplayName(identity, email);
+  const emailHandle = email ? email.split("@")[0] : null;
+  const handleCandidates = uniqueHandleCandidates([
+    identity.username,
+    emailHandle,
+    name,
+    `${name}-${clerkId.slice(-6)}`,
+    `researcher-${clerkId.slice(-6)}`,
+  ]);
+
+  return {
+    clerkId,
+    name,
+    email,
+    handleCandidates,
+  };
+}
+
+async function findAvailableHandle(candidates: string[]) {
+  const seedCandidates = candidates.length > 0 ? candidates : ["researcher"];
+
+  for (const candidate of seedCandidates) {
+    for (let suffix = 0; suffix < 1000; suffix += 1) {
+      const suffixText = suffix === 0 ? "" : `-${suffix + 1}`;
+      const maxBaseLength = 32 - suffixText.length;
+      const base = candidate.slice(0, maxBaseLength).replace(/-+$/g, "");
+      const handle = `${base}${suffixText}`;
+
+      if (!handle) {
+        continue;
+      }
+
+      const existing = await prisma.user.findUnique({
+        where: { handle },
+        select: { id: true },
+      });
+
+      if (!existing) {
+        return handle;
+      }
+    }
+  }
+
+  throw new Error("Unable to allocate a unique handle.");
+}
+
+async function syncClerkIdentity(identity: NormalizedClerkIdentity) {
+  const existingByClerkId = await prisma.user.findUnique({
+    where: { clerkId: identity.clerkId },
+  });
+
+  if (existingByClerkId) {
+    if (existingByClerkId.name !== identity.name) {
+      return prisma.user.update({
+        where: { id: existingByClerkId.id },
+        data: { name: identity.name },
+      });
+    }
+
+    return existingByClerkId;
+  }
+
+  if (identity.email) {
+    const existingByEmail = await prisma.user.findUnique({
+      where: { email: identity.email },
+    });
+
+    if (existingByEmail && !existingByEmail.clerkId) {
+      return prisma.user.update({
+        where: { id: existingByEmail.id },
+        data: {
+          clerkId: identity.clerkId,
+          name: identity.name,
+        },
+      });
+    }
+  }
+
+  return prisma.user.create({
+    data: {
+      clerkId: identity.clerkId,
+      name: identity.name,
+      handle: await findAvailableHandle(identity.handleCandidates),
+    },
+  });
 }
 
 export function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export async function createSession(userId: string) {
-  const token = randomBytes(32).toString("base64url");
-  const expiresAt = addDays(new Date(), SESSION_DURATION_DAYS);
-  const now = new Date();
+export async function syncClerkUserFromIdentity(identity: ClerkIdentityLike) {
+  const normalizedIdentity = normalizeClerkIdentity(identity);
 
-  await prisma.$transaction(async (transaction) => {
-    await transaction.$executeRaw`
-      SELECT pg_advisory_xact_lock(hashtext(${userId}))
-    `;
+  if (!normalizedIdentity) {
+    throw new Error("Clerk identity payload is missing an id.");
+  }
 
-    await transaction.session.deleteMany({
-      where: {
-        userId,
-        expiresAt: {
-          lt: now,
-        },
-      },
-    });
+  return syncClerkIdentity(normalizedIdentity);
+}
 
-    await transaction.session.create({
-      data: {
-        tokenHash: hashToken(token),
-        userId,
-        expiresAt,
-      },
-    });
+const getSyncedUserForClerkId = cache(async (clerkId: string): Promise<User> => {
+  const existing = await prisma.user.findUnique({
+    where: { clerkId },
+  });
 
-    const overflowSessions = await transaction.session.findMany({
-      where: {
-        userId,
-        expiresAt: {
-          gte: now,
-        },
-      },
-      orderBy: [
-        {
-          lastUsedAt: "desc",
-        },
-        {
-          createdAt: "desc",
-        },
-        {
-          id: "desc",
-        },
-      ],
-      select: {
-        id: true,
-      },
-      skip: MAX_ACTIVE_SESSIONS,
-    });
+  if (existing) {
+    return existing;
+  }
 
-    if (overflowSessions.length > 0) {
-      await transaction.session.deleteMany({
-        where: {
-          id: {
-            in: overflowSessions.map((session) => session.id),
-          },
-        },
-      });
+  const client = await clerkClient();
+  const clerkUser = await client.users.getUser(clerkId);
+  return syncClerkUserFromIdentity(clerkUser);
+});
+
+async function getAuthenticatedClerkUserId() {
+  try {
+    const { userId } = await auth();
+    return userId;
+  } catch (error) {
+    if (process.env.NODE_ENV === "test") {
+      return null;
     }
-  });
 
-  return token;
-}
-
-export function applySessionCookie(response: NextResponse, token: string) {
-  response.cookies.set({
-    name: SESSION_COOKIE_NAME,
-    value: token,
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_DURATION_DAYS * 24 * 60 * 60,
-  });
-}
-
-export function clearSessionCookie(response: NextResponse) {
-  response.cookies.set({
-    name: SESSION_COOKIE_NAME,
-    value: "",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
-  });
-}
-
-async function getUserFromCookieStore() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-
-  if (!token) {
-    return null;
+    throw error;
   }
-
-  const session = await prisma.session.findUnique({
-    where: {
-      tokenHash: hashToken(token),
-    },
-    include: {
-      user: true,
-    },
-  });
-
-  if (!session) {
-    return null;
-  }
-
-  if (session.expiresAt.getTime() < Date.now()) {
-    await prisma.session.delete({
-      where: {
-        id: session.id,
-      },
-    }).catch(() => undefined);
-    return null;
-  }
-
-  if (Date.now() - session.lastUsedAt.getTime() > SESSION_TOUCH_INTERVAL_MS) {
-    await prisma.session.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        lastUsedAt: new Date(),
-      },
-    }).catch(() => undefined);
-  }
-
-  return session.user;
 }
 
 export const getCurrentUser = cache(async (): Promise<User | null> => {
-  return getUserFromCookieStore();
+  const userId = await getAuthenticatedClerkUserId();
+
+  if (!userId) {
+    return null;
+  }
+
+  return getSyncedUserForClerkId(userId);
 });
 
 export async function requireCurrentUser() {
@@ -171,4 +243,41 @@ export async function requireCurrentUser() {
   }
 
   return user;
+}
+
+export async function getCurrentUserEmailAddress() {
+  const clerkUser = await currentClerkUser();
+  return clerkUser ? getPrimaryEmailAddress(clerkUser) : null;
+}
+
+export async function handleClerkUserDeleted(clerkId: string | null | undefined) {
+  if (!clerkId) {
+    return;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { clerkId },
+    select: { id: true },
+  });
+
+  if (!user) {
+    return;
+  }
+
+  await prisma.$transaction([
+    prisma.integrationKey.deleteMany({
+      where: { userId: user.id },
+    }),
+    prisma.deviceCode.deleteMany({
+      where: { userId: user.id },
+    }),
+    prisma.user.update({
+      where: { id: user.id },
+      data: {
+        clerkId: null,
+        digestEnabled: false,
+        digestEmailEnabled: false,
+      },
+    }),
+  ]);
 }

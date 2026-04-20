@@ -7,15 +7,13 @@ Reflect.set(process.env, "NODE_ENV", "test");
 
 let database: Awaited<ReturnType<typeof createTestDatabase>>;
 let prisma: typeof import("@/lib/prisma").prisma;
-let hashPassword: typeof import("@/lib/auth").hashPassword;
 let hashToken: typeof import("@/lib/auth").hashToken;
-let createSession: typeof import("@/lib/auth").createSession;
 let createBundledPaper: typeof import("@/lib/platform").createBundledPaper;
 let buildPaperBundleView: typeof import("@/lib/paper-bundle").buildPaperBundleView;
+let createIntegrationKey: typeof import("@/lib/papers").createIntegrationKey;
 let createApiTokenRoute: typeof import("@/app/api/v1/auth/token/route").POST;
 
 let userCounter = 0;
-const TEST_PASSWORD = "correct horse battery staple";
 
 before(async () => {
   database = await createTestDatabase();
@@ -23,9 +21,10 @@ before(async () => {
   process.env.DIRECT_URL = database.databaseUrl;
 
   ({ prisma } = await import("@/lib/prisma"));
-  ({ hashPassword, hashToken, createSession } = await import("@/lib/auth"));
+  ({ hashToken } = await import("@/lib/auth"));
   ({ createBundledPaper } = await import("@/lib/platform"));
   ({ buildPaperBundleView } = await import("@/lib/paper-bundle"));
+  ({ createIntegrationKey } = await import("@/lib/papers"));
   ({ POST: createApiTokenRoute } = await import("@/app/api/v1/auth/token/route"));
 });
 
@@ -46,7 +45,6 @@ async function createUser() {
       name: `Integration User ${userCounter}`,
       handle: `integration-user-${userCounter}`,
       email: `integration-user-${userCounter}@example.com`,
-      passwordHash: await hashPassword(TEST_PASSWORD),
     },
   });
 }
@@ -169,75 +167,31 @@ test("createBundledPaper keeps uploaded bundle data intact and exposes it to the
   assert.equal(scriptBundleArtifact?.textContent, scriptContents);
 });
 
-test("createSession stores hashed tokens and caps the number of active sessions", async () => {
+test("createIntegrationKey stores only a hashed token in the database", async () => {
   const user = await createUser();
-  const tokens = await Promise.all(Array.from({ length: 14 }, () => createSession(user.id)));
-  const sessions = await prisma.session.findMany({
-    where: {
-      userId: user.id,
-    },
+  const result = await createIntegrationKey(user.id, {
+    name: "CLI integration token",
   });
-
-  assert.equal(sessions.length, 12);
-  assert.equal(
-    sessions.some((session) => tokens.includes(session.tokenHash)),
-    false
-  );
-
-  for (const session of sessions) {
-    assert.equal(tokens.some((token) => hashToken(token) === session.tokenHash), true);
-  }
-});
-
-test("API token sign-in validates the password and stores only a hashed integration key", async () => {
-  const user = await createUser();
-  const okResponse = await createApiTokenRoute(
-    new Request("http://localhost/api/v1/auth/token", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        email: user.email,
-        password: TEST_PASSWORD,
-        name: "CLI integration token",
-      }),
-    })
-  );
-
-  assert.equal(okResponse.status, 200);
-
-  const okPayload = await okResponse.json();
   const storedKey = await prisma.integrationKey.findUnique({
     where: {
-      tokenHash: hashToken(okPayload.token),
+      tokenHash: hashToken(result.token),
     },
   });
 
-  assert.ok(okPayload.token.startsWith("agsk_"));
-  assert.equal(okPayload.tokenPrefix, okPayload.token.slice(0, 12));
-  assert.equal(okPayload.user.email, user.email);
+  assert.ok(result.token.startsWith("agsk_"));
   assert.equal(storedKey?.userId, user.id);
   assert.equal(storedKey?.name, "CLI integration token");
-  assert.equal(storedKey?.tokenPrefix, okPayload.tokenPrefix);
-  assert.notEqual(storedKey?.tokenHash, okPayload.token);
+  assert.equal(storedKey?.tokenPrefix, result.key.tokenPrefix);
+  assert.notEqual(storedKey?.tokenHash, result.token);
+});
 
-  const badResponse = await createApiTokenRoute(
-    new Request("http://localhost/api/v1/auth/token", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        email: user.email,
-        password: "wrong password",
-        name: "CLI integration token",
-      }),
-    })
-  );
+test("password bootstrap API is disabled after the Clerk migration", async () => {
+  const okResponse = await createApiTokenRoute();
 
-  assert.equal(badResponse.status, 401);
-  assert.deepEqual(await badResponse.json(), {
-    error: "Email or password is incorrect.",
+  assert.equal(okResponse.status, 410);
+  assert.deepEqual(await okResponse.json(), {
+    error:
+      "Password login has been removed. Sign in through the browser device flow or create a token from the AgentScience settings page.",
+    code: "PASSWORD_AUTH_REMOVED",
   });
 });

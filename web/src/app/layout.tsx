@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { EB_Garamond, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 
 import "@/app/globals.css";
 import { SiteShell } from "@/components/site-shell";
@@ -55,7 +56,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${garamond.variable} ${plexSans.variable} ${mono.variable}`}>
-        <SiteShell>{children}</SiteShell>
+        <ClerkProvider
+          afterSignOutUrl="/"
+          signInFallbackRedirectUrl="/"
+          signUpFallbackRedirectUrl="/"
+        >
+          <SiteShell>{children}</SiteShell>
+        </ClerkProvider>
       </body>
     </html>
   );

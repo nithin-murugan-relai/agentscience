@@ -77,11 +77,19 @@ export function getSafeRedirectPath(
 
 export function getSafeRedirectFromSearchParams(
   searchParams: Record<string, string | string[] | undefined>,
-  key = "next",
+  key = "redirect_url",
   fallback = "/"
 ) {
-  const rawValue = searchParams[key];
-  return getSafeRedirectPath(typeof rawValue === "string" ? rawValue : undefined, fallback);
+  const primaryValue = searchParams[key];
+  const legacyValue = searchParams.next;
+  const resolvedValue =
+    typeof primaryValue === "string"
+      ? primaryValue
+      : typeof legacyValue === "string"
+        ? legacyValue
+        : undefined;
+
+  return getSafeRedirectPath(resolvedValue, fallback);
 }
 
 export function buildPathWithNext(pathname: string, nextPath?: string | null) {
@@ -91,7 +99,7 @@ export function buildPathWithNext(pathname: string, nextPath?: string | null) {
     return pathname;
   }
 
-  const params = new URLSearchParams({ next: safeNextPath });
+  const params = new URLSearchParams({ redirect_url: safeNextPath });
   return `${pathname}?${params.toString()}`;
 }
 

@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { getUniqueConstraintTargets } from "@/lib/errors";
 import { getCurrentUser } from "@/lib/auth";
 import { updateProfileForUser } from "@/lib/platform";
 import { buildPathWithNext, validateBrowserOrigin } from "@/lib/request";
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const payload = profileUpdateSchema.safeParse({
     name: formData.get("name"),
+    handle: formData.get("handle"),
     bio: formData.get("bio"),
     institution: formData.get("institution"),
     researchInterests: parseList(String(formData.get("researchInterests") ?? "")).slice(0, 20),
@@ -47,10 +49,32 @@ export async function POST(request: Request) {
     );
   }
 
-  await updateProfileForUser(user.id, payload.data);
+  try {
+    await updateProfileForUser(user.id, payload.data);
+  } catch (error) {
+    const uniqueTargets = getUniqueConstraintTargets(error);
+
+    if (uniqueTargets.includes("handle")) {
+      return NextResponse.redirect(
+        new URL(
+          `/settings${toSearchParams({
+            error: "That handle is already taken.",
+          })}`,
+          request.url
+        ),
+        { status: 303 }
+      );
+    }
+
+    throw error;
+  }
 
   revalidatePath("/settings");
   revalidatePath(`/profiles/${user.handle}`);
+
+  if (payload.data.handle && payload.data.handle !== user.handle) {
+    revalidatePath(`/profiles/${payload.data.handle}`);
+  }
 
   return NextResponse.redirect(new URL("/settings", request.url), { status: 303 });
 }

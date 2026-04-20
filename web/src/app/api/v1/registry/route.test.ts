@@ -7,7 +7,6 @@ Reflect.set(process.env, "NODE_ENV", "test");
 
 let database: Awaited<ReturnType<typeof createTestDatabase>>;
 let prisma: typeof import("@/lib/prisma").prisma;
-let hashPassword: typeof import("@/lib/auth").hashPassword;
 let hashToken: typeof import("@/lib/auth").hashToken;
 let getRegistryRoute: typeof import("./route").GET;
 let postRegistryRoute: typeof import("./route").POST;
@@ -20,7 +19,7 @@ before(async () => {
   process.env.DIRECT_URL = database.databaseUrl;
 
   ({ prisma } = await import("@/lib/prisma"));
-  ({ hashPassword, hashToken } = await import("@/lib/auth"));
+  ({ hashToken } = await import("@/lib/auth"));
   ({ GET: getRegistryRoute, POST: postRegistryRoute } = await import("./route"));
 });
 
@@ -41,7 +40,6 @@ async function createApiUserWithToken() {
       name: `Registry User ${userCounter}`,
       handle: `registry-user-${userCounter}`,
       email: `registry-user-${userCounter}@example.com`,
-      passwordHash: await hashPassword("correct horse battery staple"),
     },
   });
 
@@ -89,7 +87,6 @@ test("GET /api/v1/registry resolves public source paper metadata", async () => {
       name: "Registry Coauthor",
       handle: "registry-coauthor",
       email: "registry-coauthor@example.com",
-      passwordHash: await hashPassword("correct horse battery staple"),
     },
   });
 

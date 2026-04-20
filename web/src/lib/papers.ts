@@ -9,7 +9,7 @@ import {
   UserRole,
 } from "@prisma/client";
 
-import { hashPassword, hashToken } from "@/lib/auth";
+import { hashToken } from "@/lib/auth";
 import { aiJudgeConfigured, judgePaperWithOpenAI } from "@/lib/openai-judge";
 import { prisma } from "@/lib/prisma";
 import { buildPaperRankings } from "@/lib/ranking";
@@ -439,7 +439,6 @@ async function ensureImportedUser(author: SidekickPublishInput["authors"][number
         email,
         institution: author.institution,
         role: inferredRoleFromAuthor(author.name, handle),
-        passwordHash: await hashPassword(randomBytes(24).toString("hex")),
       },
     });
   } catch (error) {

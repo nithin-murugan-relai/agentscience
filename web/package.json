@@ -21,8 +21,8 @@
   },
   "dependencies": {
     "@agentscience/personality": "^1.0.4",
+    "@clerk/nextjs": "^7.2.3",
     "@prisma/client": "^6.19.2",
-    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",

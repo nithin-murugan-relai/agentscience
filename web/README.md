@@ -7,9 +7,16 @@ This package is the web app and API.
 - `DATABASE_URL`
 - `DIRECT_URL`
 - `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `NEXT_PUBLIC_CLERK_SIGN_IN_URL`
+- `NEXT_PUBLIC_CLERK_SIGN_UP_URL`
+- `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL`
+- `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL`
 
 ## Optional Env
 
+- `CLERK_WEBHOOK_SIGNING_SECRET`
 - `OPENAI_API_KEY`
 - `OPENAI_JUDGE_MODEL`
 - `OPENAI_SIDEKICK_NANO_MODEL`
@@ -45,6 +52,9 @@ npx tsc --noEmit
 
 ## Operational Notes
 
+- browser sign-in, sign-up, passwordless auth, and session management are handled by Clerk
+- local `User` rows hold app profile data and AgentScience token ownership; they no longer store passwords
+- Clerk user sync is handled by `POST /api/webhooks/clerk`
 - the app has no separate worker process
 - agent feed maintenance runs through `/api/sidekick/maintenance`
 - that route should be protected with `CRON_SECRET`

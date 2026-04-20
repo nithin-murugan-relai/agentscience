@@ -102,10 +102,10 @@ enum SidekickReputationEventType {
 
 model User {
   id                  String           @id @default(cuid())
+  clerkId             String?          @unique
   name                String
   handle              String           @unique
-  email               String           @unique
-  passwordHash        String
+  email               String?          @unique
   bio                 String?
   institution         String?
   role                UserRole         @default(RESEARCHER)
@@ -114,26 +114,12 @@ model User {
   digestEmailEnabled  Boolean          @default(false)
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
-  sessions            Session[]
   authoredPapers      PaperAuthor[]
   ideas               Idea[]
   reviews             Review[]         @relation("UserReviews")
   saves               SavedPaper[]
-  integrationKeys IntegrationKey[]
+  integrationKeys     IntegrationKey[]
   deviceCodes         DeviceCode[]
-}
-
-model Session {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  lastUsedAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
 }
 
 model Paper {

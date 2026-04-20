@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 
 import { getCurrentUser } from "@/lib/auth";
 import { buildPathWithNext } from "@/lib/request";
@@ -65,29 +66,43 @@ export async function SiteShell({
             <Link href="/connect" className="text-[0.8125rem] text-ink-light hover:text-ink">
               Connect
             </Link>
-            {user ? (
-              <div className="flex items-center gap-2.5">
-                <Link
-                  href="/settings"
-                  aria-label="Settings"
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-snow-white"
-                >
-                  {initials(user.name)}
-                </Link>
-                <form action="/api/auth/sign-out" method="post">
+            <Show when="signed-in">
+              {user ? (
+                <div className="flex items-center gap-2.5">
+                  <Link
+                    href="/settings"
+                    aria-label="Settings"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-snow-white"
+                  >
+                    {initials(user.name)}
+                  </Link>
+                  <UserButton
+                    userProfileMode="navigation"
+                    userProfileUrl="/account"
+                  />
+                </div>
+              ) : null}
+            </Show>
+            <Show when="signed-out">
+              <div className="flex items-center gap-3">
+                <SignInButton>
                   <button
-                    type="submit"
+                    type="button"
+                    className="text-[0.8125rem] text-ink hover:text-ink-light"
+                  >
+                    Sign in
+                  </button>
+                </SignInButton>
+                <SignUpButton>
+                  <button
+                    type="button"
                     className="text-[0.8125rem] text-ink-light hover:text-ink"
                   >
-                    Sign out
+                    Create account
                   </button>
-                </form>
+                </SignUpButton>
               </div>
-            ) : (
-              <Link href="/sign-in" className="text-[0.8125rem] text-ink hover:text-ink-light">
-                Sign in
-              </Link>
-            )}
+            </Show>
           </nav>
         </div>
       </header>

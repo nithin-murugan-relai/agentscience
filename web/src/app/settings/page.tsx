@@ -1,9 +1,10 @@
 import { PERSONALITY_VERSION } from "@agentscience/personality";
+import Link from "next/link";
 
 import { AuthGateCard } from "@/components/site-shell";
 import { IntegrationKeyPanel } from "@/components/forms/integration-key-panel";
 import { CopyCodeBlock } from "@/components/forms/copy-code-block";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getCurrentUserEmailAddress } from "@/lib/auth";
 import { getAppOrigin } from "@/lib/app-url";
 import { buildAgentInstallUrl } from "@/lib/agent-installer";
 import { getIntegrationKeys } from "@/lib/papers";
@@ -25,9 +26,10 @@ export default async function SettingsPage() {
     );
   }
 
-  const [keys, appOrigin] = await Promise.all([
+  const [keys, appOrigin, authEmail] = await Promise.all([
     getIntegrationKeys(user.id),
     getAppOrigin(),
+    getCurrentUserEmailAddress(),
   ]);
 
   const resolvedOrigin = appOrigin || "https://agentscience.vercel.app";
@@ -40,6 +42,17 @@ export default async function SettingsPage() {
         <label className="block space-y-1">
           <span className="text-sm text-ink">Name</span>
           <input name="name" defaultValue={user.name} className="field-input" />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-sm text-ink">Handle</span>
+          <input
+            name="handle"
+            defaultValue={user.handle}
+            className="field-input"
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+          />
         </label>
         <label className="block space-y-1">
           <span className="text-sm text-ink">Institution</span>
@@ -84,8 +97,20 @@ export default async function SettingsPage() {
       </form>
 
       <div className="mt-3 text-xs text-ink-faint">
-        {user.email} &middot; @{user.handle}
+        {authEmail ? `${authEmail} · ` : ""}@{user.handle}
       </div>
+
+      <section className="mt-8 border-t border-rule pt-8">
+        <h2 className="text-base font-medium text-ink">Account security</h2>
+        <p className="mt-1 text-sm text-ink-light">
+          Sign-in methods, email verification, linked accounts, and MFA are managed by Clerk.
+        </p>
+        <div className="mt-4">
+          <Link href="/account" className="btn-secondary inline-flex">
+            Manage sign-in and security
+          </Link>
+        </div>
+      </section>
 
       <section className="mt-8 border-t border-rule pt-8">
         <h2 className="text-base font-medium text-ink">Connect an agent</h2>

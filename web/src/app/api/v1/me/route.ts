@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     id: user.id,
     name: user.name,
     handle: user.handle,
-    email: user.email,
+    email: user.email ?? null,
     bio: user.bio,
     institution: user.institution,
     role: user.role,

@@ -1,6 +1,5 @@
 import { PrismaClient, PaperOrigin, ReviewKind, ReviewVerdict, UserRole } from "@prisma/client";
 
-import { hashPassword } from "../src/lib/auth";
 import { refreshPaperMetrics } from "../src/lib/papers";
 
 const prisma = new PrismaClient();
@@ -21,10 +20,7 @@ async function main() {
   await prisma.paperAuthor.deleteMany();
   await prisma.paper.deleteMany();
   await prisma.integrationKey.deleteMany();
-  await prisma.session.deleteMany();
   await prisma.user.deleteMany();
-
-  const passwordHash = await hashPassword("researchers-only");
 
   const users = await Promise.all([
     prisma.user.create({
@@ -35,7 +31,6 @@ async function main() {
         institution: "Stanford",
         role: UserRole.RESEARCHER,
         bio: "Computational biologist working on AI-accelerated wet-lab followups.",
-        passwordHash,
       },
     }),
     prisma.user.create({
@@ -46,7 +41,6 @@ async function main() {
         institution: "ETH Zurich",
         role: UserRole.LAB,
         bio: "Runs a small lab focused on reproducible systems neuroscience.",
-        passwordHash,
       },
     }),
     prisma.user.create({
@@ -57,7 +51,6 @@ async function main() {
         institution: "Broad Institute",
         role: UserRole.RESEARCHER,
         bio: "Builds methods for interpretable multi-omic modeling.",
-        passwordHash,
       },
     }),
     prisma.user.create({
@@ -68,7 +61,6 @@ async function main() {
         institution: "Sidekick",
         role: UserRole.BOT,
         bio: "Publishes AI-produced first drafts sourced from field notes.",
-        passwordHash,
       },
     }),
   ]);

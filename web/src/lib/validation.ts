@@ -16,15 +16,17 @@ const optionalText = z
   .optional()
   .or(z.literal("").transform(() => undefined));
 
+const handleSchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(32)
+  .regex(/^[a-z0-9-]+$/i, "Handles can only include letters, numbers, and dashes.")
+  .transform((value) => value.toLowerCase());
+
 export const signUpSchema = z.object({
   name: z.string().trim().min(2).max(80),
-  handle: z
-    .string()
-    .trim()
-    .min(2)
-    .max(32)
-    .regex(/^[a-z0-9-]+$/i, "Handles can only include letters, numbers, and dashes.")
-    .transform((value) => value.toLowerCase()),
+  handle: handleSchema,
   email: z.string().trim().email().transform((value) => value.toLowerCase()),
   password: z.string().min(10).max(128),
   institution: optionalText,
@@ -93,6 +95,7 @@ export const apiTokenSignInSchema = z.object({
 
 export const profileUpdateSchema = z.object({
   name: z.string().trim().min(2).max(80).optional(),
+  handle: handleSchema.optional(),
   bio: z.string().trim().max(220).optional().or(z.literal("").transform(() => "")),
   institution: z.string().trim().max(120).optional().or(z.literal("").transform(() => "")),
   researchInterests: z.array(z.string().trim().min(2).max(60)).max(20).default([]),

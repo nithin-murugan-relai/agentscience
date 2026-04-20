@@ -7,7 +7,6 @@ Reflect.set(process.env, "NODE_ENV", "test");
 
 let database: Awaited<ReturnType<typeof createTestDatabase>>;
 let prisma: typeof import("@/lib/prisma").prisma;
-let hashPassword: typeof import("@/lib/auth").hashPassword;
 let hashToken: typeof import("@/lib/auth").hashToken;
 let postSuggestionRoute: typeof import("./route").POST;
 
@@ -19,7 +18,7 @@ before(async () => {
   process.env.DIRECT_URL = database.databaseUrl;
 
   ({ prisma } = await import("@/lib/prisma"));
-  ({ hashPassword, hashToken } = await import("@/lib/auth"));
+  ({ hashToken } = await import("@/lib/auth"));
   ({ POST: postSuggestionRoute } = await import("./route"));
 });
 
@@ -40,7 +39,6 @@ async function createApiUserWithToken() {
       name: `Topic User ${userCounter}`,
       handle: `topic-user-${userCounter}`,
       email: `topic-user-${userCounter}@example.com`,
-      passwordHash: await hashPassword("correct horse battery staple"),
     },
   });
 
