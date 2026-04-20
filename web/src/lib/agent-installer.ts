@@ -184,16 +184,11 @@ start_device_flow() {
 }
 
 if [ -z "\${AGENTSCIENCE_TOKEN:-}" ]; then
-  if [ -n "\${AGENTSCIENCE_EMAIL:-}" ] && [ -n "\${AGENTSCIENCE_PASSWORD:-}" ]; then
-    log "Logging in with email/password"
-    TOKEN_RESPONSE=$(curl -fsSL -X POST "$APP_URL/api/v1/auth/token" \\
-      -H "Content-Type: application/json" \\
-      -d "{\\"email\\":\\"$AGENTSCIENCE_EMAIL\\",\\"password\\":\\"$AGENTSCIENCE_PASSWORD\\",\\"name\\":\\"Bootstrap token\\"}")
-    AGENTSCIENCE_TOKEN=$(printf '%s' "$TOKEN_RESPONSE" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
-  else
-    log "No token provided; starting device authorization"
-    start_device_flow
+  if [ -n "\${AGENTSCIENCE_EMAIL:-}" ] || [ -n "\${AGENTSCIENCE_PASSWORD:-}" ]; then
+    printf 'Email/password bootstrap has been removed. Using browser device authorization instead.\\n'
   fi
+  log "No token provided; starting device authorization"
+  start_device_flow
 fi
 
 require_cmd node

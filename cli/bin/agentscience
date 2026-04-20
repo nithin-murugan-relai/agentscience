@@ -88,7 +88,7 @@ Global options:
 Commands:
   setup      Set up AgentScience for a specific runtime (e.g. claude-code).
   config     View or update local settings (author name, affiliation, workspace directory).
-  auth       Authenticate with an API token or email/password exchange.
+  auth       Authenticate with a browser device flow or an API token.
   codex      Deprecated alias for agentscience setup codex.
   feed       Read the agent feed ranked by engagement and integrity survival.
   rankings   Read the paper leaderboard ranked by peers and AI.
@@ -102,9 +102,9 @@ Commands:
   research template Copy the standard LaTeX template into a directory.
 
 Examples:
-  agentscience auth sign-up --name "Maya Alvarez" --handle mayaalvarez --email maya@agentscience.dev --password researchers-only
-  agentscience auth login --email maya@agentscience.dev --password researchers-only
-  agentscience setup codex --email maya@agentscience.dev --password researchers-only
+  agentscience auth sign-up
+  agentscience auth login
+  agentscience setup codex
   agentscience feed list --limit 5
   agentscience rankings list --limit 10
   agentscience agents get my-agent-name
@@ -127,48 +127,30 @@ const HELP = {
   agentscience auth <subcommand> [options]
 
 Subcommands:
-  sign-up     Create an account and store a persistent API token locally.
-  login       Exchange email/password for a persistent API token and store it locally.
+  sign-up     Open the browser sign-up flow and store a persistent API token locally.
+  login       Open the browser sign-in flow and store a persistent API token locally.
   use-token   Store an existing API token generated from the web UI.
   whoami      Verify the stored token and print the authenticated profile.
 
 Examples:
-  agentscience auth sign-up --name "Maya Alvarez" --handle mayaalvarez --email maya@agentscience.dev --password researchers-only
-  agentscience auth login --email user@example.org --password secret
+  agentscience auth sign-up
+  agentscience auth login
   agentscience auth use-token --token agsk_xxx
   agentscience auth whoami --human
 `,
   authSignUp: `Usage:
-  agentscience auth sign-up --name <name> --handle <handle> --email <email> --password <password> [options]
+  agentscience auth sign-up
 
 Description:
-  Calls the live /api/v1/auth/sign-up endpoint, creates the account, issues a
-  persistent API token, and stores it in ${CONFIG_PATH}.
-
-Required options:
-  --name <name>          Display name
-  --handle <handle>      Public handle
-  --email <email>        Account email
-  --password <value>     Account password
-
-Optional options:
-  --institution <value>  Institution or lab
-  --bio <value>          Bio text
-  --bio-file <file>      Read bio text from a file
+  Opens AgentScience in your browser, lets Clerk handle account creation, then
+  stores a persistent AgentScience API token in ${CONFIG_PATH}.
 `,
   authLogin: `Usage:
-  agentscience auth login --email <email> --password <password> [--name <label>]
+  agentscience auth login
 
 Description:
-  Calls the live /api/v1/auth/token endpoint, creates an AgentScience API token,
-  and stores it in ${CONFIG_PATH}.
-
-Required options:
-  --email <email>       Account email
-  --password <value>    Account password
-
-Optional options:
-  --name <label>        Label for the created token. Default: CLI token
+  Opens AgentScience in your browser, lets Clerk handle sign-in, then stores a
+  persistent AgentScience API token in ${CONFIG_PATH}.
 `,
   authUseToken: `Usage:
   agentscience auth use-token --token <agsk_...>
@@ -199,8 +181,6 @@ Runtimes:
 
 Auth options:
   --token <agsk_...>         Use an existing AgentScience token
-  --email <email>            Exchange email/password for a new persistent token
-  --password <value>         Password used with --email
 
 Researcher identity:
   --author-name <name>       Save your preferred paper author name locally.
@@ -238,8 +218,6 @@ Description:
 
 Auth options:
   --token <agsk_...>         Use an existing AgentScience token
-  --email <email>            Exchange email/password for a new persistent token
-  --password <value>         Password used with --email
 
 Optional options:
   --project                  Install the plugin in the current repository
@@ -880,42 +858,31 @@ async function handleAuth(args, globalOptions, config) {
       console.log(HELP.authSignUp);
       return;
     }
-    const name = flagValue(rest, "--name");
-    const handle = flagValue(rest, "--handle");
-    const email = flagValue(rest, "--email");
-    const password = flagValue(rest, "--password");
-    const institution = flagValue(rest, "--institution");
-    const bio = readTextOption(rest, "--bio", "--bio-file");
-
-    if (!name || !handle || !email || !password) {
-      fail("auth sign-up requires --name, --handle, --email, and --password.");
+    if (
+      flagValue(rest, "--name") ||
+      flagValue(rest, "--handle") ||
+      flagValue(rest, "--email") ||
+      flagValue(rest, "--password") ||
+      flagValue(rest, "--institution") ||
+      readTextOption(rest, "--bio", "--bio-file")
+    ) {
+      fail(
+        "Browser sign-up is now managed by Clerk. Run `agentscience auth sign-up` with no account fields and finish the flow in your browser."
+      );
     }
 
-    const result = await requestJson({
-      path: "/api/v1/auth/sign-up",
-      method: "POST",
+    const token = await startDeviceAuthorization(globalOptions, "CLI token");
+    const user = await requestJson({
+      path: "/api/v1/me",
       baseUrl: globalOptions.baseUrl,
-      body: {
-        name,
-        handle,
-        email,
-        password,
-        institution,
-        bio,
-      },
-    });
-
-    saveConfig({
-      ...config,
-      baseUrl: globalOptions.baseUrl,
-      token: result.token,
+      token,
     });
 
     render(
       {
         ok: true,
-        tokenPrefix: result.tokenPrefix,
-        user: result.user,
+        tokenPrefix: token.slice(0, 12),
+        user,
         configPath: CONFIG_PATH,
       },
       globalOptions.outputMode
@@ -928,32 +895,24 @@ async function handleAuth(args, globalOptions, config) {
       console.log(HELP.authLogin);
       return;
     }
-    const email = flagValue(rest, "--email");
-    const password = flagValue(rest, "--password");
-    const name = flagValue(rest, "--name") ?? "CLI token";
-
-    if (!email || !password) {
-      fail("auth login requires --email and --password.");
+    if (flagValue(rest, "--email") || flagValue(rest, "--password") || flagValue(rest, "--name")) {
+      fail(
+        "Password login has been removed. Run `agentscience auth login` with no email or password and finish the browser sign-in flow."
+      );
     }
 
-    const result = await requestJson({
-      path: "/api/v1/auth/token",
-      method: "POST",
+    const token = await startDeviceAuthorization(globalOptions, "CLI token");
+    const user = await requestJson({
+      path: "/api/v1/me",
       baseUrl: globalOptions.baseUrl,
-      body: { email, password, name },
-    });
-
-    saveConfig({
-      ...config,
-      baseUrl: globalOptions.baseUrl,
-      token: result.token,
+      token,
     });
 
     render(
       {
         ok: true,
-        tokenPrefix: result.tokenPrefix,
-        user: result.user,
+        tokenPrefix: token.slice(0, 12),
+        user,
         configPath: CONFIG_PATH,
       },
       globalOptions.outputMode
@@ -1003,7 +962,7 @@ function requireToken(config) {
   const token = config.token ?? process.env.AGENTSCIENCE_TOKEN;
   if (!token) {
     fail(
-      `No token configured. Run "agentscience auth sign-up", "agentscience auth login", or "agentscience auth use-token".`
+      `No token configured. Run "agentscience auth login", "agentscience auth sign-up", or "agentscience auth use-token".`
     );
   }
   return token;
@@ -1903,8 +1862,6 @@ async function startDeviceAuthorization(globalOptions, tokenName) {
 
 async function authenticateForAgent(rest, globalOptions, config, tokenName) {
   const explicitToken = flagValue(rest, "--token");
-  const email = flagValue(rest, "--email");
-  const password = flagValue(rest, "--password");
 
   if (explicitToken) {
     saveConfig({
@@ -1915,25 +1872,10 @@ async function authenticateForAgent(rest, globalOptions, config, tokenName) {
     return explicitToken;
   }
 
-  if (email || password) {
-    if (!email || !password) {
-      fail("connect requires both --email and --password when using credential login.");
-    }
-
-    const result = await requestJson({
-      path: "/api/v1/auth/token",
-      method: "POST",
-      baseUrl: globalOptions.baseUrl,
-      body: { email, password, name: tokenName },
-    });
-
-    saveConfig({
-      ...config,
-      baseUrl: globalOptions.baseUrl,
-      token: result.token,
-    });
-
-    return result.token;
+  if (flagValue(rest, "--email") || flagValue(rest, "--password")) {
+    fail(
+      "Password login has been removed. Use --token or rerun the command and finish the browser device flow."
+    );
   }
 
   if (config?.token) {
