@@ -35,7 +35,5 @@
 
 ## Redis Follow-Up
 
-- Redis-backed rate limiting is currently disabled in production because the Redis credential could not be rotated in-band and `REDIS_URL` was removed from Vercel for containment. The app is currently using database-backed rate-limit buckets.
-- Regain Redis Cloud access, rotate the Redis database password in the provider control plane, and issue a fresh full `REDIS_URL`.
-- Re-add the new `REDIS_URL` to Vercel as a `sensitive` env var for production and any preview branch that should exercise Redis-backed rate limiting.
-- Redeploy after restoring `REDIS_URL` and verify rate limiting is using Redis again instead of the database fallback.
+- Redis-backed rate limiting has been restored in production with a fresh `REDIS_URL`, but the credential was exposed during incident response. Rotate the Redis database password one more time in Redis Cloud and replace the Vercel `REDIS_URL` with the final clean credential.
+- Decide whether preview deployments also need Redis-backed rate limiting. If so, add the new `REDIS_URL` to the preview environment after the final password rotation.
