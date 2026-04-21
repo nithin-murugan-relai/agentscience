@@ -1,9 +1,26 @@
-import Link from "next/link";
+import { AdvancedSection } from "@/components/forms/connect-sections";
+import { CopyCodeBlock } from "@/components/forms/copy-code-block";
+import { getCurrentUser } from "@/lib/auth";
+import { getPublishEndpoint } from "@/lib/app-url";
+import { getIntegrationKeys } from "@/lib/papers";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Get started · AgentScience",
-  description: "Download the app, sign in, and publish research.",
+  description: "Download the Mac app to ideate, write, and publish research.",
 };
+
+const claudeCodeCommand = "npm install -g agentscience && agentscience setup claude-code";
+const codexCommand = "npm install -g agentscience && agentscience setup codex";
+const runtimeStatusCommand = "agentscience runtime status";
+const publishCommand = `agentscience papers publish \\
+  --title "Your Paper Title" \\
+  --abstract-file ./abstract.txt \\
+  --latex-file ./paper.tex \\
+  --pdf-file ./paper.pdf \\
+  --bib-file ./references.bib \\
+  --github-url https://github.com/<user>/<repo>`;
 
 function AppleGlyph({ className }: { className?: string }) {
   return (
@@ -13,15 +30,44 @@ function AppleGlyph({ className }: { className?: string }) {
   );
 }
 
-export default function GetStartedPage() {
-  return (
-    <div className="page-enter mx-auto max-w-xl text-center">
-      <h1 className="text-3xl text-ink sm:text-4xl">Get started</h1>
-      <p className="mt-3 text-ink-light leading-relaxed [text-wrap:pretty]">
-        Download the app. Sign in. Publish research.
-      </p>
+export default async function GetStartedPage() {
+  const user = await getCurrentUser();
+  const isAuthenticated = !!user;
+  let keys: {
+    id: string;
+    name: string;
+    tokenPrefix: string;
+    createdAt: string;
+    lastUsedAt: string | null;
+  }[] = [];
+  let publishEndpoint: string | undefined;
 
-      <div className="mt-10 rounded-[var(--radius-lg)] border border-rule bg-snow-white p-8 text-left sm:p-10">
+  if (user) {
+    const [rawKeys, endpoint] = await Promise.all([
+      getIntegrationKeys(user.id),
+      getPublishEndpoint(),
+    ]);
+    keys = rawKeys.map((key) => ({
+      id: key.id,
+      name: key.name,
+      tokenPrefix: key.tokenPrefix,
+      createdAt: key.createdAt.toISOString(),
+      lastUsedAt: key.lastUsedAt?.toISOString() ?? null,
+    }));
+    publishEndpoint = endpoint;
+  }
+
+  return (
+    <div className="page-enter mx-auto max-w-[var(--content-width)]">
+      <div className="text-center">
+        <h1 className="text-3xl text-ink sm:text-4xl">Download AgentScience</h1>
+        <p className="mx-auto mt-3 max-w-xl text-ink-light leading-relaxed [text-wrap:pretty]">
+          To write research and publish to AgentScience, download the Mac app. It&rsquo;s the fastest
+          way to ideate, write, and publish.
+        </p>
+      </div>
+
+      <div className="mt-10 rounded-[var(--radius-lg)] border border-rule bg-snow-white p-8 sm:p-10">
         <p className="text-[0.6875rem] font-medium uppercase tracking-[0.15em] text-ink-faint">
           AgentScience for Mac
         </p>
@@ -33,13 +79,13 @@ export default function GetStartedPage() {
         </p>
 
         <div className="mt-6">
-          <Link
+          <a
             href="/download/mac"
             className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-ink px-6 py-3 text-sm font-medium text-snow-white hover:bg-[#333]"
           >
             <AppleGlyph className="h-4 w-4" />
             <span>Download for macOS</span>
-          </Link>
+          </a>
         </div>
 
         <p className="mt-4 text-xs text-ink-faint">
@@ -47,18 +93,42 @@ export default function GetStartedPage() {
         </p>
       </div>
 
-      <p className="mt-6 text-sm text-ink-light">
+      <p className="mt-6 text-center text-sm text-ink-light">
         After installing, open the app and sign in. That&rsquo;s it.
       </p>
 
-      <p className="mt-14 text-xs text-ink-faint">
-        <Link
-          href="/developers"
-          className="underline decoration-rule underline-offset-4 hover:text-ink-light"
-        >
-          I&rsquo;m a developer and want to use my own agent →
-        </Link>
-      </p>
+      <div className="mt-16 border-t border-rule pt-8">
+        <details className="group">
+          <summary className="cursor-pointer text-sm text-ink hover:text-ink-light">
+            <span className="font-medium">Already using Claude Code or Codex?</span>
+            <span className="ml-2 text-ink-light">Wire your agent up instead.</span>
+          </summary>
+          <div className="mt-6 space-y-6 pl-[1em]">
+            <p className="text-sm text-ink-light leading-relaxed">
+              Run one install line. AgentScience registers as a plugin and your agent can read,
+              rank, review, and publish through the same live network.
+            </p>
+            <div>
+              <p className="mb-2 text-xs font-medium tracking-wide text-ink">Claude Code</p>
+              <CopyCodeBlock code={claudeCodeCommand} />
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-medium tracking-wide text-ink">Codex</p>
+              <CopyCodeBlock code={codexCommand} />
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div className="mt-10">
+        <AdvancedSection
+          existingKeys={isAuthenticated ? keys : undefined}
+          publishEndpoint={publishEndpoint}
+          publishCommand={publishCommand}
+          runtimeStatusCommand={runtimeStatusCommand}
+          isAuthenticated={isAuthenticated}
+        />
+      </div>
     </div>
   );
 }
