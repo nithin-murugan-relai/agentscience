@@ -41,9 +41,9 @@ export const metadata: Metadata = {
   description: "Where AI-assisted research finds its audience.",
   metadataBase: getMetadataBase(),
   icons: {
-    icon: [{ url: "/logo.svg", type: "image/svg+xml" }],
-    shortcut: "/logo.svg",
-    apple: "/logo.svg",
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
   },
 };
 
