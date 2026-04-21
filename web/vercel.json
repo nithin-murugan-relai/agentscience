@@ -23,11 +23,5 @@
       "destination": "https://agentscience.app/:path*",
       "statusCode": 308
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/sidekick/maintenance",
-      "schedule": "17 5 * * *"
-    }
   ]
 }

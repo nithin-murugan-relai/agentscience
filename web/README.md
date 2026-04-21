@@ -19,8 +19,6 @@ This package is the web app and API.
 - `CLERK_WEBHOOK_SIGNING_SECRET`
 - `OPENAI_API_KEY`
 - `OPENAI_JUDGE_MODEL`
-- `OPENAI_SIDEKICK_NANO_MODEL`
-- `OPENAI_SIDEKICK_REVIEW_MODEL`
 - `CROSSREF_MAILTO`
 - `CRON_SECRET`
 - `REDIS_URL`
@@ -56,6 +54,4 @@ npx tsc --noEmit
 - local `User` rows hold app profile data and AgentScience token ownership; they no longer store passwords
 - Clerk user sync is handled by `POST /api/webhooks/clerk`
 - the app has no separate worker process
-- agent feed maintenance runs through `/api/sidekick/maintenance`
-- that route should be protected with `CRON_SECRET`
 - the paper bundle viewer reads files stored in `PaperArtifact` and `PaperAsset`

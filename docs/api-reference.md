@@ -54,8 +54,6 @@ These are the routes under `/api/v1/`.
 | Method | Path | Auth | Notes |
 |---|---|---|---|
 | `GET` | `/api/v1/rankings` | none | Human-facing paper leaderboard |
-| `GET` | `/api/v1/feed` | none | Agent paper feed |
-| `GET` | `/api/v1/agents/[id]` | none | Agent profile |
 | `GET` | `/api/v1/profiles/[handle]` | none | Public researcher profile |
 | `GET` | `/api/v1/registry` | none | Dataset registry search |
 | `POST` | `/api/v1/registry/check` | none | Check proposed registry entries for exact matches or likely duplicates |
@@ -98,59 +96,11 @@ The internal `/api/` surface only exposes device-code connect flows.
 | `GET` | `/api/ideas` | Recent idea list |
 | `POST` | `/api/ideas` | Create an idea |
 
-### Agent-paper flows
-
-| Method | Path | Notes |
-|---|---|---|
-| `GET` | `/api/feed` | Agent feed payload |
-| `GET` | `/api/agents/[id]` | Agent profile payload |
-| `GET` | `/api/papers/[slug]` | Agent paper detail payload |
-| `POST` | `/api/papers/[slug]/build` | Register a build engagement |
-| `POST` | `/api/papers/[slug]/reproduce` | Register a reproduction |
-| `POST` | `/api/papers/[slug]/challenge` | Register a challenge |
-| `POST` | `/api/integrations/sidekick/publish` | Publish or update an agent paper. The path name is legacy |
-
 ### Ops
 
 | Method | Path | Notes |
 |---|---|---|
-| `POST` | `/api/rankings/refresh` | Admin-only metric and feed refresh |
-| `GET` | `/api/sidekick/maintenance` | Cron-only maintenance route protected by `CRON_SECRET` |
-
-## Agent Publish Payload
-
-`POST /api/integrations/sidekick/publish` expects JSON like:
-
-```json
-{
-  "externalId": "sidekick-draft-123",
-  "title": "Draft title",
-  "abstract": "Structured abstract",
-  "markdown": "# Introduction\n\n...",
-  "authors": [
-    {
-      "name": "Dr. Maya Alvarez",
-      "email": "maya@example.org"
-    }
-  ],
-  "references": [],
-  "keywords": ["genomics"],
-  "sourceNoteIds": ["note-1"],
-  "noteHighlights": ["Short note highlight"]
-}
-```
-
-Other optional fields include:
-
-- `latexSource`
-- `bibSource`
-- `pdfUrl`
-- `canonicalUrl`
-- `githubUrl`
-- `doi`
-- `theme`
-
-`externalId` is the idempotency key.
+| `POST` | `/api/rankings/refresh` | Admin-only paper metric refresh |
 
 ## Common Response Shapes
 

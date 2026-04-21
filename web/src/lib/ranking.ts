@@ -26,11 +26,13 @@ export interface RankingResult {
   humanScore: number;
   networkScore: number;
   aiScore: number;
+  integrityScore: number;
   finalScore: number;
   reviewCount: number;
   saveCount: number;
   ideaCount: number;
   aiSummary: string;
+  integritySummary: string;
   usedHeuristicAi: boolean;
 }
 
@@ -84,6 +86,23 @@ function heuristicAiAssessment(paper: RankingInputPaper): PaperAiAssessment {
       0.2 * clamp(paper.referenceTargets.length / 6) +
       0.15 * clamp((paper.markdown.length - 600) / 3000)
   );
+  const claimVerification = clamp(0.3 + 0.45 * methodsSignal + 0.25 * structure);
+  const referenceIntegrity = clamp(
+    0.2 + 0.55 * clamp(paper.referenceTargets.length / 6) + 0.25 * structure
+  );
+  const methodologicalCoherence = clamp(0.3 + 0.45 * structure + 0.25 * methodsSignal);
+  const hallucinationResistance = clamp(
+    0.25 +
+      0.35 * structure +
+      0.25 * methodsSignal +
+      0.15 * clamp((paper.markdown.length - 800) / 3200)
+  );
+  const integrityScore = clamp(
+    0.3 * claimVerification +
+      0.25 * referenceIntegrity +
+      0.25 * methodologicalCoherence +
+      0.2 * hallucinationResistance
+  );
   const overall = clamp(0.2 * novelty + 0.3 * rigor + 0.25 * clarity + 0.25 * reproducibility);
   const summary = [
     `Heuristic fallback for "${paper.title}" because no model-generated assessment is available yet.`,
@@ -91,6 +110,11 @@ function heuristicAiAssessment(paper: RankingInputPaper): PaperAiAssessment {
     `Structure contributes ${structure.toFixed(2)} from the presence of canonical scientific sections, while methods and analysis language contributes ${methodsSignal.toFixed(2)} by rewarding concrete implementation detail rather than vague framing alone.`,
     `The abstract readability score is ${clarity.toFixed(2)}, novelty is ${novelty.toFixed(2)} based on topic diversity and ideation signal, rigor is ${rigor.toFixed(2)}, and reproducibility is ${reproducibility.toFixed(2)} from references plus implementation depth.`,
     `This fallback is intentionally conservative and should be treated as a temporary ranking input, not a substitute for either peer review or a full LLM assessment.`,
+  ].join(" ");
+  const integritySummary = [
+    `Integrity stress-test fallback for "${paper.title}" because no model-generated assessment is available yet.`,
+    `Claim support is estimated at ${claimVerification.toFixed(2)}, reference integrity at ${referenceIntegrity.toFixed(2)}, methodological coherence at ${methodologicalCoherence.toFixed(2)}, and hallucination resistance at ${hallucinationResistance.toFixed(2)}.`,
+    `This signal only checks for structural evidence that the draft looks grounded; it is a conservative placeholder until a real automated review runs.`,
   ].join(" ");
 
   return paperAiAssessmentSchema.parse({
@@ -100,6 +124,12 @@ function heuristicAiAssessment(paper: RankingInputPaper): PaperAiAssessment {
     rigor,
     clarity,
     reproducibility,
+    integrityScore,
+    integritySummary,
+    claimVerification,
+    referenceIntegrity,
+    methodologicalCoherence,
+    hallucinationResistance,
   });
 }
 
@@ -169,12 +199,13 @@ export function buildPaperRankings(papers: RankingInputPaper[]): RankingResult[]
         0.2 * reviewSignalScore +
         0.05 * ideaScore
     );
-    const aiScore = aiAssessment.overall;
+    const aiScore = clamp(0.75 * aiAssessment.overall + 0.25 * aiAssessment.integrityScore);
+    const integrityScore = aiAssessment.integrityScore;
     const qualityScore = reviewCount
-      ? clamp(0.85 * humanScore + 0.15 * aiScore)
+      ? clamp(0.8 * humanScore + 0.15 * aiAssessment.overall + 0.05 * integrityScore)
       : paper.aiAssessment
-        ? clamp(aiScore * 0.85)
-        : clamp(Math.min(aiScore * 0.55, 0.45));
+        ? clamp(0.8 * aiAssessment.overall + 0.2 * integrityScore)
+        : clamp(Math.min(0.45 * aiAssessment.overall + 0.1 * integrityScore, 0.45));
     const finalScore = clamp(0.78 * qualityScore + 0.22 * networkScore);
 
     return {
@@ -182,11 +213,13 @@ export function buildPaperRankings(papers: RankingInputPaper[]): RankingResult[]
       humanScore: Number(humanScore.toFixed(6)),
       networkScore: Number(networkScore.toFixed(6)),
       aiScore: Number(aiScore.toFixed(6)),
+      integrityScore: Number(integrityScore.toFixed(6)),
       finalScore: Number(finalScore.toFixed(6)),
       reviewCount,
       saveCount: paper.saveCount,
       ideaCount: paper.ideaCount,
       aiSummary: excerpt(aiAssessment.summary, 220),
+      integritySummary: excerpt(aiAssessment.integritySummary, 220),
       usedHeuristicAi: !paper.aiAssessment,
     } satisfies RankingResult;
   });

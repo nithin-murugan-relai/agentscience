@@ -6,7 +6,6 @@ import {
   Prisma,
   ReviewKind,
   ReviewVerdict,
-  UserRole,
 } from "@prisma/client";
 
 import { hashToken } from "@/lib/auth";
@@ -14,17 +13,16 @@ import { aiJudgeConfigured, judgePaperWithOpenAI } from "@/lib/openai-judge";
 import { prisma } from "@/lib/prisma";
 import { buildPaperRankings } from "@/lib/ranking";
 import {
-  createTemporaryEmail,
   extractKeywords,
   slugify,
 } from "@/lib/utils";
-import { getUniqueConstraintTargets, UserFacingError } from "@/lib/errors";
+import { UserFacingError } from "@/lib/errors";
 import type {
   IdeaFormInput,
   IntegrationKeyInput,
+  PaperAiAssessment,
   PaperFormInput,
   ReviewFormInput,
-  SidekickPublishInput,
 } from "@/lib/validation";
 
 export const publicUserSelect = {
@@ -202,20 +200,6 @@ export function summarizeIdea(content: string) {
 
 function uniqueStrings(values: string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
-}
-
-function getImportedNoteHighlights(metadata: Prisma.JsonValue | null | undefined) {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return [];
-  }
-
-  const noteHighlights = (metadata as Record<string, Prisma.JsonValue>).noteHighlights;
-
-  if (!Array.isArray(noteHighlights)) {
-    return [];
-  }
-
-  return noteHighlights.filter((value): value is string => typeof value === "string");
 }
 
 function verdictFromScore(score: number) {
@@ -423,87 +407,6 @@ export async function ensureUniquePaperSlug(baseSlug: string) {
   return ensureUniqueSlug(baseSlug);
 }
 
-async function ensureUniqueHandle(baseHandle: string) {
-  const root = slugify(baseHandle).replace(/-/g, "") || "researcher";
-  let handle = root;
-  let index = 1;
-
-  while (await prisma.user.findUnique({ where: { handle }, select: { id: true } })) {
-    handle = `${root}${index}`;
-    index += 1;
-  }
-
-  return handle.slice(0, 28);
-}
-
-function inferredRoleFromAuthor(name: string, handle?: string) {
-  const normalized = `${name} ${handle ?? ""}`.toLowerCase();
-  return normalized.includes("agent") || normalized.includes("bot")
-    ? UserRole.BOT
-    : UserRole.RESEARCHER;
-}
-
-async function ensureImportedUser(author: SidekickPublishInput["authors"][number]) {
-  const normalizedEmail = author.email?.toLowerCase();
-  const normalizedHandle = author.handle?.toLowerCase();
-
-  let existingUser = normalizedEmail
-    ? await prisma.user.findUnique({
-        where: { email: normalizedEmail },
-      })
-    : null;
-
-  if (!existingUser && normalizedHandle) {
-    existingUser = await prisma.user.findUnique({
-      where: { handle: normalizedHandle },
-    });
-  }
-
-  if (existingUser) {
-    return existingUser;
-  }
-
-  const handle = await ensureUniqueHandle(normalizedHandle || author.name);
-  const email =
-    normalizedEmail ??
-    createTemporaryEmail(author.name, randomBytes(6).toString("hex"));
-
-  try {
-    return await prisma.user.create({
-      data: {
-        name: author.name,
-        handle,
-        email,
-        institution: author.institution,
-        role: inferredRoleFromAuthor(author.name, handle),
-      },
-    });
-  } catch (error) {
-    const uniqueTargets = getUniqueConstraintTargets(error);
-    if (uniqueTargets.includes("email") || uniqueTargets.includes("handle")) {
-      const concurrentUser = normalizedEmail
-        ? await prisma.user.findUnique({
-            where: {
-              email: normalizedEmail,
-            },
-          })
-        : normalizedHandle || handle
-          ? await prisma.user.findUnique({
-              where: {
-                handle: normalizedHandle || handle,
-              },
-            })
-          : null;
-
-      if (concurrentUser) {
-        return concurrentUser;
-      }
-    }
-
-    throw error;
-  }
-}
-
 type NormalizedReference = {
   referenceTitle?: string;
   referenceDoi?: string;
@@ -611,6 +514,67 @@ async function getPaperForAiReview(paperId: string) {
   });
 }
 
+function parseAiReviewMetadata(metadata: Prisma.JsonValue | null): PaperAiAssessment | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const record = metadata as Record<string, unknown>;
+  const getNumber = (key: keyof PaperAiAssessment) => {
+    const value = record[key];
+    return typeof value === "number" && Number.isFinite(value) ? value : null;
+  };
+  const getString = (key: keyof PaperAiAssessment) => {
+    const value = record[key];
+    return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  };
+
+  const summary = getString("summary");
+  const integritySummary = getString("integritySummary");
+  const overall = getNumber("overall");
+  const novelty = getNumber("novelty");
+  const rigor = getNumber("rigor");
+  const clarity = getNumber("clarity");
+  const reproducibility = getNumber("reproducibility");
+  const integrityScore = getNumber("integrityScore");
+  const claimVerification = getNumber("claimVerification");
+  const referenceIntegrity = getNumber("referenceIntegrity");
+  const methodologicalCoherence = getNumber("methodologicalCoherence");
+  const hallucinationResistance = getNumber("hallucinationResistance");
+
+  if (
+    !summary ||
+    !integritySummary ||
+    overall == null ||
+    novelty == null ||
+    rigor == null ||
+    clarity == null ||
+    reproducibility == null ||
+    integrityScore == null ||
+    claimVerification == null ||
+    referenceIntegrity == null ||
+    methodologicalCoherence == null ||
+    hallucinationResistance == null
+  ) {
+    return null;
+  }
+
+  return {
+    summary,
+    overall,
+    novelty,
+    rigor,
+    clarity,
+    reproducibility,
+    integrityScore,
+    integritySummary,
+    claimVerification,
+    referenceIntegrity,
+    methodologicalCoherence,
+    hallucinationResistance,
+  };
+}
+
 export async function syncAiReviewForPaper(paperId: string) {
   if (!aiJudgeConfigured()) {
     return MetricStatus.DISABLED;
@@ -644,6 +608,7 @@ export async function syncAiReviewForPaper(paperId: string) {
     rigor: scoreToFivePoint(assessment.rigor),
     clarity: scoreToFivePoint(assessment.clarity),
     reproducibility: scoreToFivePoint(assessment.reproducibility),
+    metadata: assessment satisfies Prisma.JsonObject,
   };
 
   const existingReview = await prisma.review.findFirst({
@@ -732,6 +697,7 @@ export async function refreshPaperMetrics(options: { syncMissingAi?: boolean } =
           rigor: true,
           clarity: true,
           reproducibility: true,
+          metadata: true,
         },
       },
       saves: {
@@ -755,6 +721,7 @@ export async function refreshPaperMetrics(options: { syncMissingAi?: boolean } =
   const rankings = buildPaperRankings(
     papers.map((paper) => {
       const aiReview = paper.reviews.find((review) => review.kind === ReviewKind.AI);
+      const aiMetadata = aiReview ? parseAiReviewMetadata(aiReview.metadata) : null;
 
       return {
         paperId: paper.id,
@@ -798,15 +765,28 @@ export async function refreshPaperMetrics(options: { syncMissingAi?: boolean } =
             ? {
                 summary: aiReview.summary,
                 overall:
+                  aiMetadata?.overall ??
                   (aiReview.novelty +
                     aiReview.rigor +
                     aiReview.clarity +
                     aiReview.reproducibility) /
-                  20,
+                    20,
                 novelty: aiReview.novelty / 5,
                 rigor: aiReview.rigor / 5,
                 clarity: aiReview.clarity / 5,
                 reproducibility: aiReview.reproducibility / 5,
+                integrityScore:
+                  aiMetadata?.integrityScore ?? aiReview.reproducibility / 5,
+                integritySummary:
+                  aiMetadata?.integritySummary ?? aiReview.summary,
+                claimVerification:
+                  aiMetadata?.claimVerification ?? aiReview.rigor / 5,
+                referenceIntegrity:
+                  aiMetadata?.referenceIntegrity ?? aiReview.reproducibility / 5,
+                methodologicalCoherence:
+                  aiMetadata?.methodologicalCoherence ?? aiReview.rigor / 5,
+                hallucinationResistance:
+                  aiMetadata?.hallucinationResistance ?? aiReview.clarity / 5,
               }
             : null,
       };
@@ -837,9 +817,11 @@ export async function refreshPaperMetrics(options: { syncMissingAi?: boolean } =
           humanScore: ranking?.humanScore ?? 0,
           networkScore: ranking?.networkScore ?? 0,
           aiScore: ranking?.aiScore ?? null,
+          integrityScore: ranking?.integrityScore ?? null,
           finalScore: ranking?.finalScore ?? 0,
           aiStatus,
           aiSummary: ranking?.aiSummary,
+          integritySummary: ranking?.integritySummary,
           reviewCount: paper.reviews.filter((review) => review.kind === ReviewKind.HUMAN).length,
           saveCount: paper.saves.length,
           ideaCount: paper.ideas.length,
@@ -848,9 +830,11 @@ export async function refreshPaperMetrics(options: { syncMissingAi?: boolean } =
           humanScore: ranking?.humanScore ?? 0,
           networkScore: ranking?.networkScore ?? 0,
           aiScore: ranking?.aiScore ?? null,
+          integrityScore: ranking?.integrityScore ?? null,
           finalScore: ranking?.finalScore ?? 0,
           aiStatus,
           aiSummary: ranking?.aiSummary,
+          integritySummary: ranking?.integritySummary,
           reviewCount: paper.reviews.filter((review) => review.kind === ReviewKind.HUMAN).length,
           saveCount: paper.saves.length,
           ideaCount: paper.ideas.length,
@@ -1250,164 +1234,4 @@ export async function revokeIntegrationToken(token: string) {
   });
 
   return deleted.count > 0;
-}
-
-export async function upsertSidekickPaper(input: SidekickPublishInput) {
-  const authors = await Promise.all(input.authors.map((author) => ensureImportedUser(author)));
-  const primaryAuthor = authors[0];
-  const noteHighlights = uniqueStrings(input.noteHighlights);
-  const keywords =
-    input.keywords.length > 0
-      ? uniqueStrings(input.keywords.map((keyword) => keyword.toLowerCase()))
-      : extractKeywords(input.title, input.abstract, input.markdown);
-  const references = await resolveNormalizedReferenceRecords(
-    input.references
-      .map((reference) => ({
-        referenceTitle: reference.title?.trim(),
-        referenceDoi: reference.doi?.toLowerCase(),
-        targetSlug: reference.targetSlug?.trim().toLowerCase(),
-      }))
-      .filter(
-        (reference, index, array) =>
-          array.findIndex(
-            (candidate) =>
-              candidate.referenceTitle === reference.referenceTitle &&
-              candidate.referenceDoi === reference.referenceDoi &&
-              candidate.targetSlug === reference.targetSlug
-          ) === index
-      )
-  );
-
-  const existingPaper = await prisma.paper.findUnique({
-    where: {
-      externalId: input.externalId,
-    },
-    select: {
-      id: true,
-      slug: true,
-      metadata: true,
-      authors: {
-        orderBy: {
-          position: "asc",
-        },
-        take: 1,
-        select: {
-          userId: true,
-        },
-      },
-    },
-  });
-  const previousImportedHighlights = getImportedNoteHighlights(existingPaper?.metadata);
-  const previousPrimaryAuthorId = existingPaper?.authors[0]?.userId;
-
-  const paper = await prisma.$transaction(async (transaction) => {
-    const baseData = {
-      title: input.title,
-      abstract: input.abstract,
-      markdown: input.markdown,
-      latexSource: input.latexSource,
-      bibSource: input.bibSource,
-      pdfUrl: input.pdfUrl,
-      canonicalUrl: input.canonicalUrl,
-      githubUrl: input.githubUrl,
-      doi: input.doi?.toLowerCase(),
-      origin: PaperOrigin.SIDEKICK,
-      keywords,
-      sourceNoteIds: uniqueStrings(input.sourceNoteIds),
-      metadata: {
-        theme: input.theme,
-        importedFrom: "sidekick",
-        noteHighlights,
-      },
-    } satisfies Prisma.PaperUncheckedUpdateInput;
-
-    const resolvedPaper = existingPaper
-      ? await transaction.paper.update({
-          where: {
-            id: existingPaper.id,
-          },
-          data: baseData,
-        })
-      : await transaction.paper.create({
-          data: {
-            ...baseData,
-            slug: await ensureUniqueSlug(slugify(input.title)),
-            externalId: input.externalId,
-          },
-        });
-
-    await transaction.paperAuthor.deleteMany({
-      where: {
-        paperId: resolvedPaper.id,
-      },
-    });
-
-    await transaction.paperReference.deleteMany({
-      where: {
-        sourcePaperId: resolvedPaper.id,
-      },
-    });
-
-    await transaction.paperAuthor.createMany({
-      data: authors.map((author, index) => ({
-        paperId: resolvedPaper.id,
-        userId: author.id,
-        position: index,
-        affiliation: input.authors[index]?.institution,
-        isCorresponding: input.authors[index]?.isCorresponding ?? index === 0,
-      })),
-    });
-
-    if (references.length > 0) {
-      await transaction.paperReference.createMany({
-        data: references.map((reference) => ({
-          sourcePaperId: resolvedPaper.id,
-          ...reference,
-        })),
-      });
-    }
-
-    if (previousImportedHighlights.length > 0) {
-      await transaction.idea.deleteMany({
-        where: {
-          paperId: resolvedPaper.id,
-          content: {
-            in: previousImportedHighlights,
-          },
-          authorId: {
-            in: uniqueStrings(
-              [previousPrimaryAuthorId, primaryAuthor.id].filter(
-                (value): value is string => Boolean(value)
-              )
-            ),
-          },
-        },
-      });
-    }
-
-    if (noteHighlights.length > 0) {
-      await transaction.idea.createMany({
-        data: noteHighlights.map((noteHighlight) => ({
-          paperId: resolvedPaper.id,
-          authorId: primaryAuthor.id,
-          content: noteHighlight,
-          summary: summarizeIdea(noteHighlight),
-        })),
-      });
-    }
-
-    return resolvedPaper;
-  });
-
-  await syncAiReviewForPaper(paper.id);
-  await refreshPaperMetrics();
-
-  return prisma.paper.findUnique({
-    where: {
-      id: paper.id,
-    },
-    select: {
-      slug: true,
-    },
-  });
 }

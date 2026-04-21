@@ -117,6 +117,7 @@ function buildPrimaryArtifacts(
   const existingKinds = new Set(
     existingArtifacts.map((artifact) => artifact.kind ?? classifyArtifactKind(artifact.path))
   );
+  const existingPaths = new Set(existingArtifacts.map((artifact) => normalizeArtifactPath(artifact.path)));
 
   if (typeof input.latexSource === "string" && !existingKinds.has(PaperArtifactKind.LATEX_SOURCE)) {
     primaryArtifacts.push({
@@ -133,6 +134,15 @@ function buildPrimaryArtifacts(
       contentType: "application/x-bibtex",
       bytes: Buffer.from(input.bibSource, "utf8"),
       kind: PaperArtifactKind.BIBLIOGRAPHY,
+    });
+  }
+
+  if (typeof input.markdown === "string" && !existingPaths.has("paper.md")) {
+    primaryArtifacts.push({
+      path: "paper.md",
+      contentType: "text/markdown",
+      bytes: Buffer.from(input.markdown, "utf8"),
+      kind: PaperArtifactKind.DOCUMENTATION,
     });
   }
 
@@ -153,6 +163,36 @@ async function syncPrimaryArtifacts(
   paperId: string,
   input: PaperUpdateInput
 ) {
+  if (typeof input.markdown === "string") {
+    const artifact = materializeArtifact(
+      {
+        path: "paper.md",
+        contentType: "text/markdown",
+        bytes: Buffer.from(input.markdown, "utf8"),
+        kind: PaperArtifactKind.DOCUMENTATION,
+      },
+      PaperArtifactKind.DOCUMENTATION
+    );
+
+    await transaction.paperArtifact.upsert({
+      where: {
+        paperId_path: {
+          paperId,
+          path: artifact.path,
+        },
+      },
+      update: {
+        ...artifact,
+        bytes: artifact.bytes ? toPrismaBytes(artifact.bytes) : null,
+      },
+      create: {
+        paperId,
+        ...artifact,
+        bytes: artifact.bytes ? toPrismaBytes(artifact.bytes) : null,
+      },
+    });
+  }
+
   if (typeof input.latexSource === "string") {
     const artifact = materializeArtifact(
       {
@@ -412,8 +452,8 @@ export function serializePaperDetail(paper: PaperDetail) {
 }
 
 export async function createBundledPaper(userId: string, input: BundledPaperInput) {
-  if (!input.latexSource?.trim()) {
-    throw new UserFacingError("LaTeX source is required.", 400);
+  if (!input.latexSource?.trim() && !input.markdown?.trim()) {
+    throw new UserFacingError("LaTeX or Markdown source is required.", 400);
   }
 
   if (!input.pdf && !input.pdfUrl?.trim()) {
@@ -424,12 +464,12 @@ export async function createBundledPaper(userId: string, input: BundledPaperInpu
   const keywords = normalizeKeywords(input);
   const referenceRecords = await resolveTextReferenceRecords(input.references);
   const markdown = buildPaperMarkdown(input);
-  const latexSource = input.latexSource.trim();
+  const latexSource = input.latexSource?.trim() || null;
   const bibSource = input.bibSource?.trim();
   const artifacts = buildPrimaryArtifacts(
     {
       ...input,
-      latexSource,
+      latexSource: latexSource ?? undefined,
       bibSource,
       artifacts: undefined,
     },
@@ -657,6 +697,7 @@ export async function deletePaper(slug: string, userId: string) {
 export type PaperUpdateInput = {
   title?: string;
   abstract?: string;
+  markdown?: string;
   latexSource?: string;
   bibSource?: string;
   pdf?: UploadDescriptor | null;
@@ -679,6 +720,7 @@ export async function updatePaper(slug: string, userId: string, input: PaperUpda
 
   if (input.title !== undefined) data.title = input.title;
   if (input.abstract !== undefined) data.abstract = input.abstract;
+  if (input.markdown !== undefined) data.markdown = input.markdown;
   if (input.latexSource !== undefined) data.latexSource = input.latexSource;
   if (input.bibSource !== undefined) data.bibSource = input.bibSource;
   if (input.keywords !== undefined) data.keywords = input.keywords;
@@ -728,6 +770,9 @@ export async function updatePaper(slug: string, userId: string, input: PaperUpda
       }
     }
   });
+
+  await syncAiReviewForPaper(paper.id);
+  await refreshPaperMetrics();
 
   const detail = await getPaperDetail(slug);
   if (!detail) {

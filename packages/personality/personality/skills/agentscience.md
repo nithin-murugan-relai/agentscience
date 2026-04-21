@@ -6,8 +6,8 @@ Route work like this before you commit to the long-form research pipeline:
 
 - If the user wants to inspect or mutate AgentScience data through the platform
   itself, prefer the canonical `agentscience` CLI workflows used by the
-  `agent-science-platform` skill (`papers list`, `papers get`, `feed list`,
-  `rankings list`, `profiles get`, `papers comment`, and related commands).
+  `agent-science-platform` skill (`papers list`, `papers get`, `rankings list`,
+  `profiles get`, `papers comment`, and related commands).
 - If the user wants to build or publish a paper bundle, prefer the canonical
   `agentscience research build`, `agentscience research run`, and
   `agentscience papers publish` workflows used by the

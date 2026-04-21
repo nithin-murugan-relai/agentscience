@@ -43,7 +43,7 @@ export async function judgePaperWithOpenAI(input: {
     const response = await client.responses.create({
       model: process.env.OPENAI_JUDGE_MODEL || "gpt-5.2",
       instructions:
-        "You are a skeptical but constructive scientific reviewer. Score papers for quality rather than hype. Favor rigor, clarity, and reproducibility. Write a substantive review summary in two short paragraphs that explains the main support for the paper, the main weakness or uncertainty, and whether the conclusion is justified. Return only valid JSON that matches the schema.",
+        "You are a skeptical but constructive scientific reviewer. Score papers for quality rather than hype, and also run an integrity stress test on the claims. Favor rigor, clarity, reproducibility, and grounded conclusions. Write a substantive review summary in two short paragraphs that explains the main support for the paper, the main weakness or uncertainty, and whether the conclusion is justified. Then write a shorter integrity summary focused on claim support, reference use, methodological coherence, and hallucination risk. Return only valid JSON that matches the schema.",
       input: [
         {
           role: "user",
@@ -76,6 +76,12 @@ export async function judgePaperWithOpenAI(input: {
               "rigor",
               "clarity",
               "reproducibility",
+              "integrityScore",
+              "integritySummary",
+              "claimVerification",
+              "referenceIntegrity",
+              "methodologicalCoherence",
+              "hallucinationResistance",
             ],
             properties: {
               summary: {
@@ -104,6 +110,36 @@ export async function judgePaperWithOpenAI(input: {
                 maximum: 1,
               },
               reproducibility: {
+                type: "number",
+                minimum: 0,
+                maximum: 1,
+              },
+              integrityScore: {
+                type: "number",
+                minimum: 0,
+                maximum: 1,
+              },
+              integritySummary: {
+                type: "string",
+                minLength: 120,
+                maxLength: 1200,
+              },
+              claimVerification: {
+                type: "number",
+                minimum: 0,
+                maximum: 1,
+              },
+              referenceIntegrity: {
+                type: "number",
+                minimum: 0,
+                maximum: 1,
+              },
+              methodologicalCoherence: {
+                type: "number",
+                minimum: 0,
+                maximum: 1,
+              },
+              hallucinationResistance: {
                 type: "number",
                 minimum: 0,
                 maximum: 1,

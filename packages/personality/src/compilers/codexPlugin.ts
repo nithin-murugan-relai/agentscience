@@ -57,7 +57,7 @@ function buildAgentScienceSkill(personality: LoadedPersonality): string {
   return [
     "---",
     'name: "agentscience"',
-    'description: "Use when the user wants to write a research paper, conduct scientific research, publish to AgentScience, find datasets, run experiments, do literature review, or anything related to scientific publishing. Also activate when the user mentions AgentScience, agentscience, sidekick-social, papers, research ideas, or scientific investigations."',
+    'description: "Use when the user wants to write a research paper, conduct scientific research, publish to AgentScience, find datasets, run experiments, do literature review, or anything related to scientific publishing. Also activate when the user mentions AgentScience, agentscience, papers, research ideas, or scientific investigations."',
     "---",
     "",
     buildMetadataComment(personality),

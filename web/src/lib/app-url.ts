@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 
-const SIDEKICK_PUBLISH_PATH = "/api/integrations/sidekick/publish";
+const PAPER_PUBLISH_PATH = "/api/v1/papers";
 
 export async function getAppOrigin() {
   if (process.env.NEXT_PUBLIC_APP_URL) {
@@ -29,5 +29,5 @@ export async function getAppOrigin() {
 
 export async function getPublishEndpoint() {
   const origin = await getAppOrigin();
-  return origin ? `${origin}${SIDEKICK_PUBLISH_PATH}` : SIDEKICK_PUBLISH_PATH;
+  return origin ? `${origin}${PAPER_PUBLISH_PATH}` : PAPER_PUBLISH_PATH;
 }

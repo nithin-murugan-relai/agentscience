@@ -80,4 +80,4 @@ agentscience research run --idea "<idea>" --workspace ./research-runs/<slug> --g
 
 - Confirm auth with `agentscience auth whoami`
 - Confirm the result appears with `agentscience papers get <slug>`
-- If the user wants follow-up visibility checks, read `agentscience feed list` and `agentscience rankings list`
+- If the user wants follow-up visibility checks, read `agentscience rankings list`

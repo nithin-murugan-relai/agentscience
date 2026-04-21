@@ -10,6 +10,7 @@ let prisma: typeof import("@/lib/prisma").prisma;
 let hashToken: typeof import("@/lib/auth").hashToken;
 let createBundledPaper: typeof import("@/lib/platform").createBundledPaper;
 let buildPaperBundleView: typeof import("@/lib/paper-bundle").buildPaperBundleView;
+let updatePaper: typeof import("@/lib/platform").updatePaper;
 let createIntegrationKey: typeof import("@/lib/papers").createIntegrationKey;
 let authenticateIntegrationToken: typeof import("@/lib/papers").authenticateIntegrationToken;
 let createApiTokenRoute: typeof import("@/app/api/v1/auth/token/route").POST;
@@ -25,6 +26,7 @@ before(async () => {
   ({ prisma } = await import("@/lib/prisma"));
   ({ hashToken } = await import("@/lib/auth"));
   ({ createBundledPaper } = await import("@/lib/platform"));
+  ({ updatePaper } = await import("@/lib/platform"));
   ({ buildPaperBundleView } = await import("@/lib/paper-bundle"));
   ({ createIntegrationKey, authenticateIntegrationToken } = await import("@/lib/papers"));
   ({ POST: createApiTokenRoute } = await import("@/app/api/v1/auth/token/route"));
@@ -149,6 +151,7 @@ test("createBundledPaper keeps uploaded bundle data intact and exposes it to the
       "README.md",
       "bundle-paper.pdf",
       "data/results.csv",
+      "paper.md",
       "paper.tex",
       "references.bib",
       "scripts/analyze.py",
@@ -168,6 +171,90 @@ test("createBundledPaper keeps uploaded bundle data intact and exposes it to the
   assert.equal(scriptBundleArtifact?.downloadUrl, `/api/v1/papers/${paper.slug}/download/artifact/${scriptBundleArtifact?.id}`);
   assert.equal(scriptBundleArtifact?.isText, true);
   assert.equal(scriptBundleArtifact?.textContent, scriptContents);
+});
+
+test("createBundledPaper accepts markdown-only source and persists a paper.md artifact", async () => {
+  const user = await createUser();
+  const pdfBytes = Buffer.from("%PDF-1.7\nmarkdown bundle test\n", "utf8");
+
+  const paper = await createBundledPaper(user.id, {
+    title: "Markdown-first drafting for compact research bundles",
+    abstract:
+      "This integration test publishes a markdown-backed paper bundle so the desktop app can ship a compiled PDF plus manuscript text without requiring LaTeX source.",
+    markdown:
+      "# Introduction\n\nA markdown-only paper.\n\n# Methods\n\nA compact workflow.\n\n# Results\n\nThe platform should preserve the markdown source.\n",
+    pdf: {
+      fileName: "paper.pdf",
+      mimeType: "application/pdf",
+      bytes: pdfBytes,
+    },
+    keywords: ["markdown", "bundle"],
+    references: [],
+    figures: [],
+    artifacts: [],
+  });
+
+  const storedPaper = await prisma.paper.findUniqueOrThrow({
+    where: { slug: paper.slug },
+    include: {
+      artifacts: {
+        orderBy: {
+          path: "asc",
+        },
+      },
+    },
+  });
+
+  assert.equal(storedPaper.latexSource, null);
+  assert.match(storedPaper.markdown, /markdown-only paper/i);
+  assert.deepEqual(
+    storedPaper.artifacts.map((artifact) => artifact.path),
+    ["paper.md", "paper.pdf"]
+  );
+  assert.equal(storedPaper.artifacts[0]?.textContent?.includes("markdown-only paper"), true);
+});
+
+test("updatePaper persists markdown changes for an existing paper", async () => {
+  const user = await createUser();
+  const created = await createBundledPaper(user.id, {
+    title: "Patchable markdown paper for desktop republish",
+    abstract:
+      "This integration test creates a markdown-backed paper and then updates it through the PATCH path used by the desktop app.",
+    markdown:
+      "# Introduction\n\nInitial markdown.\n\n# Results\n\nInitial result.\n",
+    pdf: {
+      fileName: "paper.pdf",
+      mimeType: "application/pdf",
+      bytes: Buffer.from("%PDF-1.7\ninitial\n", "utf8"),
+    },
+    keywords: ["markdown", "patch"],
+    references: [],
+    figures: [],
+    artifacts: [],
+  });
+
+  const updated = await updatePaper(created.slug, user.id, {
+    title: "Patchable markdown paper for desktop republish revised",
+    markdown:
+      "# Introduction\n\nUpdated markdown.\n\n# Results\n\nUpdated result.\n",
+  });
+
+  const storedPaper = await prisma.paper.findUniqueOrThrow({
+    where: { slug: created.slug },
+    include: {
+      artifacts: {
+        orderBy: {
+          path: "asc",
+        },
+      },
+      metric: true,
+    },
+  });
+
+  assert.equal(updated.title, "Patchable markdown paper for desktop republish revised");
+  assert.match(storedPaper.markdown, /Updated markdown/);
+  assert.equal(storedPaper.artifacts.find((artifact) => artifact.path === "paper.md")?.textContent?.includes("Updated result."), true);
+  assert.ok(storedPaper.metric);
 });
 
 test("createIntegrationKey stores only a hashed token in the database", async () => {

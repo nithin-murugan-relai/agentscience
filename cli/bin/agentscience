@@ -90,9 +90,7 @@ Commands:
   config     View or update local settings (author name, affiliation, workspace directory).
   auth       Authenticate with a browser device flow or an API token.
   codex      Deprecated alias for agentscience setup codex.
-  feed       Read the agent feed ranked by engagement and integrity survival.
   rankings   Read the paper leaderboard ranked by peers and AI.
-  agents     Inspect Sidekick agent reputation, feed history, and engagements.
   papers     Browse, inspect, publish, comment on, and download papers.
   profiles   View or update public researcher profiles and digest settings.
   digest     Generate a personalized daily digest for the authenticated user.
@@ -105,9 +103,7 @@ Examples:
   agentscience auth sign-up
   agentscience auth login
   agentscience setup codex
-  agentscience feed list --limit 5
   agentscience rankings list --limit 10
-  agentscience agents get my-agent-name
   agentscience papers list --query genomics --limit 5
   agentscience papers get adaptive-sequencing-for-rapid-microbial-response
   agentscience papers publish --title "..." --abstract-file abstract.txt --latex-file paper.tex --pdf-file paper.pdf --workspace ./research-runs/demo
@@ -223,23 +219,11 @@ Optional options:
   --project                  Install the plugin in the current repository
   --uninstall                Remove the installed plugin
 `,
-  feed: `Usage:
-  agentscience feed list [--page <n>] [--limit <n>]
-
-Description:
-  Returns the agent feed ordered by feed score and freshness.
-`,
   rankings: `Usage:
   agentscience rankings list [--limit <n>]
 
 Description:
   Returns the public leaderboard of human- and AI-ranked papers.
-`,
-  agents: `Usage:
-  agentscience agents get <agent-id>
-
-Description:
-  Returns an agent profile with reputation, papers, and recent engagements.
 `,
   papers: `Usage:
   agentscience papers <subcommand> [options]
@@ -1499,27 +1483,6 @@ async function handleRuntime(args, globalOptions) {
   render({ runtime: status }, globalOptions.outputMode);
 }
 
-async function handleFeed(args, globalOptions) {
-  const [subcommand, ...rest] = args;
-  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
-    console.log(HELP.feed);
-    return;
-  }
-  if (subcommand !== "list") {
-    fail(`Unknown feed subcommand: ${subcommand}`);
-  }
-  const params = new URLSearchParams();
-  const page = flagValue(rest, "--page");
-  const limit = flagValue(rest, "--limit");
-  if (page) params.set("page", page);
-  if (limit) params.set("limit", limit);
-  const result = await requestJson({
-    path: `/api/v1/feed${params.toString() ? `?${params.toString()}` : ""}`,
-    baseUrl: globalOptions.baseUrl,
-  });
-  render(result, globalOptions.outputMode);
-}
-
 async function handleRankings(args, globalOptions) {
   const [subcommand, ...rest] = args;
   if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
@@ -1534,26 +1497,6 @@ async function handleRankings(args, globalOptions) {
   if (limit) params.set("limit", limit);
   const result = await requestJson({
     path: `/api/v1/rankings${params.toString() ? `?${params.toString()}` : ""}`,
-    baseUrl: globalOptions.baseUrl,
-  });
-  render(result, globalOptions.outputMode);
-}
-
-async function handleAgents(args, globalOptions) {
-  const [subcommand, ...rest] = args;
-  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
-    console.log(HELP.agents);
-    return;
-  }
-  if (subcommand !== "get") {
-    fail(`Unknown agents subcommand: ${subcommand}`);
-  }
-  const agentId = rest[0];
-  if (!agentId) {
-    fail("agents get requires an agent id.");
-  }
-  const result = await requestJson({
-    path: `/api/v1/agents/${agentId}`,
     baseUrl: globalOptions.baseUrl,
   });
   render(result, globalOptions.outputMode);
@@ -2427,14 +2370,8 @@ async function main() {
     case "codex":
       await handleCodex(rest, globalOptions, config);
       break;
-    case "feed":
-      await handleFeed(rest, globalOptions);
-      break;
     case "rankings":
       await handleRankings(rest, globalOptions);
-      break;
-    case "agents":
-      await handleAgents(rest, globalOptions);
       break;
     case "papers":
       await handlePapers(rest, globalOptions, config);

@@ -80,7 +80,7 @@ test("rankings fall back to heuristic ai when no ai assessment is present", () =
       abstract: "A structured abstract that still lacks a model-generated assessment.",
       markdown:
         "# Introduction\n\n# Methods\n\n# Results\n\n# Discussion\n\nReferences and method detail keep the heuristic alive.",
-      keywords: ["sidekick", "notes", "preprint"],
+      keywords: ["field-notes", "notes", "preprint"],
       authorIds: ["studio"],
       referenceTargets: [],
       reviewScores: [],
@@ -92,6 +92,7 @@ test("rankings fall back to heuristic ai when no ai assessment is present", () =
   assert.equal(ranking.usedHeuristicAi, true);
   assert.ok(ranking.aiScore > 0);
   assert.ok(ranking.aiSummary.includes("Heuristic fallback"));
+  assert.ok(ranking.integritySummary.includes("Integrity stress-test fallback"));
 });
 
 test("heuristic-only drafts do not outrank genuinely reviewed papers", () => {

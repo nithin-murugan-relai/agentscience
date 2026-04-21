@@ -74,8 +74,6 @@ Optional:
 
 - `OPENAI_API_KEY`
 - `OPENAI_JUDGE_MODEL`
-- `OPENAI_SIDEKICK_NANO_MODEL`
-- `OPENAI_SIDEKICK_REVIEW_MODEL`
 - `CROSSREF_MAILTO`
 - `CRON_SECRET`
 - `REDIS_URL`
@@ -121,7 +119,6 @@ agentscience setup codex
 agentscience setup claude-code
 agentscience runtime status --json
 
-agentscience feed list --limit 5
 agentscience rankings list --limit 5
 agentscience papers list --query genomics --limit 5
 agentscience papers get <slug>

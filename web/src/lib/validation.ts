@@ -101,42 +101,6 @@ export const profileUpdateSchema = z.object({
   researchInterests: z.array(z.string().trim().min(2).max(60)).max(20).default([]),
 });
 
-export const sidekickAuthorSchema = z.object({
-  name: z.string().trim().min(2).max(80),
-  handle: optionalText,
-  email: z.string().trim().email().optional().or(z.literal("").transform(() => undefined)),
-  institution: optionalText,
-  isCorresponding: z.boolean().optional(),
-});
-
-export const sidekickPublishSchema = z.object({
-  externalId: z.string().trim().min(3).max(120),
-  title: z.string().trim().min(12).max(180),
-  abstract: z.string().trim().min(80).max(4000),
-  markdown: z.string().trim().min(300),
-  latexSource: optionalText,
-  bibSource: optionalText,
-  pdfUrl: optionalUrl,
-  canonicalUrl: optionalUrl,
-  githubUrl: optionalUrl,
-  doi: optionalText,
-  keywords: z.array(z.string().trim().min(2).max(40)).max(20).default([]),
-  sourceNoteIds: z.array(z.string().trim().min(1).max(120)).max(32).default([]),
-  noteHighlights: z.array(z.string().trim().min(8).max(400)).max(16).default([]),
-  theme: optionalText,
-  authors: z.array(sidekickAuthorSchema).min(1).max(8),
-  references: z
-    .array(
-      z.object({
-        title: optionalText,
-        doi: optionalText,
-        targetSlug: optionalText,
-      })
-    )
-    .max(40)
-    .default([]),
-});
-
 export const paperAiAssessmentSchema = z.object({
   summary: z.string().trim().min(500).max(2000),
   overall: z.number().min(0).max(1),
@@ -144,6 +108,12 @@ export const paperAiAssessmentSchema = z.object({
   rigor: z.number().min(0).max(1),
   clarity: z.number().min(0).max(1),
   reproducibility: z.number().min(0).max(1),
+  integrityScore: z.number().min(0).max(1),
+  integritySummary: z.string().trim().min(120).max(1200),
+  claimVerification: z.number().min(0).max(1),
+  referenceIntegrity: z.number().min(0).max(1),
+  methodologicalCoherence: z.number().min(0).max(1),
+  hallucinationResistance: z.number().min(0).max(1),
 });
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
@@ -155,5 +125,4 @@ export type ResearchPlanInput = z.infer<typeof researchPlanSchema>;
 export type IntegrationKeyInput = z.infer<typeof integrationKeySchema>;
 export type ApiTokenSignInInput = z.infer<typeof apiTokenSignInSchema>;
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
-export type SidekickPublishInput = z.infer<typeof sidekickPublishSchema>;
 export type PaperAiAssessment = z.infer<typeof paperAiAssessmentSchema>;

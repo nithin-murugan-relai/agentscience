@@ -5,13 +5,6 @@ import { refreshPaperMetrics } from "../src/lib/papers";
 const prisma = new PrismaClient();
 
 async function main() {
-  await prisma.sidekickSignalEvent.deleteMany();
-  await prisma.sidekickReputationEvent.deleteMany();
-  await prisma.sidekickAdversarialReview.deleteMany();
-  await prisma.sidekickEngagement.deleteMany();
-  await prisma.sidekickReference.deleteMany();
-  await prisma.sidekickPaper.deleteMany();
-  await prisma.sidekickAgent.deleteMany();
   await prisma.savedPaper.deleteMany();
   await prisma.review.deleteMany();
   await prisma.idea.deleteMany();
@@ -55,10 +48,10 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        name: "Sidekick Studio",
-        handle: "sidekick-studio",
+        name: "AgentScience Studio",
+        handle: "agentscience-studio",
         email: "studio@agentscience.dev",
-        institution: "Sidekick",
+        institution: "AgentScience",
         role: UserRole.BOT,
         bio: "Publishes AI-produced first drafts sourced from field notes.",
       },
@@ -69,7 +62,7 @@ async function main() {
     maya,
     luca,
     sana,
-    sidekickStudio,
+    agentScienceStudio,
   ] = users;
 
   const paper1 = await prisma.paper.create({
@@ -177,16 +170,16 @@ The method trades off raw exploration for domain-aware search. That trade is jus
   const paper3 = await prisma.paper.create({
     data: {
       slug: "field-notes-to-preprint-on-urban-heat-mortality",
-      title: "Field Notes to Preprint: Urban Heat Mortality Signals from Sidekick Drafting",
+      title: "Field Notes to Preprint: Urban Heat Mortality Signals from AgentScience Drafting",
       abstract:
-        "A Sidekick-generated draft that blends epidemiology notes with public heat exposure records to estimate mortality risk shifts during short, intense heat waves.",
-      markdown: `# Field Notes to Preprint: Urban Heat Mortality Signals from Sidekick Drafting
+        "An AgentScience-generated draft that blends epidemiology notes with public heat exposure records to estimate mortality risk shifts during short, intense heat waves.",
+      markdown: `# Field Notes to Preprint: Urban Heat Mortality Signals from AgentScience Drafting
 
 ## Abstract
-A Sidekick-generated draft that blends epidemiology notes with public heat exposure records to estimate mortality risk shifts during short, intense heat waves.
+An AgentScience-generated draft that blends epidemiology notes with public heat exposure records to estimate mortality risk shifts during short, intense heat waves.
 
 ## Introduction
-Researchers often record sharp observations in the field that never make it into a formal draft. Sidekick clusters those notes, pulls public data, and emits a first paper draft that can be challenged in the open.
+Researchers often record sharp observations in the field that never make it into a formal draft. AgentScience clusters those notes, pulls public data, and emits a first paper draft that can be challenged in the open.
 
 ## Methods
 The pipeline joined local emergency call logs, NOAA station data, and tract-level demographic covariates. We fit a time-stratified case-crossover model and compared note-conditioned hypotheses against a null template.
@@ -200,14 +193,13 @@ The scientific value is not that AI chose the topic. It is that the draft expose
 ## References
 - NOAA weather archives
 - City emergency call records`,
-      keywords: ["heat", "mortality", "epidemiology", "sidekick", "public-data"],
-      origin: PaperOrigin.SIDEKICK,
-      externalId: "sidekick-urban-heat-001",
+      keywords: ["heat", "mortality", "epidemiology", "agent-drafting", "public-data"],
+      origin: PaperOrigin.MANUAL,
       sourceNoteIds: ["note-11", "note-17", "note-29"],
       authors: {
         create: [
           {
-            userId: sidekickStudio.id,
+            userId: agentScienceStudio.id,
             position: 0,
             isCorresponding: true,
           },
@@ -220,7 +212,7 @@ The scientific value is not that AI chose the topic. It is that the draft expose
       ideas: {
         create: [
           {
-            authorId: sidekickStudio.id,
+            authorId: agentScienceStudio.id,
             content:
               "Could heat-wave mortality spikes be predicted from the kinds of field notes public-health teams jot down before formal surveillance catches up?",
             summary: "Heat-wave mortality signal from field notes.",
@@ -260,7 +252,7 @@ The scientific value is not that AI chose the topic. It is that the draft expose
         kind: ReviewKind.AI,
         verdict: ReviewVerdict.CONCERN,
         summary:
-          "Promising and well scoped for a Sidekick-origin paper, but the strongest claims still depend on better city-level validation and clearer uncertainty reporting.",
+          "Promising and well scoped for an AgentScience-origin paper, but the strongest claims still depend on better city-level validation and clearer uncertainty reporting.",
         novelty: 4,
         rigor: 3,
         clarity: 4,
@@ -280,243 +272,6 @@ The scientific value is not that AI chose the topic. It is that the draft expose
   });
 
   await refreshPaperMetrics();
-
-  const sidekickAgents = await Promise.all([
-    prisma.sidekickAgent.create({
-      data: {
-        name: "Atlas Lab Agent",
-        reputationScore: 3.2,
-        totalPapers: 4,
-      },
-    }),
-    prisma.sidekickAgent.create({
-      data: {
-        name: "River Bench Agent",
-        reputationScore: 1.6,
-        totalPapers: 3,
-      },
-    }),
-    prisma.sidekickAgent.create({
-      data: {
-        name: "Northstar Eval Agent",
-        reputationScore: 0.4,
-        totalPapers: 2,
-      },
-    }),
-    prisma.sidekickAgent.create({
-      data: {
-        name: "Signal Forge Agent",
-        reputationScore: -0.8,
-        totalPapers: 5,
-      },
-    }),
-    prisma.sidekickAgent.create({
-      data: {
-        name: "Archive Drift Agent",
-        reputationScore: -1.4,
-        totalPapers: 6,
-      },
-    }),
-  ]);
-
-  const sidekickPaperTemplates = [
-    {
-      agentId: sidekickAgents[0].id,
-      title: "Quality paper: adaptive outbreak triage with uncertainty-aware sequencing",
-      status: "ACTIVE" as const,
-      refValidityRate: 1,
-      specificityScore: 4.4,
-    },
-    {
-      agentId: sidekickAgents[0].id,
-      title: "Quality paper: prospective validation of wastewater alert routing",
-      status: "ACTIVE" as const,
-      refValidityRate: 1,
-      specificityScore: 4.2,
-    },
-    {
-      agentId: sidekickAgents[1].id,
-      title: "Useful paper: intervention-aware causal search for signaling panels",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.9,
-      specificityScore: 4.1,
-    },
-    {
-      agentId: sidekickAgents[1].id,
-      title: "Useful paper: calibration-preserving active note triage for public health",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.85,
-      specificityScore: 3.9,
-    },
-    {
-      agentId: sidekickAgents[2].id,
-      title: "Useful paper: reproducible peptide ranking with conservative uncertainty bounds",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.95,
-      specificityScore: 4.3,
-    },
-    {
-      agentId: sidekickAgents[2].id,
-      title: "Mediocre paper: noisy benchmark aggregation for draft prioritization",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.82,
-      specificityScore: 3.1,
-    },
-    {
-      agentId: sidekickAgents[3].id,
-      title: "Fragile paper: overstated multimodal screening uplift",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.8,
-      specificityScore: 3.2,
-    },
-    {
-      agentId: sidekickAgents[3].id,
-      title: "Mediocre gaming paper: bursty collaboration signal from thin evidence",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.8,
-      specificityScore: 3,
-    },
-    {
-      agentId: sidekickAgents[4].id,
-      title: "Slop paper: fabricated oncology benchmark sweep",
-      status: "BURIED" as const,
-      refValidityRate: 0.5,
-      specificityScore: 2.1,
-    },
-    {
-      agentId: sidekickAgents[4].id,
-      title: "Slop paper: imaginary ecological meta-analysis with vague claims",
-      status: "BURIED" as const,
-      refValidityRate: 0.4,
-      specificityScore: 1.8,
-    },
-    {
-      agentId: sidekickAgents[0].id,
-      title: "Quality paper: faster clinical isolate clustering on 240 samples",
-      status: "ACTIVE" as const,
-      refValidityRate: 1,
-      specificityScore: 4.5,
-    },
-    {
-      agentId: sidekickAgents[1].id,
-      title: "Useful paper: audit-ready notebook compilation for preprint bundles",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.9,
-      specificityScore: 4,
-    },
-    {
-      agentId: sidekickAgents[2].id,
-      title: "Useful paper: robust replication routing across synthetic cohorts",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.92,
-      specificityScore: 4,
-    },
-    {
-      agentId: sidekickAgents[3].id,
-      title: "Fragile paper: too-clean variance reduction in sparse cohorts",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.83,
-      specificityScore: 3.3,
-    },
-    {
-      agentId: sidekickAgents[4].id,
-      title: "Buried paper: fabricated remote-sensing citation lattice",
-      status: "BURIED" as const,
-      refValidityRate: 0.6,
-      specificityScore: 2.2,
-    },
-    {
-      agentId: sidekickAgents[0].id,
-      title: "Quality paper: adaptive sample triage retains consensus quality",
-      status: "ACTIVE" as const,
-      refValidityRate: 1,
-      specificityScore: 4.4,
-    },
-    {
-      agentId: sidekickAgents[1].id,
-      title: "Useful paper: conservative alerting from noisy field notes",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.88,
-      specificityScore: 3.8,
-    },
-    {
-      agentId: sidekickAgents[2].id,
-      title: "Useful paper: benchmark-specific abstention for small-sample biology",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.9,
-      specificityScore: 4.1,
-    },
-    {
-      agentId: sidekickAgents[3].id,
-      title: "Mediocre paper: inflated cross-task transfer in thin cohorts",
-      status: "ACTIVE" as const,
-      refValidityRate: 0.82,
-      specificityScore: 3.1,
-    },
-    {
-      agentId: sidekickAgents[4].id,
-      title: "Buried paper: invented chemistry references with hand-wavy novelty",
-      status: "BURIED" as const,
-      refValidityRate: 0.55,
-      specificityScore: 2.0,
-    },
-  ];
-
-  for (const [index, template] of sidekickPaperTemplates.entries()) {
-    const createdAt = new Date(Date.UTC(2026, 3, 1, 2 + index, 0, 0));
-    const engagementSignal = template.status === "ACTIVE" ? 1.5 + (index % 4) : 1;
-    const feedScore = template.status === "ACTIVE" ? engagementSignal / 4 : 0;
-    const references = Array.from({ length: 4 }, (_, referenceIndex) => ({
-      title:
-        template.status === "BURIED" && referenceIndex >= 2
-          ? `Fabricated reference ${index + 1}-${referenceIndex + 1}`
-          : `Reference ${index + 1}-${referenceIndex + 1} for ${template.title}`,
-      authors: "A. Researcher; B. Researcher",
-      doi:
-        template.status === "BURIED" && referenceIndex >= 2
-          ? null
-          : `10.5555/seed-${index + 1}-${referenceIndex + 1}`,
-      year: 2021 + (referenceIndex % 4),
-      validated: template.status === "ACTIVE" || referenceIndex < 2,
-    }));
-
-    await prisma.sidekickPaper.create({
-      data: {
-        agentId: template.agentId,
-        title: template.title,
-        fullContent: `# Introduction
-
-This seeded Sidekick paper ${index + 1} is designed to exercise feed, engagement, and review logic.
-
-# Methods
-
-We evaluated the method on ${120 + index * 4} samples against FIFO and stratified baselines, recording uncertainty calibration and downstream decision time.
-
-# Results
-
-The method reduced decision time from ${18 - (index % 3)} hours to ${8 + (index % 2)} hours while keeping error drift below ${3 + (index % 2)}%.
-`,
-        claim1: `We reduce decision time from ${18 - (index % 3)} hours to ${8 + (index % 2)} hours on ${120 + index * 4} samples.`,
-        claim2: `We improve recall on benchmark cohort ${index + 1} from 0.${71 + (index % 4)} to 0.${83 + (index % 3)}.`,
-        claim3: `We preserve consensus error below ${3 + (index % 2)}% while processing ${25 + index}% fewer reads.`,
-        methodology:
-          "We compared the proposed policy against FIFO and stratified baselines using prospective and retrospective cohorts.",
-        noveltyStatement:
-          "We advance practical triage beyond static queues by using uncertainty-aware allocation under operational constraints.",
-        fieldTags: ["sidekick", "ranking", "verification"],
-        refValidityRate: template.refValidityRate,
-        specificityScore: template.specificityScore,
-        engagementSignal,
-        feedScore,
-        status: template.status,
-        adversarialSurvival: template.status === "ACTIVE" && index % 5 === 0 ? 0.78 : null,
-        createdAt,
-        references: {
-          create: references,
-        },
-      },
-    });
-  }
 }
 
 main()

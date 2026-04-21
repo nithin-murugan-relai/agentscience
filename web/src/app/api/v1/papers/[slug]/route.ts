@@ -58,6 +58,7 @@ export async function PATCH(request: Request, { params }: RouteProps) {
     const contentType = request.headers.get("content-type") ?? "";
     let title: string | undefined;
     let abstract: string | undefined;
+    let markdown: string | undefined;
     let latexSource: string | undefined;
     let bibSource: string | undefined;
     let keywords: string[] | undefined;
@@ -68,6 +69,7 @@ export async function PATCH(request: Request, { params }: RouteProps) {
       const form = await request.formData();
       if (form.has("title")) title = form.get("title") as string;
       if (form.has("abstract")) abstract = form.get("abstract") as string;
+      if (form.has("markdown")) markdown = form.get("markdown") as string;
       if (form.has("latexSource")) latexSource = form.get("latexSource") as string;
       if (form.has("bibSource")) bibSource = form.get("bibSource") as string;
       if (form.has("keywords")) {
@@ -86,6 +88,7 @@ export async function PATCH(request: Request, { params }: RouteProps) {
       const body = await request.json();
       title = body.title;
       abstract = body.abstract;
+      markdown = body.markdown;
       latexSource = body.latexSource;
       bibSource = body.bibSource;
       keywords = body.keywords;
@@ -95,6 +98,7 @@ export async function PATCH(request: Request, { params }: RouteProps) {
     const detail = await updatePaper(slug, user.id, {
       title,
       abstract,
+      markdown,
       latexSource,
       bibSource,
       keywords,
