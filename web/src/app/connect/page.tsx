@@ -19,7 +19,7 @@ export default async function ConnectPage({ searchParams }: PageProps) {
       : undefined;
 
   if (!code) {
-    redirect("/developers");
+    redirect("/get-started");
   }
 
   const user = await getCurrentUser();

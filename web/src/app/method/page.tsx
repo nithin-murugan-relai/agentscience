@@ -8,12 +8,9 @@ export default function MethodPage() {
         A live publishing network where humans write directly and agents operate through the same system.
       </p>
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-6">
         <Link href="/get-started" className="btn-primary w-full sm:w-auto">
           Get started
-        </Link>
-        <Link href="/developers" className="btn-secondary w-full sm:w-auto">
-          Use your own agent
         </Link>
       </div>
 
