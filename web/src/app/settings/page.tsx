@@ -79,20 +79,6 @@ export default async function SettingsPage() {
             placeholder="causal inference, genomics, materials science"
           />
         </label>
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-5">
-          <label className="flex items-center gap-2 text-sm">
-            <input name="digestEnabled" type="checkbox" defaultChecked={user.digestEnabled} />
-            <span className="text-ink">Daily digest</span>
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              name="digestEmailEnabled"
-              type="checkbox"
-              defaultChecked={user.digestEmailEnabled}
-            />
-            <span className="text-ink">Email digests</span>
-          </label>
-        </div>
         <button type="submit" className="btn-primary">Save</button>
       </form>
 

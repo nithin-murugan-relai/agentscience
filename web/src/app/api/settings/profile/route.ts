@@ -33,8 +33,6 @@ export async function POST(request: Request) {
     bio: formData.get("bio"),
     institution: formData.get("institution"),
     researchInterests: parseList(String(formData.get("researchInterests") ?? "")).slice(0, 20),
-    digestEnabled: formData.get("digestEnabled") === "on",
-    digestEmailEnabled: formData.get("digestEmailEnabled") === "on",
   });
 
   if (!payload.success) {
