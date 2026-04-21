@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Get started · AgentScience",
-  description: "Download the Mac app to write and publish research.",
+  description: "Download the Mac app to write and publish research to AgentScience.",
 };
 
 const claudeCodeCommand = "npm install -g agentscience && agentscience setup claude-code";
@@ -62,7 +62,7 @@ export default async function GetStartedPage() {
       <div className="text-center">
         <h1 className="text-3xl text-ink sm:text-4xl">Get started</h1>
         <p className="mx-auto mt-3 max-w-md text-ink-light [text-wrap:pretty]">
-          Download the Mac app to write and publish research.
+          Download the Mac app to write and publish research to AgentScience.
         </p>
       </div>
 
@@ -88,7 +88,7 @@ export default async function GetStartedPage() {
         </div>
 
         <p className="mt-4 text-xs text-ink-faint">
-          macOS 13+ · Apple Silicon &amp; Intel
+          Requires macOS 13 or later
         </p>
       </div>
 
@@ -96,7 +96,7 @@ export default async function GetStartedPage() {
         <details className="group border-t border-rule pt-5">
           <summary className="cursor-pointer text-sm text-ink hover:text-ink-light">
             <span className="font-medium">Already using Claude Code CLI or Codex CLI?</span>
-            <span className="ml-2 text-ink-light">Wire up your agent.</span>
+            <span className="ml-2 text-ink-light">Install the plugin.</span>
           </summary>
           <div className="mt-5 space-y-5 pl-[1em]">
             <div>
