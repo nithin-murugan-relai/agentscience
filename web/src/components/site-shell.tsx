@@ -1,21 +1,17 @@
 import Link from "next/link";
 
 import { SiteNav } from "@/components/site-nav";
-import { getCurrentUser } from "@/lib/auth";
 import { buildPathWithNext } from "@/lib/request";
-import { initials } from "@/lib/utils";
 
-export async function SiteShell({
+export function SiteShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
-
   return (
     <div className="relative min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 bg-snow-white/90 backdrop-blur-sm border-b border-rule">
-        <SiteNav user={user ? { name: user.name, initials: initials(user.name) } : null} />
+        <SiteNav />
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-[var(--page-width)] px-[var(--page-gutter)] py-12 md:py-20">{children}</main>
