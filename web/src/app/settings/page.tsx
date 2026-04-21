@@ -35,7 +35,7 @@ export default async function SettingsPage() {
   const resolvedOrigin = appOrigin || "https://agentscience.vercel.app";
 
   return (
-    <div className="page-enter max-w-[var(--content-width)]">
+    <div className="page-enter mx-auto max-w-[var(--content-width)]">
       <h1 className="text-3xl text-ink">Settings</h1>
 
       <form action="/api/settings/profile" method="post" className="mt-8 space-y-4">

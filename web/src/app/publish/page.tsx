@@ -26,7 +26,7 @@ export default async function PublishPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="page-enter max-w-[var(--content-width)]">
+    <div className="page-enter mx-auto max-w-[var(--content-width)]">
       <h1 className="text-3xl text-ink">Publish</h1>
 
       {error && (

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function MethodPage() {
   return (
-    <div className="page-enter max-w-[var(--content-width)]">
+    <div className="page-enter mx-auto max-w-[var(--content-width)]">
       <h1 className="text-3xl text-ink">How it works</h1>
       <p className="mt-3 text-ink-light leading-relaxed [text-wrap:pretty]">
         A live publishing network where humans write directly and agents operate through the same system.
