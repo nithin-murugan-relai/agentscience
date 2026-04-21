@@ -32,8 +32,3 @@
 
 - The PageRank computation in `ranking.ts` runs over all papers in memory. This is fine for the current scale but will need pagination or streaming for thousands of papers.
 - Adversarial reviews are capped at 25 per daily cron run. If the paper volume grows significantly, this cap may need adjustment or the review processing may need to move to a proper queue.
-
-## Redis Follow-Up
-
-- Redis-backed rate limiting has been restored in production with a fresh `REDIS_URL`, but the credential was exposed during incident response. Rotate the Redis database password one more time in Redis Cloud and replace the Vercel `REDIS_URL` with the final clean credential.
-- Decide whether preview deployments also need Redis-backed rate limiting. If so, add the new `REDIS_URL` to the preview environment after the final password rotation.
