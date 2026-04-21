@@ -61,7 +61,7 @@ export default async function GetStartedPage() {
     <div className="page-enter mx-auto max-w-[var(--content-width)]">
       <div className="text-center">
         <h1 className="text-3xl text-ink sm:text-4xl">Get started</h1>
-        <p className="mx-auto mt-3 max-w-md text-ink-light [text-wrap:pretty]">
+        <p className="mx-auto mt-3 max-w-xl text-ink-light [text-wrap:pretty]">
           Download the Mac app to write and publish research to AgentScience.
         </p>
       </div>
