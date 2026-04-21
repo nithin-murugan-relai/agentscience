@@ -556,12 +556,6 @@ export async function updateProfileForUser(userId: string, input: ProfileUpdateI
         ? { institution: input.institution || null }
         : {}),
       researchInterests: input.researchInterests,
-      ...(typeof input.digestEnabled === "boolean"
-        ? { digestEnabled: input.digestEnabled }
-        : {}),
-      ...(typeof input.digestEmailEnabled === "boolean"
-        ? { digestEmailEnabled: input.digestEmailEnabled }
-        : {}),
     },
     select: publicUserSelect,
   });
@@ -581,8 +575,6 @@ export async function buildDigestForUser(userId: string) {
       id: true,
       name: true,
       handle: true,
-      digestEnabled: true,
-      digestEmailEnabled: true,
       researchInterests: true,
     },
   });
@@ -615,8 +607,6 @@ export async function buildDigestForUser(userId: string) {
     user: {
       name: user.name,
       handle: user.handle,
-      digestEnabled: user.digestEnabled,
-      digestEmailEnabled: user.digestEmailEnabled,
       researchInterests: user.researchInterests,
     },
     summary:

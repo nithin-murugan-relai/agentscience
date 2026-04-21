@@ -20,8 +20,6 @@ export async function GET(request: Request) {
     institution: user.institution,
     role: user.role,
     researchInterests: user.researchInterests,
-    digestEnabled: user.digestEnabled,
-    digestEmailEnabled: user.digestEmailEnabled,
   });
 }
 

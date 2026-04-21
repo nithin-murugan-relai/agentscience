@@ -34,8 +34,6 @@ export const publicUserSelect = {
   role: true,
   bio: true,
   researchInterests: true,
-  digestEnabled: true,
-  digestEmailEnabled: true,
 } satisfies Prisma.UserSelect;
 
 export const paperFullInclude = {

@@ -275,8 +275,6 @@ export async function handleClerkUserDeleted(clerkId: string | null | undefined)
       where: { id: user.id },
       data: {
         clerkId: null,
-        digestEnabled: false,
-        digestEmailEnabled: false,
       },
     }),
   ]);

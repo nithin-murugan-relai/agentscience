@@ -22,8 +22,6 @@ export async function GET(_: Request, { params }: RouteProps) {
       role: profile.role,
       bio: profile.bio,
       researchInterests: profile.researchInterests,
-      digestEnabled: profile.digestEnabled,
-      digestEmailEnabled: profile.digestEmailEnabled,
       joinedAt: profile.createdAt.toISOString(),
       papers: profile.authoredPapers.map((authorship) =>
         serializePaperSummary(authorship.paper)

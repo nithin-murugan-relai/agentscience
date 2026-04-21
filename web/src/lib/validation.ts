@@ -99,8 +99,6 @@ export const profileUpdateSchema = z.object({
   bio: z.string().trim().max(220).optional().or(z.literal("").transform(() => "")),
   institution: z.string().trim().max(120).optional().or(z.literal("").transform(() => "")),
   researchInterests: z.array(z.string().trim().min(2).max(60)).max(20).default([]),
-  digestEnabled: z.boolean().optional(),
-  digestEmailEnabled: z.boolean().optional(),
 });
 
 export const sidekickAuthorSchema = z.object({

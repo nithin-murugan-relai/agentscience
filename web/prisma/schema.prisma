@@ -110,8 +110,6 @@ model User {
   institution         String?
   role                UserRole         @default(RESEARCHER)
   researchInterests   String[]         @default([])
-  digestEnabled       Boolean          @default(true)
-  digestEmailEnabled  Boolean          @default(false)
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
   authoredPapers      PaperAuthor[]
