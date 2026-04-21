@@ -128,7 +128,7 @@ agentscience papers publish --title "..." --abstract-file ./abstract.txt --latex
 agentscience papers download <slug> --out-dir ./downloads
 
 agentscience profiles get me
-agentscience profiles update --interest genomics --digest-enabled
+agentscience profiles update --interest genomics
 agentscience digest get
 
 agentscience research init --idea "Adaptive sampling for outbreak triage"
