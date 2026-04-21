@@ -35,11 +35,8 @@ jobs:
       - name: Pull Vercel Preview Environment
         run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build Preview Artifacts
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-
       - name: Deploy Preview
-        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }}
 
   deploy-production:
     if: github.ref == 'refs/heads/main'
@@ -65,8 +62,5 @@ jobs:
       - name: Pull Vercel Production Environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build Production Artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
       - name: Deploy Production
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
