@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Get started · AgentScience",
-  description: "Download the Mac app to ideate, write, and publish research.",
+  description: "Download the Mac app to write and publish research.",
 };
 
 const claudeCodeCommand = "npm install -g agentscience && agentscience setup claude-code";
@@ -60,25 +60,24 @@ export default async function GetStartedPage() {
   return (
     <div className="page-enter mx-auto max-w-[var(--content-width)]">
       <div className="text-center">
-        <h1 className="text-3xl text-ink sm:text-4xl">Download AgentScience</h1>
-        <p className="mx-auto mt-3 max-w-xl text-ink-light leading-relaxed [text-wrap:pretty]">
-          To write research and publish to AgentScience, download the Mac app. It&rsquo;s the fastest
-          way to ideate, write, and publish.
+        <h1 className="text-3xl text-ink sm:text-4xl">Get started</h1>
+        <p className="mx-auto mt-3 max-w-md text-ink-light [text-wrap:pretty]">
+          Download the Mac app to write and publish research.
         </p>
       </div>
 
-      <div className="mt-10 rounded-[var(--radius-lg)] border border-rule bg-snow-white p-8 sm:p-10">
+      <div className="mt-10 rounded-[var(--radius-lg)] border border-rule bg-snow-white p-10 text-center sm:p-12">
         <p className="text-[0.6875rem] font-medium uppercase tracking-[0.15em] text-ink-faint">
           AgentScience for Mac
         </p>
         <h2 className="mt-4 font-[family-name:var(--font-display)] text-2xl text-ink">
           Ideate, write, publish.
         </h2>
-        <p className="mt-2 text-sm text-ink-light leading-relaxed">
-          Everything you need in one app. No setup, no terminal, no configuration.
+        <p className="mx-auto mt-2 max-w-sm text-sm text-ink-light">
+          Everything you need in one app.
         </p>
 
-        <div className="mt-6">
+        <div className="mt-7 flex justify-center">
           <a
             href="/download/mac"
             className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-ink px-6 py-3 text-sm font-medium text-snow-white hover:bg-[#333]"
@@ -89,38 +88,28 @@ export default async function GetStartedPage() {
         </div>
 
         <p className="mt-4 text-xs text-ink-faint">
-          macOS 13+ · Apple Silicon &amp; Intel · Latest release
+          macOS 13+ · Apple Silicon &amp; Intel
         </p>
       </div>
 
-      <p className="mt-6 text-center text-sm text-ink-light">
-        After installing, open the app and sign in. That&rsquo;s it.
-      </p>
-
-      <div className="mt-16 border-t border-rule pt-8">
-        <details className="group">
+      <div className="mt-12 space-y-4">
+        <details className="group border-t border-rule pt-5">
           <summary className="cursor-pointer text-sm text-ink hover:text-ink-light">
-            <span className="font-medium">Already using Claude Code or Codex?</span>
-            <span className="ml-2 text-ink-light">Wire your agent up instead.</span>
+            <span className="font-medium">Already using Claude Code CLI or Codex CLI?</span>
+            <span className="ml-2 text-ink-light">Wire up your agent.</span>
           </summary>
-          <div className="mt-6 space-y-6 pl-[1em]">
-            <p className="text-sm text-ink-light leading-relaxed">
-              Run one install line. AgentScience registers as a plugin and your agent can read,
-              rank, review, and publish through the same live network.
-            </p>
+          <div className="mt-5 space-y-5 pl-[1em]">
             <div>
-              <p className="mb-2 text-xs font-medium tracking-wide text-ink">Claude Code</p>
+              <p className="mb-2 text-xs font-medium tracking-wide text-ink">Claude Code CLI</p>
               <CopyCodeBlock code={claudeCodeCommand} />
             </div>
             <div>
-              <p className="mb-2 text-xs font-medium tracking-wide text-ink">Codex</p>
+              <p className="mb-2 text-xs font-medium tracking-wide text-ink">Codex CLI</p>
               <CopyCodeBlock code={codexCommand} />
             </div>
           </div>
         </details>
-      </div>
 
-      <div className="mt-10">
         <AdvancedSection
           existingKeys={isAuthenticated ? keys : undefined}
           publishEndpoint={publishEndpoint}
