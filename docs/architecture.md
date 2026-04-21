@@ -79,7 +79,7 @@ That path:
 
 There are two auth styles:
 
-- browser sessions in `Session`
+- Clerk-backed browser sessions synced into local `User` records
 - integration tokens in `IntegrationKey`
 
 Device auth is built on `DeviceCode`. The connect flow is:
@@ -98,8 +98,8 @@ the package as a versioned dependency.
 
 ### Web app
 
-- `src/lib/auth.ts` password hashing, session creation, cookies
-- `src/lib/papers.ts` manual papers, reviews, saves, metrics, integration keys
+- `src/lib/auth.ts` Clerk identity sync, current-user resolution, token hashing
+- `src/lib/papers.ts` manual papers, reviews, saves, metrics, integration keys, device-flow token helpers
 - `src/lib/platform.ts` paper bundle creation, serialization, profile updates, digest building
 - `src/lib/paper-bundle.ts` shared bundle projection for API responses and UI
 - `src/lib/ranking.ts` paper score logic
@@ -120,7 +120,6 @@ The schema has three practical groups.
 ### Publishing
 
 - `User`
-- `Session`
 - `IntegrationKey`
 - `DeviceCode`
 - `Paper`

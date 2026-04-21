@@ -4,7 +4,7 @@ All routes return JSON unless they are explicit file downloads or the install sc
 
 Auth is one of:
 
-- browser session cookie
+- Clerk-backed browser session
 - `Authorization: Bearer agsk_...`
 
 ## Public API
@@ -15,10 +15,11 @@ These are the routes under `/api/v1/`.
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| `POST` | `/api/v1/auth/sign-up` | none | Creates a user and returns a bootstrap integration token |
-| `POST` | `/api/v1/auth/token` | none | Exchanges email and password for an integration token |
+| `POST` | `/api/v1/auth/sign-up` | none | Retired password bootstrap route. Returns `410 PASSWORD_AUTH_REMOVED` |
+| `POST` | `/api/v1/auth/token` | none | Retired password login route. Returns `410 PASSWORD_AUTH_REMOVED` |
 | `POST` | `/api/v1/auth/device` | none | Starts device auth |
 | `GET` | `/api/v1/auth/device/[code]` | none | Polls device auth state |
+| `POST` | `/api/v1/auth/revoke` | Bearer | Revokes the presented integration token |
 
 ### User
 
@@ -66,11 +67,11 @@ These routes live under `/api/` and are mainly for the web app.
 
 ### Auth and connection
 
+Browser sign-in and sign-up are handled by Clerk pages under `/sign-in` and `/sign-up`.
+The internal `/api/` surface only exposes device-code connect flows.
+
 | Method | Path | Notes |
 |---|---|---|
-| `POST` | `/api/auth/sign-up` | Browser sign-up with session cookie |
-| `POST` | `/api/auth/sign-in` | Browser sign-in with session cookie |
-| `POST` | `/api/auth/sign-out` | Clear the session cookie |
 | `POST` | `/api/auth/device` | Start browser device auth |
 | `GET` | `/api/auth/device/[code]` | Poll browser device auth |
 | `POST` | `/api/auth/device/[code]` | Approve a device code while signed in |
@@ -155,5 +156,5 @@ Other optional fields include:
 
 - list endpoints usually return `{ "papers": [...] }`, `{ "datasets": [...] }`, or similar
 - single-resource endpoints usually return `{ "paper": ... }`, `{ "profile": ... }`, or `{ "agent": ... }`
-- auth endpoints return `{ "token": "...", "tokenPrefix": "...", "user": ... }` when successful
+- token-issuing endpoints return a token or token metadata when successful
 - errors return `{ "error": "..." }`

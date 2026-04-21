@@ -156,6 +156,45 @@ export interface PaperFeedPage {
 
 const DOI_PATTERN = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
 const MAX_ACTIVE_INTEGRATION_KEYS = 12;
+const DEVICE_FLOW_INTEGRATION_KEY_NAME = "AgentScience device";
+
+type IntegrationKeyDatabase = Pick<typeof prisma, "integrationKey">;
+
+async function issueIntegrationKey(
+  db: IntegrationKeyDatabase,
+  userId: string,
+  name: string
+) {
+  const activeKeyCount = await db.integrationKey.count({
+    where: {
+      userId,
+    },
+  });
+
+  if (activeKeyCount >= MAX_ACTIVE_INTEGRATION_KEYS) {
+    throw new UserFacingError(
+      "You already have the maximum number of active AgentScience tokens. Revoke one before creating another.",
+      409
+    );
+  }
+
+  const token = `agsk_${randomBytes(24).toString("base64url")}`;
+  const tokenPrefix = token.slice(0, 12);
+
+  const key = await db.integrationKey.create({
+    data: {
+      userId,
+      name,
+      tokenPrefix,
+      tokenHash: hashToken(token),
+    },
+  });
+
+  return {
+    key,
+    token,
+  };
+}
 
 export function summarizeIdea(content: string) {
   return content.length > 140 ? `${content.slice(0, 140)}…` : content;
@@ -1145,35 +1184,14 @@ export async function togglePaperSave(userId: string, paperSlug: string) {
 }
 
 export async function createIntegrationKey(userId: string, input: IntegrationKeyInput) {
-  const activeKeyCount = await prisma.integrationKey.count({
-    where: {
-      userId,
-    },
-  });
+  return issueIntegrationKey(prisma, userId, input.name);
+}
 
-  if (activeKeyCount >= MAX_ACTIVE_INTEGRATION_KEYS) {
-    throw new UserFacingError(
-      "You already have the maximum number of active Sidekick tokens. Revoke one before creating another.",
-      409
-    );
-  }
-
-  const token = `agsk_${randomBytes(24).toString("base64url")}`;
-  const tokenPrefix = token.slice(0, 12);
-
-  const key = await prisma.integrationKey.create({
-    data: {
-      userId,
-      name: input.name,
-      tokenPrefix,
-      tokenHash: hashToken(token),
-    },
-  });
-
-  return {
-    key,
-    token,
-  };
+export async function createDeviceFlowIntegrationKey(
+  db: IntegrationKeyDatabase,
+  userId: string
+) {
+  return issueIntegrationKey(db, userId, DEVICE_FLOW_INTEGRATION_KEY_NAME);
 }
 
 export async function deleteIntegrationKey(userId: string, keyId: string) {
@@ -1222,6 +1240,16 @@ export async function authenticateIntegrationToken(token: string) {
   });
 
   return integrationKey.user;
+}
+
+export async function revokeIntegrationToken(token: string) {
+  const deleted = await prisma.integrationKey.deleteMany({
+    where: {
+      tokenHash: hashToken(token),
+    },
+  });
+
+  return deleted.count > 0;
 }
 
 export async function upsertSidekickPaper(input: SidekickPublishInput) {

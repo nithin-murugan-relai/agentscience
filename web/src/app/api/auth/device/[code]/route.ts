@@ -1,10 +1,10 @@
-import { randomBytes } from "node:crypto";
-
 import { NextResponse } from "next/server";
 
-import { hashToken, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { isUserFacingError, UserFacingError } from "@/lib/errors";
+import { createDeviceFlowIntegrationKey } from "@/lib/papers";
 import { prisma } from "@/lib/prisma";
-import { getClientIp } from "@/lib/request";
+import { getClientIp, validateBrowserOrigin } from "@/lib/request";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 type RouteContext = {
@@ -59,7 +59,12 @@ export async function GET(request: Request, context: RouteContext) {
 }
 
 // Approve (requires session auth)
-export async function POST(_request: Request, context: RouteContext) {
+export async function POST(request: Request, context: RouteContext) {
+  const invalidOrigin = validateBrowserOrigin(request);
+  if (invalidOrigin) {
+    return NextResponse.json({ error: invalidOrigin }, { status: 403 });
+  }
+
   const { code } = await context.params;
 
   const user = await getCurrentUser();
@@ -85,24 +90,34 @@ export async function POST(_request: Request, context: RouteContext) {
     return NextResponse.json({ ok: true });
   }
 
-  // Create integration key
-  const token = `agsk_${randomBytes(24).toString("base64url")}`;
-  const tokenPrefix = token.slice(0, 12);
+  try {
+    await prisma.$transaction(async (tx) => {
+      const currentDeviceCode = await tx.deviceCode.findUnique({
+        where: { id: deviceCode.id },
+      });
 
-  await prisma.$transaction([
-    prisma.integrationKey.create({
-      data: {
-        userId: user.id,
-        name: "AgentScience (device flow)",
-        tokenPrefix,
-        tokenHash: hashToken(token),
-      },
-    }),
-    prisma.deviceCode.update({
-      where: { id: deviceCode.id },
-      data: { token, userId: user.id },
-    }),
-  ]);
+      if (!currentDeviceCode || currentDeviceCode.expiresAt.getTime() < Date.now()) {
+        throw new UserFacingError("Code expired or not found.", 410);
+      }
+
+      if (currentDeviceCode.token) {
+        return;
+      }
+
+      const { token } = await createDeviceFlowIntegrationKey(tx, user.id);
+
+      await tx.deviceCode.update({
+        where: { id: currentDeviceCode.id },
+        data: { token, userId: user.id },
+      });
+    });
+  } catch (error) {
+    if (isUserFacingError(error)) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    throw error;
+  }
 
   return NextResponse.json({ ok: true });
 }

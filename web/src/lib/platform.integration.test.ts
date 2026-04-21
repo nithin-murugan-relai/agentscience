@@ -11,7 +11,9 @@ let hashToken: typeof import("@/lib/auth").hashToken;
 let createBundledPaper: typeof import("@/lib/platform").createBundledPaper;
 let buildPaperBundleView: typeof import("@/lib/paper-bundle").buildPaperBundleView;
 let createIntegrationKey: typeof import("@/lib/papers").createIntegrationKey;
+let authenticateIntegrationToken: typeof import("@/lib/papers").authenticateIntegrationToken;
 let createApiTokenRoute: typeof import("@/app/api/v1/auth/token/route").POST;
+let revokeApiTokenRoute: typeof import("@/app/api/v1/auth/revoke/route").POST;
 
 let userCounter = 0;
 
@@ -24,8 +26,9 @@ before(async () => {
   ({ hashToken } = await import("@/lib/auth"));
   ({ createBundledPaper } = await import("@/lib/platform"));
   ({ buildPaperBundleView } = await import("@/lib/paper-bundle"));
-  ({ createIntegrationKey } = await import("@/lib/papers"));
+  ({ createIntegrationKey, authenticateIntegrationToken } = await import("@/lib/papers"));
   ({ POST: createApiTokenRoute } = await import("@/app/api/v1/auth/token/route"));
+  ({ POST: revokeApiTokenRoute } = await import("@/app/api/v1/auth/revoke/route"));
 });
 
 beforeEach(async () => {
@@ -183,6 +186,37 @@ test("createIntegrationKey stores only a hashed token in the database", async ()
   assert.equal(storedKey?.name, "CLI integration token");
   assert.equal(storedKey?.tokenPrefix, result.key.tokenPrefix);
   assert.notEqual(storedKey?.tokenHash, result.token);
+});
+
+test("POST /api/v1/auth/revoke deletes the presented integration token", async () => {
+  const user = await createUser();
+  const result = await createIntegrationKey(user.id, {
+    name: "Desktop test token",
+  });
+
+  const response = await revokeApiTokenRoute(
+    new Request("http://localhost/api/v1/auth/revoke", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${result.token}`,
+      },
+    })
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    revoked: true,
+  });
+
+  const storedKey = await prisma.integrationKey.findUnique({
+    where: {
+      tokenHash: hashToken(result.token),
+    },
+  });
+
+  assert.equal(storedKey, null);
+  assert.equal(await authenticateIntegrationToken(result.token), null);
 });
 
 test("password bootstrap API is disabled after the Clerk migration", async () => {

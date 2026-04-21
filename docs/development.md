@@ -112,8 +112,9 @@ npx tsc --noEmit
 ### CLI
 
 ```bash
-agentscience auth sign-up --name "Your Name" --handle yourhandle --email you@example.org --password yourpass
-agentscience auth login --email you@example.org --password yourpass
+agentscience auth sign-up
+agentscience auth login
+agentscience auth use-token --token agsk_your_token_here
 agentscience auth whoami
 
 agentscience setup codex
@@ -141,6 +142,10 @@ agentscience registry search --query genomics
 agentscience registry add --name "Dataset name" --url https://example.org --description "Short note" --source-paper-id <paper-id>
 agentscience registry import --manifest ./docs/dataset-registry-bootstrap.json
 ```
+
+`agentscience auth sign-up` and `agentscience auth login` now use the browser
+device flow. Run them without name, email, or password flags and finish the
+approval step in your browser.
 
 To feed datasets back into the registry during publish, create
 `./workspace/agentscience.publish.json` with:
