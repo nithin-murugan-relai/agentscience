@@ -1,32 +1,37 @@
-<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <rect width="64" height="64" rx="12" fill="#FAFAFA"/>
-  <g transform="translate(32 31)">
+<svg width="64" height="64" viewBox="270 205 484 548" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(512, 488)">
     <path
-      d="M-8.5,-22 L-8.5,-9.5 L-17.5,14 Q-18.5,16.5 -15.5,18 L15.5,18 Q18.5,16.5 17.5,14 L8.5,-9.5 L8.5,-22"
+      d="M-72,-260 L-72,-100 L-205,190 Q-215,222 -180,238 L180,238 Q215,222 205,190 L72,-100 L72,-260"
       fill="none"
-      stroke="#161616"
-      stroke-width="2.8"
+      stroke="#1A1A1A"
+      stroke-width="13"
       stroke-linejoin="round"
       stroke-linecap="round"
     />
     <line
-      x1="-12"
-      y1="-22"
-      x2="12"
-      y2="-22"
-      stroke="#161616"
-      stroke-width="2.8"
+      x1="-102"
+      y1="-260"
+      x2="102"
+      y2="-260"
+      stroke="#1A1A1A"
+      stroke-width="13"
       stroke-linecap="round"
     />
 
-    <line x1="-5.5" y1="4.5" x2="4" y2="12.5" stroke="#2F5BEA" stroke-width="2.1" opacity="0.45"/>
-    <line x1="4" y1="12.5" x2="9.5" y2="5.8" stroke="#2F5BEA" stroke-width="2.1" opacity="0.45"/>
-    <line x1="-5.5" y1="4.5" x2="-11.5" y2="12.5" stroke="#2F5BEA" stroke-width="2.1" opacity="0.45"/>
-    <line x1="-11.5" y1="12.5" x2="4" y2="12.5" stroke="#2F5BEA" stroke-width="1.8" opacity="0.3"/>
+    <line x1="-50" y1="60" x2="40" y2="145" stroke="#3b5bdb" stroke-width="5.5" opacity="0.30"/>
+    <line x1="40" y1="145" x2="90" y2="78" stroke="#3b5bdb" stroke-width="5.5" opacity="0.30"/>
+    <line x1="-50" y1="60" x2="-108" y2="145" stroke="#3b5bdb" stroke-width="5.5" opacity="0.30"/>
+    <line x1="-108" y1="145" x2="40" y2="145" stroke="#3b5bdb" stroke-width="4.5" opacity="0.22"/>
+    <line x1="40" y1="145" x2="-24" y2="195" stroke="#3b5bdb" stroke-width="4.5" opacity="0.22"/>
+    <line x1="-50" y1="60" x2="18" y2="20" stroke="#3b5bdb" stroke-width="4.5" opacity="0.22"/>
+    <line x1="90" y1="78" x2="18" y2="20" stroke="#3b5bdb" stroke-width="4" opacity="0.18"/>
+    <line x1="-108" y1="145" x2="-24" y2="195" stroke="#3b5bdb" stroke-width="4" opacity="0.18"/>
 
-    <circle cx="-5.5" cy="4.5" r="3.1" fill="#2F5BEA"/>
-    <circle cx="4" cy="12.5" r="3.5" fill="#2F5BEA"/>
-    <circle cx="9.5" cy="5.8" r="2.5" fill="#2F5BEA" opacity="0.82"/>
-    <circle cx="-11.5" cy="12.5" r="2.7" fill="#2F5BEA" opacity="0.9"/>
+    <circle cx="-50" cy="60" r="17" fill="#3b5bdb" opacity="0.85"/>
+    <circle cx="40" cy="145" r="20" fill="#3b5bdb" opacity="0.92"/>
+    <circle cx="90" cy="78" r="14" fill="#3b5bdb" opacity="0.70"/>
+    <circle cx="-108" cy="145" r="15" fill="#3b5bdb" opacity="0.75"/>
+    <circle cx="-24" cy="195" r="12" fill="#3b5bdb" opacity="0.60"/>
+    <circle cx="18" cy="20" r="11" fill="#3b5bdb" opacity="0.55"/>
   </g>
 </svg>
