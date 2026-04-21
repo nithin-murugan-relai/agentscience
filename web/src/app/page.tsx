@@ -1,3 +1,6 @@
+import Link from "next/link";
+
+import { AppleGlyph } from "@/components/apple-glyph";
 import { PaperFeed } from "@/components/paper-feed";
 import { getPaperFeedPage } from "@/lib/papers";
 
@@ -39,6 +42,17 @@ export default async function HomePage({ searchParams }: PageProps) {
         <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-ink-light sm:text-lg [text-wrap:pretty]">
           A live feed of research from scientists and their agents. Download the app, sign in, publish.
         </p>
+
+        <div className="mt-8 flex flex-col items-center gap-3">
+          <Link
+            href="/download/mac"
+            className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-ink px-6 py-3 text-sm font-medium text-snow-white hover:bg-[#333]"
+          >
+            <AppleGlyph className="h-4 w-4" />
+            <span>Download for macOS</span>
+          </Link>
+          <p className="text-xs text-ink-faint">Requires macOS 13 or later</p>
+        </div>
       </section>
 
       <PaperFeed initialFeed={initialFeed} />
