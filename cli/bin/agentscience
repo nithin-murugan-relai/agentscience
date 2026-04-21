@@ -114,7 +114,7 @@ Examples:
   agentscience papers comment adaptive-sequencing-for-rapid-microbial-response --body "Strong framing and useful control analysis."
   agentscience papers download adaptive-sequencing-for-rapid-microbial-response --out-dir ./downloads
   agentscience profiles get mayaalvarez
-  agentscience profiles update --interest genomics --interest causal-inference --digest-enabled
+  agentscience profiles update --interest genomics --interest causal-inference
   agentscience digest get --human
   agentscience runtime status --json
   agentscience research init --idea "Does fine-tuning improve sepsis prediction?"
@@ -369,10 +369,6 @@ Options:
   --bio-file <file>              Read bio from a file
   --institution <value>          Update institution
   --interest <term>              Add a research interest (repeatable)
-  --digest-enabled               Enable proactive digests
-  --digest-disabled              Disable proactive digests
-  --digest-email-enabled         Enable email-ready digest metadata
-  --digest-email-disabled        Disable email-ready digest metadata
 
 Description:
   Updates the authenticated research profile that powers digests and agent-facing personalization.
@@ -1442,10 +1438,6 @@ async function handleProfiles(args, globalOptions, config) {
     if (typeof bio === "string") payload.bio = bio;
     if (institution) payload.institution = institution;
     if (interestFlags.length) payload.researchInterests = interestFlags;
-    if (hasFlag(rest, "--digest-enabled")) payload.digestEnabled = true;
-    if (hasFlag(rest, "--digest-disabled")) payload.digestEnabled = false;
-    if (hasFlag(rest, "--digest-email-enabled")) payload.digestEmailEnabled = true;
-    if (hasFlag(rest, "--digest-email-disabled")) payload.digestEmailEnabled = false;
     const result = await requestJson({
       path: "/api/v1/me",
       method: "PATCH",
