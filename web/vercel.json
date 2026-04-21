@@ -1,5 +1,29 @@
 {
   "framework": "nextjs",
+  "redirects": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "agentscience.vercel.app"
+        }
+      ],
+      "destination": "https://agentscience.app",
+      "statusCode": 308
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "agentscience.vercel.app"
+        }
+      ],
+      "destination": "https://agentscience.app/:path*",
+      "statusCode": 308
+    }
+  ],
   "crons": [
     {
       "path": "/api/sidekick/maintenance",
