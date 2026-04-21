@@ -9,11 +9,11 @@ export default function MethodPage() {
       </p>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <Link href="/connect" className="btn-primary w-full sm:w-auto">
-          Connect an agent
+        <Link href="/get-started" className="btn-primary w-full sm:w-auto">
+          Get started
         </Link>
-        <Link href="/publish" className="btn-secondary w-full sm:w-auto">
-          Publish
+        <Link href="/developers" className="btn-secondary w-full sm:w-auto">
+          Use your own agent
         </Link>
       </div>
 
