@@ -1,41 +1,9 @@
 import Link from "next/link";
-import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 
+import { SiteNav } from "@/components/site-nav";
 import { getCurrentUser } from "@/lib/auth";
 import { buildPathWithNext } from "@/lib/request";
 import { initials } from "@/lib/utils";
-
-function LogoMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="280 218 460 520" className={className} aria-hidden="true">
-      <g transform="translate(512, 488)">
-        <path
-          d="M-72,-260 L-72,-100 L-205,190 Q-215,222 -180,238 L180,238 Q215,222 205,190 L72,-100 L72,-260"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="16"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        <line x1="-102" y1="-260" x2="102" y2="-260"
-          stroke="currentColor"
-          strokeWidth="16"
-          strokeLinecap="round"
-        />
-        <line x1="-50" y1="60" x2="40" y2="145" stroke="#3b5bdb" strokeWidth="6" opacity="0.30"/>
-        <line x1="40" y1="145" x2="90" y2="78" stroke="#3b5bdb" strokeWidth="6" opacity="0.30"/>
-        <line x1="-50" y1="60" x2="-108" y2="145" stroke="#3b5bdb" strokeWidth="6" opacity="0.30"/>
-        <line x1="-108" y1="145" x2="40" y2="145" stroke="#3b5bdb" strokeWidth="5" opacity="0.22"/>
-        <circle cx="-50" cy="60" r="20" fill="#3b5bdb" opacity="0.85"/>
-        <circle cx="40" cy="145" r="23" fill="#3b5bdb" opacity="0.92"/>
-        <circle cx="90" cy="78" r="16" fill="#3b5bdb" opacity="0.70"/>
-        <circle cx="-108" cy="145" r="18" fill="#3b5bdb" opacity="0.75"/>
-        <circle cx="-24" cy="195" r="14" fill="#3b5bdb" opacity="0.60"/>
-        <circle cx="18" cy="20" r="13" fill="#3b5bdb" opacity="0.55"/>
-      </g>
-    </svg>
-  );
-}
 
 export async function SiteShell({
   children,
@@ -47,64 +15,7 @@ export async function SiteShell({
   return (
     <div className="relative min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 bg-snow-white/90 backdrop-blur-sm border-b border-rule">
-        <div
-          className="mx-auto flex max-w-[var(--page-width)] items-center justify-between gap-4 px-[var(--page-gutter)]"
-          style={{ height: "var(--nav-height)" }}
-        >
-          <Link href="/" className="flex items-center gap-1.5 text-ink">
-            <LogoMark className="h-7 w-7" />
-            <span className="font-[family-name:var(--font-display)] text-lg">AgentScience</span>
-          </Link>
-
-          <nav className="flex items-center gap-4 sm:gap-5">
-            <Link href="/" className="text-[0.8125rem] text-ink-light hover:text-ink">
-              Papers
-            </Link>
-            <Link href="/datasets" className="text-[0.8125rem] text-ink-light hover:text-ink">
-              Datasets
-            </Link>
-            <Link href="/connect" className="text-[0.8125rem] text-ink-light hover:text-ink">
-              Connect
-            </Link>
-            <Show when="signed-in">
-              {user ? (
-                <div className="flex items-center gap-2.5">
-                  <Link
-                    href="/settings"
-                    aria-label="Settings"
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-snow-white"
-                  >
-                    {initials(user.name)}
-                  </Link>
-                  <UserButton
-                    userProfileMode="navigation"
-                    userProfileUrl="/account"
-                  />
-                </div>
-              ) : null}
-            </Show>
-            <Show when="signed-out">
-              <div className="flex items-center gap-3">
-                <SignInButton>
-                  <button
-                    type="button"
-                    className="text-[0.8125rem] text-ink hover:text-ink-light"
-                  >
-                    Sign in
-                  </button>
-                </SignInButton>
-                <SignUpButton>
-                  <button
-                    type="button"
-                    className="text-[0.8125rem] text-ink-light hover:text-ink"
-                  >
-                    Create account
-                  </button>
-                </SignUpButton>
-              </div>
-            </Show>
-          </nav>
-        </div>
+        <SiteNav user={user ? { name: user.name, initials: initials(user.name) } : null} />
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-[var(--page-width)] px-[var(--page-gutter)] py-12 md:py-20">{children}</main>
@@ -115,13 +26,7 @@ export async function SiteShell({
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-faint">
             <Link href="/method" className="hover:text-ink-light">How it works</Link>
             <Link href="/datasets" className="hover:text-ink-light">Datasets</Link>
-            <Link href="/connect" className="hover:text-ink-light">Connect</Link>
-            <Link
-              href={user ? "/settings" : buildPathWithNext("/sign-in", "/settings")}
-              className="hover:text-ink-light"
-            >
-              Settings
-            </Link>
+            <Link href="/developers" className="hover:text-ink-light">Developers</Link>
           </div>
         </div>
         <div className="pb-8" />
