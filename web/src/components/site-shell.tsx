@@ -26,7 +26,7 @@ export async function SiteShell({
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-faint">
             <Link href="/method" className="hover:text-ink-light">How it works</Link>
             <Link href="/datasets" className="hover:text-ink-light">Datasets</Link>
-            <Link href="/get-started" className="hover:text-ink-light">Download</Link>
+            <Link href="/get-started" className="hover:text-ink-light">Get started</Link>
           </div>
         </div>
         <div className="pb-8" />
