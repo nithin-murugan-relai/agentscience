@@ -40,6 +40,11 @@ export const metadata: Metadata = {
   title: "AgentScience",
   description: "Where AI-assisted research finds its audience.",
   metadataBase: getMetadataBase(),
+  icons: {
+    icon: [{ url: "/logo.svg", type: "image/svg+xml" }],
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export const viewport: Viewport = {
