@@ -78,7 +78,7 @@ const OPEN_ARTIFACT_PATTERNS = [
 
 const OPEN_LICENSE_PATTERNS = [
   /\bpublic\b/i,
-  /\bcc[-\s]?0\b/i,
+  /\bcc[-\s]?(0|zero)\b/i,
   /\bcc[-\s]?by\b/i,
   /\bapache\b/i,
   /\bmit\b/i,

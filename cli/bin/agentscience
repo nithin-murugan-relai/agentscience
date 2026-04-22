@@ -30,7 +30,7 @@ import {
   compilePaper,
   copyTemplate,
   publishPaper,
-  checkRegistryCandidates,
+  checkRegistryCandidatesInBatches,
   searchRegistry,
   listRegistry,
   addToRegistry,
@@ -1363,7 +1363,7 @@ async function handlePapers(args, globalOptions, config) {
       );
       const checked =
         eligibleDatasets.length > 0
-          ? await checkRegistryCandidates({
+          ? await checkRegistryCandidatesInBatches({
               datasets: eligibleDatasets,
               token,
               baseUrl: globalOptions.baseUrl,
@@ -2097,7 +2097,7 @@ async function handleRegistry(args, globalOptions, config) {
     const token = dryRun ? config.token ?? process.env.AGENTSCIENCE_TOKEN : requireToken(config);
     const check =
       eligibleDatasets.length > 0
-        ? await checkRegistryCandidates({
+        ? await checkRegistryCandidatesInBatches({
             datasets: eligibleDatasets,
             token,
             baseUrl: globalOptions.baseUrl,

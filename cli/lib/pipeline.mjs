@@ -224,6 +224,31 @@ export async function checkRegistryCandidates({ datasets, token, baseUrl }) {
   });
 }
 
+export async function checkRegistryCandidatesInBatches({
+  datasets,
+  token,
+  baseUrl,
+  batchSize = 20,
+  checkFn = checkRegistryCandidates,
+}) {
+  if (!Array.isArray(datasets) || datasets.length === 0) {
+    return { datasets: [] };
+  }
+
+  const merged = [];
+  for (let index = 0; index < datasets.length; index += batchSize) {
+    const batch = datasets.slice(index, index + batchSize);
+    const result = await checkFn({
+      datasets: batch,
+      token,
+      baseUrl,
+    });
+    merged.push(...(result?.datasets ?? []));
+  }
+
+  return { datasets: merged };
+}
+
 // ---------------------------------------------------------------------------
 // Literature review (OpenAlex + internal papers — no LLM needed)
 // ---------------------------------------------------------------------------
