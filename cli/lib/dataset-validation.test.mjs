@@ -109,6 +109,46 @@ test("validateDatasetCandidate treats pages with concrete download links as usab
   assert.equal(report.status, "OPEN_USABLE");
 });
 
+test("validateDatasetCandidate accepts GEO series pages with downloadable artifacts", async () => {
+  const report = await validateDatasetCandidate(
+    {
+      url: "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE77286",
+      description: "Arabidopsis zinc supply transcriptomics series.",
+      providerSlug: "geo",
+    },
+    {
+      fetchImpl: async () =>
+        new Response(
+          `
+            <html>
+              <title>GEO Accession viewer</title>
+              <body>
+                Not logged in | Login
+                <strong>Series GSE77286</strong>
+                Samples (42)
+                <table>
+                  <tr><td>Download family</td></tr>
+                  <tr><td>Series Matrix File(s)</td></tr>
+                  <tr><td>Supplementary file</td></tr>
+                  <tr><td>GSE77286_RAW.tar</td></tr>
+                </table>
+                <a href="/geo/download/?acc=GSE77286&amp;format=file">(http)</a>
+              </body>
+            </html>
+          `,
+          {
+            status: 200,
+            headers: { "content-type": "text/html" },
+          },
+        ),
+    },
+  );
+
+  assert.equal(report.status, "OPEN_USABLE");
+  assert.ok(report.apiLinks.some((link) => link.includes("/geo/download/?acc=GSE77286")));
+  assert.ok(report.artifactSignals.length > 0);
+});
+
 test("validateDatasetCandidate marks thin landing pages as index-only", async () => {
   const report = await validateDatasetCandidate(
     {
@@ -147,6 +187,7 @@ test("formatDatasetValidationLines produces a readable summary", () => {
     httpStatus: 200,
     title: null,
     contentType: "text/csv",
+    artifactSignals: [],
     directFileLinks: [],
     githubDataLinks: [],
     apiLinks: [],

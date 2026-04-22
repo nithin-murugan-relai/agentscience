@@ -68,6 +68,14 @@ const DATASET_SIGNAL_PATTERNS = [
   /\brepository\b/i,
 ];
 
+const OPEN_ARTIFACT_PATTERNS = [
+  /\bsupplementary file(s)?\b/i,
+  /\bseries matrix\b/i,
+  /\bdownload family\b/i,
+  /\braw\.(tar|zip|gz|bz2|xz)\b/i,
+  /\bmatrix\b/i,
+];
+
 const GITHUB_DATA_PATH_PATTERNS = [
   /\/tree\/[^/]+\/(?:data|dataset|datasets)(?:\/|$)/i,
   /\/blob\/[^/]+\/.+\.(csv|tsv|json|jsonl|ndjson|parquet|zip|gz|xlsx?|txt)$/i,
@@ -234,6 +242,13 @@ function classifyValidationEvidence(evidence) {
     };
   }
 
+  if (evidence.apiLinks.length > 0 && evidence.artifactSignals.length > 0) {
+    return {
+      status: "OPEN_USABLE",
+      summary: "The page exposes downloadable dataset artifacts that look openly usable for analysis.",
+    };
+  }
+
   if (
     evidence.datasetSignals.length > 0 &&
     (evidence.apiLinks.length > 0 || evidence.pageText.includes("download") || evidence.pageText.includes("access data"))
@@ -299,6 +314,7 @@ export async function validateDatasetCandidate(candidate, { fetchImpl = fetch } 
   let pageText = "";
   let accessSignals = [];
   let datasetSignals = [];
+  let artifactSignals = [];
   let directFileLinks = [];
   let githubDataLinks = [];
   let apiLinks = [];
@@ -310,6 +326,7 @@ export async function validateDatasetCandidate(candidate, { fetchImpl = fetch } 
       pageText = stripHtml(html).toLowerCase().slice(0, 60000);
       accessSignals = collectPatternMatches(pageText, ACCESS_CONTROLLED_PATTERNS);
       datasetSignals = collectPatternMatches(pageText, DATASET_SIGNAL_PATTERNS);
+      artifactSignals = collectPatternMatches(pageText, OPEN_ARTIFACT_PATTERNS);
       const summarizedLinks = summarizeConcreteAccessLinks(collectLinks(html, finalUrl), finalUrl);
       directFileLinks = summarizedLinks.directFileLinks;
       githubDataLinks = summarizedLinks.githubDataLinks;
@@ -329,6 +346,7 @@ export async function validateDatasetCandidate(candidate, { fetchImpl = fetch } 
     directFileLike,
     accessSignals,
     datasetSignals,
+    artifactSignals,
     directFileLinks,
     githubDataLinks,
     apiLinks,
@@ -357,6 +375,7 @@ export async function validateDatasetCandidate(candidate, { fetchImpl = fetch } 
     directFileLike,
     accessSignals,
     datasetSignals,
+    artifactSignals,
     directFileLinks,
     githubDataLinks,
     apiLinks,
@@ -393,6 +412,9 @@ export function formatDatasetValidationLines(report) {
   }
   if (report.apiLinks.length > 0) {
     lines.push(`API/download links: ${report.apiLinks.length}`);
+  }
+  if (report.artifactSignals.length > 0) {
+    lines.push(`Artifact signals: ${report.artifactSignals.join(", ")}`);
   }
   if (report.accessSignals.length > 0) {
     lines.push(`Access signals: ${report.accessSignals.join(", ")}`);
