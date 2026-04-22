@@ -149,6 +149,182 @@ test("validateDatasetCandidate accepts GEO series pages with downloadable artifa
   assert.ok(report.artifactSignals.length > 0);
 });
 
+test("validateDatasetCandidate accepts OpenML datasets using provider metadata", async () => {
+  const report = await validateDatasetCandidate(
+    {
+      url: "https://www.openml.org/d/61",
+      description: "OpenML iris benchmark.",
+      providerSlug: "openml",
+    },
+    {
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/api/v1/json/data/61")) {
+          return new Response(
+            JSON.stringify({
+              data_set_description: {
+                visibility: "public",
+                status: "active",
+                licence: "Public",
+                format: "ARFF",
+                url: "https://openml.org/data/v1/download/61/iris.arff",
+                parquet_url: "https://data.openml.org/datasets/0000/0061/dataset_61.pq",
+              },
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          );
+        }
+        return new Response("<html><title>OpenML</title></html>", {
+          status: 200,
+          headers: { "content-type": "text/html" },
+        });
+      },
+    },
+  );
+
+  assert.equal(report.status, "OPEN_USABLE");
+  assert.equal(report.licenseStatus, "open");
+  assert.ok(report.directFileLinks.some((link) => link.includes("iris.arff")));
+});
+
+test("validateDatasetCandidate accepts cBioPortal studies using provider metadata", async () => {
+  const report = await validateDatasetCandidate(
+    {
+      url: "https://www.cbioportal.org/study/summary?id=acc_tcga",
+      description: "Public cBioPortal ACC study.",
+      providerSlug: "cbioportal",
+    },
+    {
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/api/studies/acc_tcga")) {
+          return new Response(
+            JSON.stringify({
+              name: "Adrenocortical Carcinoma (TCGA, Firehose Legacy)",
+              groups: "PUBLIC",
+              publicStudy: true,
+              cnaSampleCount: 90,
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          );
+        }
+        return new Response("<html><title>cBioPortal for Cancer Genomics</title></html>", {
+          status: 200,
+          headers: { "content-type": "text/html" },
+        });
+      },
+    },
+  );
+
+  assert.equal(report.status, "OPEN_USABLE");
+  assert.ok(report.providerEvidence.some((entry) => entry.includes("publicStudy:true")));
+});
+
+test("validateDatasetCandidate accepts Hugging Face datasets with open licenses", async () => {
+  const report = await validateDatasetCandidate(
+    {
+      url: "https://huggingface.co/datasets/ibm-research/duorc",
+      description: "Open reading comprehension dataset on Hugging Face.",
+      providerSlug: "huggingface-datasets",
+    },
+    {
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/api/datasets/ibm-research/duorc")) {
+          return new Response(
+            JSON.stringify({
+              gated: false,
+              private: false,
+              disabled: false,
+              downloads: 1407,
+              siblings: [{ rfilename: "README.md" }, { rfilename: "data/train.json" }],
+              cardData: { license: ["mit"] },
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          );
+        }
+        return new Response("<html><title>Hugging Face</title></html>", {
+          status: 200,
+          headers: { "content-type": "text/html" },
+        });
+      },
+    },
+  );
+
+  assert.equal(report.status, "OPEN_USABLE");
+  assert.equal(report.license, "mit");
+});
+
+test("validateDatasetCandidate accepts Zenodo records with open files and licenses", async () => {
+  const report = await validateDatasetCandidate(
+    {
+      url: "https://zenodo.org/records/3723806",
+      description: "Zenodo record with supplementary open files.",
+      providerSlug: "zenodo",
+    },
+    {
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/api/records/3723806")) {
+          return new Response(
+            JSON.stringify({
+              metadata: {
+                access_right: "open",
+                license: { id: "cc-by-4.0" },
+              },
+              files: [
+                { links: { self: "https://zenodo.org/records/3723806/files/data.csv" } },
+              ],
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          );
+        }
+        return new Response("<html><title>Zenodo</title></html>", {
+          status: 200,
+          headers: { "content-type": "text/html" },
+        });
+      },
+    },
+  );
+
+  assert.equal(report.status, "OPEN_USABLE");
+  assert.equal(report.license, "cc-by-4.0");
+});
+
+test("validateDatasetCandidate accepts figshare datasets with public files and licenses", async () => {
+  const report = await validateDatasetCandidate(
+    {
+      url: "https://figshare.com/articles/dataset/example/32072493",
+      description: "figshare dataset with CSV and notebook files.",
+      providerSlug: "figshare",
+    },
+    {
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes("/v2/articles/32072493")) {
+          return new Response(
+            JSON.stringify({
+              is_public: true,
+              license: { name: "MIT" },
+              files: [
+                { download_url: "https://ndownloader.figshare.com/files/63924210" },
+              ],
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          );
+        }
+        return new Response("<html><title>figshare</title></html>", {
+          status: 200,
+          headers: { "content-type": "text/html" },
+        });
+      },
+    },
+  );
+
+  assert.equal(report.status, "OPEN_USABLE");
+  assert.equal(report.license, "MIT");
+});
+
 test("validateDatasetCandidate marks thin landing pages as index-only", async () => {
   const report = await validateDatasetCandidate(
     {

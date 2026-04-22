@@ -76,6 +76,30 @@ const OPEN_ARTIFACT_PATTERNS = [
   /\bmatrix\b/i,
 ];
 
+const OPEN_LICENSE_PATTERNS = [
+  /\bpublic\b/i,
+  /\bcc[-\s]?0\b/i,
+  /\bcc[-\s]?by\b/i,
+  /\bapache\b/i,
+  /\bmit\b/i,
+  /\bbsd\b/i,
+  /\bgpl\b/i,
+  /\bisc\b/i,
+  /\bodc\b/i,
+  /\bpddl\b/i,
+  /\bcdla\b/i,
+];
+
+const RESTRICTIVE_LICENSE_PATTERNS = [
+  /\ball rights reserved\b/i,
+  /\bnon-?commercial\b/i,
+  /\bno derivatives\b/i,
+  /\bcc[-\s]?by[-\s]?nc\b/i,
+  /\bcc[-\s]?by[-\s]?nd\b/i,
+  /\brestricted\b/i,
+  /\bproprietary\b/i,
+];
+
 const GITHUB_DATA_PATH_PATTERNS = [
   /\/tree\/[^/]+\/(?:data|dataset|datasets)(?:\/|$)/i,
   /\/blob\/[^/]+\/.+\.(csv|tsv|json|jsonl|ndjson|parquet|zip|gz|xlsx?|txt)$/i,
@@ -190,6 +214,422 @@ function summarizeConcreteAccessLinks(links, baseUrl) {
   };
 }
 
+function encodePathSegments(value) {
+  return value
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
+
+function normalizeLicenseValue(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    const normalized = value
+      .map((entry) => normalizeLicenseValue(entry))
+      .filter(Boolean);
+    return normalized.length > 0 ? normalized.join(", ") : null;
+  }
+
+  if (typeof value === "string") {
+    return normalizeWhitespace(value);
+  }
+
+  if (typeof value === "object") {
+    return normalizeLicenseValue(
+      value.id ??
+        value.name ??
+        value.title ??
+        value.label ??
+        null,
+    );
+  }
+
+  return null;
+}
+
+function classifyLicenseValue(value) {
+  const license = normalizeLicenseValue(value);
+  if (!license) {
+    return {
+      license: null,
+      licenseStatus: "unknown",
+    };
+  }
+
+  if (RESTRICTIVE_LICENSE_PATTERNS.some((pattern) => pattern.test(license))) {
+    return {
+      license,
+      licenseStatus: "restricted",
+    };
+  }
+
+  if (OPEN_LICENSE_PATTERNS.some((pattern) => pattern.test(license))) {
+    return {
+      license,
+      licenseStatus: "open",
+    };
+  }
+
+  return {
+    license,
+    licenseStatus: "unknown",
+  };
+}
+
+function extractOpenMlDatasetId(url) {
+  try {
+    const parsed = new URL(url);
+    const directMatch = parsed.pathname.match(/^\/d\/(\d+)(?:\/)?$/i);
+    if (directMatch?.[1]) {
+      return directMatch[1];
+    }
+    return parsed.searchParams.get("id");
+  } catch {
+    return null;
+  }
+}
+
+function extractHuggingFaceDatasetId(url) {
+  try {
+    const parsed = new URL(url);
+    const match = parsed.pathname.match(/^\/datasets\/(.+?)(?:\/)?$/i);
+    return match?.[1] ? decodeURIComponent(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function extractZenodoRecordId(url) {
+  try {
+    const parsed = new URL(url);
+    const match = parsed.pathname.match(/^\/records\/(\d+)(?:\/)?$/i);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function extractCbioportalStudyId(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.searchParams.get("id");
+  } catch {
+    return null;
+  }
+}
+
+function extractFigshareArticleId(url) {
+  try {
+    const parsed = new URL(url);
+    const match = parsed.pathname.match(/\/articles\/dataset\/.+\/(\d+)(?:\/)?$/i);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchJson(url, { fetchImpl, headers = {} } = {}) {
+  const response = await fetchImpl(url, {
+    method: "GET",
+    redirect: "follow",
+    headers: {
+      accept: "application/json",
+      "user-agent": "agentscience-cli-validation",
+      ...headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Provider metadata request failed with HTTP ${response.status}.`);
+  }
+
+  return response.json();
+}
+
+function summarizeProviderMetadataValidation({
+  status,
+  summary,
+  notes = [],
+  apiLinks = [],
+  directFileLinks = [],
+  license = null,
+  licenseStatus = "unknown",
+  providerEvidence = [],
+}) {
+  return {
+    status,
+    summary,
+    notes,
+    apiLinks,
+    directFileLinks,
+    license,
+    licenseStatus,
+    providerEvidence,
+  };
+}
+
+async function validateProviderMetadata(candidate, { fetchImpl = fetch } = {}) {
+  const providerSlug = candidate.providerSlug ?? null;
+
+  if (providerSlug === "openml") {
+    const datasetId = extractOpenMlDatasetId(candidate.url);
+    if (!datasetId) return null;
+    const payload = await fetchJson(
+      `https://www.openml.org/api/v1/json/data/${encodeURIComponent(datasetId)}`,
+      { fetchImpl },
+    );
+    const description = payload?.data_set_description;
+    const visibility = description?.visibility ?? null;
+    const status = description?.status ?? null;
+    const directFileLinks = uniqueStrings([description?.url, description?.parquet_url].filter(Boolean));
+    const licenseInfo = classifyLicenseValue(description?.licence ?? description?.license ?? null);
+
+    if (visibility === "public" && status === "active" && directFileLinks.length > 0 && licenseInfo.licenseStatus !== "restricted") {
+      return summarizeProviderMetadataValidation({
+        status: "OPEN_USABLE",
+        summary: "OpenML metadata confirms the dataset is public with machine-readable download artifacts.",
+        notes: [
+          `OpenML format: ${description?.format ?? "unknown"}`,
+          ...(licenseInfo.license ? [`OpenML license: ${licenseInfo.license}`] : []),
+        ],
+        directFileLinks,
+        apiLinks: [`https://www.openml.org/api/v1/json/data/${datasetId}`],
+        license: licenseInfo.license,
+        licenseStatus: licenseInfo.licenseStatus,
+        providerEvidence: [
+          `visibility:${visibility}`,
+          `status:${status}`,
+          `files:${directFileLinks.length}`,
+        ],
+      });
+    }
+
+    return summarizeProviderMetadataValidation({
+      status: "UNCLEAR",
+      summary: "OpenML metadata did not confirm a fully open, reusable dataset artifact set.",
+      notes: [
+        ...(licenseInfo.license ? [`OpenML license: ${licenseInfo.license}`] : []),
+      ],
+      apiLinks: [`https://www.openml.org/api/v1/json/data/${datasetId}`],
+      license: licenseInfo.license,
+      licenseStatus: licenseInfo.licenseStatus,
+      providerEvidence: [
+        `visibility:${visibility ?? "unknown"}`,
+        `status:${status ?? "unknown"}`,
+      ],
+    });
+  }
+
+  if (providerSlug === "huggingface-datasets") {
+    const datasetId = extractHuggingFaceDatasetId(candidate.url);
+    if (!datasetId) return null;
+    const payload = await fetchJson(
+      `https://huggingface.co/api/datasets/${encodePathSegments(datasetId)}`,
+      { fetchImpl },
+    );
+    const licenseInfo = classifyLicenseValue(payload?.cardData?.license ?? payload?.tags?.filter?.((tag) => String(tag).startsWith("license:")).map((tag) => String(tag).replace(/^license:/, "")) ?? null);
+    const gated = Boolean(payload?.gated);
+    const isPrivate = Boolean(payload?.private);
+    const disabled = Boolean(payload?.disabled);
+    const siblings = Array.isArray(payload?.siblings) ? payload.siblings.length : 0;
+
+    if (gated || isPrivate) {
+      return summarizeProviderMetadataValidation({
+        status: "ACCESS_CONTROLLED",
+        summary: "Hugging Face marks this dataset as gated or private.",
+        notes: [
+          ...(licenseInfo.license ? [`Hugging Face license: ${licenseInfo.license}`] : []),
+        ],
+        apiLinks: [`https://huggingface.co/api/datasets/${encodePathSegments(datasetId)}`],
+        license: licenseInfo.license,
+        licenseStatus: licenseInfo.licenseStatus,
+        providerEvidence: [
+          `gated:${gated}`,
+          `private:${isPrivate}`,
+          `disabled:${disabled}`,
+          `siblings:${siblings}`,
+        ],
+      });
+    }
+
+    if (!disabled && siblings > 0 && licenseInfo.licenseStatus === "open") {
+      return summarizeProviderMetadataValidation({
+        status: "OPEN_USABLE",
+        summary: "Hugging Face metadata confirms a public dataset with repository files and an open license.",
+        notes: [`Hugging Face license: ${licenseInfo.license}`],
+        apiLinks: [`https://huggingface.co/api/datasets/${encodePathSegments(datasetId)}`],
+        license: licenseInfo.license,
+        licenseStatus: licenseInfo.licenseStatus,
+        providerEvidence: [
+          `siblings:${siblings}`,
+          `downloads:${payload?.downloads ?? 0}`,
+        ],
+      });
+    }
+
+    return summarizeProviderMetadataValidation({
+      status: "UNCLEAR",
+      summary: "Hugging Face metadata did not confirm a clearly open-licensed reusable dataset.",
+      notes: [
+        ...(licenseInfo.license ? [`Hugging Face license: ${licenseInfo.license}`] : []),
+      ],
+      apiLinks: [`https://huggingface.co/api/datasets/${encodePathSegments(datasetId)}`],
+      license: licenseInfo.license,
+      licenseStatus: licenseInfo.licenseStatus,
+      providerEvidence: [
+        `gated:${gated}`,
+        `private:${isPrivate}`,
+        `disabled:${disabled}`,
+        `siblings:${siblings}`,
+      ],
+    });
+  }
+
+  if (providerSlug === "zenodo") {
+    const recordId = extractZenodoRecordId(candidate.url);
+    if (!recordId) return null;
+    const payload = await fetchJson(`https://zenodo.org/api/records/${encodeURIComponent(recordId)}`, {
+      fetchImpl,
+    });
+    const files = Array.isArray(payload?.files) ? payload.files : [];
+    const directFileLinks = uniqueStrings(
+      files
+        .map((file) => file?.links?.self ?? file?.links?.download ?? null)
+        .filter(Boolean),
+    );
+    const accessRight = payload?.metadata?.access_right ?? payload?.access?.status ?? null;
+    const licenseInfo = classifyLicenseValue(
+      payload?.metadata?.license ??
+        payload?.metadata?.rights?.[0] ??
+        null,
+    );
+
+    if (accessRight === "open" && directFileLinks.length > 0 && licenseInfo.licenseStatus === "open") {
+      return summarizeProviderMetadataValidation({
+        status: "OPEN_USABLE",
+        summary: "Zenodo metadata confirms open access files with an explicit open license.",
+        notes: [`Zenodo license: ${licenseInfo.license}`],
+        directFileLinks,
+        apiLinks: [`https://zenodo.org/api/records/${recordId}`],
+        license: licenseInfo.license,
+        licenseStatus: licenseInfo.licenseStatus,
+        providerEvidence: [
+          `access:${accessRight}`,
+          `files:${directFileLinks.length}`,
+        ],
+      });
+    }
+
+    return summarizeProviderMetadataValidation({
+      status: accessRight && accessRight !== "open" ? "ACCESS_CONTROLLED" : "UNCLEAR",
+      summary: "Zenodo metadata did not confirm openly reusable files with a clear open license.",
+      notes: [
+        ...(licenseInfo.license ? [`Zenodo license: ${licenseInfo.license}`] : []),
+      ],
+      apiLinks: [`https://zenodo.org/api/records/${recordId}`],
+      license: licenseInfo.license,
+      licenseStatus: licenseInfo.licenseStatus,
+      providerEvidence: [
+        `access:${accessRight ?? "unknown"}`,
+        `files:${directFileLinks.length}`,
+      ],
+    });
+  }
+
+  if (providerSlug === "cbioportal") {
+    const studyId = extractCbioportalStudyId(candidate.url);
+    if (!studyId) return null;
+    const payload = await fetchJson(
+      `https://www.cbioportal.org/api/studies/${encodeURIComponent(studyId)}`,
+      {
+        fetchImpl,
+        headers: { accept: "application/json" },
+      },
+    );
+    const isPublicStudy = payload?.publicStudy === true || payload?.groups === "PUBLIC";
+    const cohortSize =
+      payload?.allSampleCount ??
+      payload?.cnaSampleCount ??
+      payload?.mrnaRnaSeqSampleCount ??
+      payload?.sampleCount ??
+      null;
+
+    if (isPublicStudy) {
+      return summarizeProviderMetadataValidation({
+        status: "OPEN_USABLE",
+        summary: "cBioPortal metadata confirms a public study page with open analysis-ready cancer genomics cohorts.",
+        notes: [
+          ...(payload?.name ? [`cBioPortal study: ${payload.name}`] : []),
+        ],
+        apiLinks: [`https://www.cbioportal.org/api/studies/${studyId}`],
+        providerEvidence: [
+          `groups:${payload?.groups ?? "unknown"}`,
+          `publicStudy:${payload?.publicStudy === true}`,
+          ...(cohortSize !== null ? [`samples:${cohortSize}`] : []),
+        ],
+      });
+    }
+
+    return summarizeProviderMetadataValidation({
+      status: "ACCESS_CONTROLLED",
+      summary: "cBioPortal metadata did not mark the study as public.",
+      apiLinks: [`https://www.cbioportal.org/api/studies/${studyId}`],
+      providerEvidence: [
+        `groups:${payload?.groups ?? "unknown"}`,
+        `publicStudy:${payload?.publicStudy === true}`,
+      ],
+    });
+  }
+
+  if (providerSlug === "figshare") {
+    const articleId = extractFigshareArticleId(candidate.url);
+    if (!articleId) return null;
+    const payload = await fetchJson(`https://api.figshare.com/v2/articles/${encodeURIComponent(articleId)}`, {
+      fetchImpl,
+    });
+    const files = Array.isArray(payload?.files) ? payload.files : [];
+    const directFileLinks = uniqueStrings(files.map((file) => file?.download_url ?? null).filter(Boolean));
+    const licenseInfo = classifyLicenseValue(payload?.license ?? null);
+
+    if (payload?.is_public === true && directFileLinks.length > 0 && licenseInfo.licenseStatus === "open") {
+      return summarizeProviderMetadataValidation({
+        status: "OPEN_USABLE",
+        summary: "figshare metadata confirms public files with an explicit open license.",
+        notes: [`figshare license: ${licenseInfo.license}`],
+        directFileLinks,
+        apiLinks: [`https://api.figshare.com/v2/articles/${articleId}`],
+        license: licenseInfo.license,
+        licenseStatus: licenseInfo.licenseStatus,
+        providerEvidence: [
+          `public:${payload.is_public === true}`,
+          `files:${directFileLinks.length}`,
+        ],
+      });
+    }
+
+    return summarizeProviderMetadataValidation({
+      status: payload?.is_public === false ? "ACCESS_CONTROLLED" : "UNCLEAR",
+      summary: "figshare metadata did not confirm openly reusable files with a clear open license.",
+      notes: [
+        ...(licenseInfo.license ? [`figshare license: ${licenseInfo.license}`] : []),
+      ],
+      apiLinks: [`https://api.figshare.com/v2/articles/${articleId}`],
+      license: licenseInfo.license,
+      licenseStatus: licenseInfo.licenseStatus,
+      providerEvidence: [
+        `public:${payload?.is_public === true}`,
+        `files:${directFileLinks.length}`,
+      ],
+    });
+  }
+
+  return null;
+}
+
 function classifyValidationEvidence(evidence) {
   if (evidence.networkError) {
     return {
@@ -250,6 +690,17 @@ function classifyValidationEvidence(evidence) {
   }
 
   if (
+    evidence.providerHint === "sdss" &&
+    evidence.apiLinks.length > 0 &&
+    /(bulk download|science archive server|sas|catalog archive server|casjobs)/i.test(evidence.pageText)
+  ) {
+    return {
+      status: "OPEN_USABLE",
+      summary: "The SDSS data-release page exposes open archive and bulk download entry points.",
+    };
+  }
+
+  if (
     evidence.datasetSignals.length > 0 &&
     (evidence.apiLinks.length > 0 || evidence.pageText.includes("download") || evidence.pageText.includes("access data"))
   ) {
@@ -295,9 +746,13 @@ export async function validateDatasetCandidate(candidate, { fetchImpl = fetch } 
       directFileLike: false,
       accessSignals: [],
       datasetSignals: [],
+      artifactSignals: [],
       directFileLinks: [],
       githubDataLinks: [],
       apiLinks: [],
+      providerEvidence: [],
+      license: null,
+      licenseStatus: "unknown",
       notes: hintNote ? [hintNote] : [],
       ...classifyValidationEvidence({
         networkError: true,
@@ -342,6 +797,7 @@ export async function validateDatasetCandidate(candidate, { fetchImpl = fetch } 
     contentType,
     contentLength,
     pageText,
+    providerHint,
     title,
     directFileLike,
     accessSignals,
@@ -352,10 +808,37 @@ export async function validateDatasetCandidate(candidate, { fetchImpl = fetch } 
     apiLinks,
   };
 
-  const classification = classifyValidationEvidence(evidence);
+  let providerMetadata = null;
+  try {
+    providerMetadata = await validateProviderMetadata(candidate, { fetchImpl });
+  } catch (error) {
+    providerMetadata = {
+      status: null,
+      summary: null,
+      notes: [
+        `Provider metadata lookup failed: ${error instanceof Error ? error.message : "Unknown error."}`,
+      ],
+      directFileLinks: [],
+      apiLinks: [],
+      license: null,
+      licenseStatus: "unknown",
+      providerEvidence: [],
+    };
+  }
+
+  const classification =
+    providerMetadata?.status && providerMetadata.status !== "UNCLEAR"
+      ? {
+          status: providerMetadata.status,
+          summary: providerMetadata.summary,
+        }
+      : classifyValidationEvidence(evidence);
   const notes = [];
   if (hintNote) {
     notes.push(hintNote);
+  }
+  if (providerMetadata?.notes?.length) {
+    notes.push(...providerMetadata.notes);
   }
   if (candidate.description) {
     notes.push(`Claimed use: ${candidate.description}`);
@@ -376,9 +859,18 @@ export async function validateDatasetCandidate(candidate, { fetchImpl = fetch } 
     accessSignals,
     datasetSignals,
     artifactSignals,
-    directFileLinks,
+    directFileLinks: uniqueStrings([
+      ...directFileLinks,
+      ...(providerMetadata?.directFileLinks ?? []),
+    ]).slice(0, 10),
     githubDataLinks,
-    apiLinks,
+    apiLinks: uniqueStrings([
+      ...apiLinks,
+      ...(providerMetadata?.apiLinks ?? []),
+    ]).slice(0, 10),
+    providerEvidence: providerMetadata?.providerEvidence ?? [],
+    license: providerMetadata?.license ?? null,
+    licenseStatus: providerMetadata?.licenseStatus ?? "unknown",
     notes,
     ...classification,
   };
@@ -389,6 +881,8 @@ export function validationPassesWithoutOverride(report) {
 }
 
 export function formatDatasetValidationLines(report) {
+  const artifactSignals = report.artifactSignals ?? [];
+  const providerEvidence = report.providerEvidence ?? [];
   const lines = [
     `Validation status: ${report.status}`,
     `Summary: ${report.summary}`,
@@ -413,8 +907,14 @@ export function formatDatasetValidationLines(report) {
   if (report.apiLinks.length > 0) {
     lines.push(`API/download links: ${report.apiLinks.length}`);
   }
-  if (report.artifactSignals.length > 0) {
-    lines.push(`Artifact signals: ${report.artifactSignals.join(", ")}`);
+  if (providerEvidence.length > 0) {
+    lines.push(`Provider evidence: ${providerEvidence.join(", ")}`);
+  }
+  if (report.license) {
+    lines.push(`License: ${report.license} (${report.licenseStatus})`);
+  }
+  if (artifactSignals.length > 0) {
+    lines.push(`Artifact signals: ${artifactSignals.join(", ")}`);
   }
   if (report.accessSignals.length > 0) {
     lines.push(`Access signals: ${report.accessSignals.join(", ")}`);
