@@ -11,6 +11,23 @@ function normalizeKeywords(values) {
   return [...new Set(values.map((value) => normalizeWhitespace(value).toLowerCase()).filter(Boolean))];
 }
 
+function normalizeShortName(value, sourceLabel) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = normalizeWhitespace(value);
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.length > 35) {
+    throw new Error(`${sourceLabel} shortName must be 35 characters or fewer.`);
+  }
+
+  return normalized;
+}
+
 function normalizeSlugList(values, sourceLabel) {
   if (!Array.isArray(values)) {
     return [];
@@ -80,6 +97,7 @@ function normalizePublishDataset(entry, sourceLabel) {
   }
 
   const name = typeof entry.name === "string" ? normalizeWhitespace(entry.name) : "";
+  const shortName = normalizeShortName(entry.shortName, sourceLabel);
   const description =
     typeof entry.description === "string" ? normalizeWhitespace(entry.description) : "";
   const keywords = Array.isArray(entry.keywords)
@@ -100,6 +118,7 @@ function normalizePublishDataset(entry, sourceLabel) {
 
   return {
     name,
+    shortName,
     url: normalizeDatasetUrl(String(entry.url ?? ""), sourceLabel),
     description,
     keywords: keywords.slice(0, 16),

@@ -127,6 +127,14 @@ The CLI already supports:
 - `agentscience papers publish` with `agentscience.publish.json` auto-detection
   or `--dataset-manifest ...`
 
+Direct standalone adds are now intentionally stricter than before:
+
+- they require a canonical `providerSlug`
+- they reject stub-provider fallback
+- they require a canonical provider-matching dataset URL
+- they require explicit valid topic slugs
+- paper-backed publish sync can still use source-paper context
+
 Relevant files:
 
 - `cli/bin/agentscience`
@@ -205,11 +213,13 @@ The publish flow collects structured dataset candidates from
 `agentscience.publish.json`:
 
 - name
+- optional shortName
 - URL
 - short description
-- domain
 - keywords
-- optional source paper metadata
+- optional providerSlug
+- optional topicSlugs
+- optional registryEligible flag to suppress registry insertion for that entry
 
 Today that manifest is the contract. Agents are expected to write it in the
 workspace before publish.

@@ -16,11 +16,13 @@ test("parseRegistryManifest normalizes dataset metadata", () => {
       datasets: [
         {
           name: " DepMap 24Q2 Public ",
+          shortName: " depmap24 ",
           url: "https://doi.org/10.25452/figshare.plus.25880521.v1/",
           description: " Public Broad DepMap dependency and expression release used to rank B-ALL vulnerabilities. ",
           keywords: ["DepMap", "b-all", "depmap"],
           providerSlug: " DOI ",
           topicSlugs: ["pharmacology", "transcriptomics", "pharmacology"],
+          registryEligible: false,
           sourcePaperId: " cmnvixfm00000l4045bi0uwjf ",
           sourceRank: 0.4641,
         },
@@ -32,11 +34,13 @@ test("parseRegistryManifest normalizes dataset metadata", () => {
   assert.deepEqual(manifest.datasets, [
     {
       name: "DepMap 24Q2 Public",
+      shortName: "depmap24",
       url: "https://doi.org/10.25452/figshare.plus.25880521.v1",
       description: "Public Broad DepMap dependency and expression release used to rank B-ALL vulnerabilities.",
       keywords: ["depmap", "b-all"],
       providerSlug: "doi",
       topicSlugs: ["pharmacology", "transcriptomics"],
+      registryEligible: false,
       sourcePaperId: "cmnvixfm00000l4045bi0uwjf",
       sourceRank: 0.4641,
     },

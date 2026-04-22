@@ -42,6 +42,15 @@ import {
 } from "../lib/publish-manifest.mjs";
 import { loadRegistryManifest } from "../lib/registry-manifest.mjs";
 import {
+  formatDatasetValidationLines,
+  validateDatasetCandidate,
+  validationPassesWithoutOverride,
+} from "../lib/dataset-validation.mjs";
+import {
+  evaluateStandaloneRegistryPolicy,
+  formatStandaloneRegistryPolicyLines,
+} from "../lib/registry-standalone-policy.mjs";
+import {
   getPackagedPersonalityArtifacts,
   installLinkedFile,
 } from "../lib/personality-package.mjs";
@@ -49,6 +58,10 @@ import {
   buildRuntimeStatus,
   formatRuntimeAttention,
 } from "../lib/runtime-status.mjs";
+import {
+  CANONICAL_PRODUCTION_BASE_URL,
+  normalizeAgentScienceBaseUrl,
+} from "../lib/base-url.mjs";
 import {
   getWorkspaceBase,
   initPaperWorkspace,
@@ -60,7 +73,8 @@ const VERSION = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 ).version;
 const DEFAULT_BASE_URL =
-  process.env.AGENTSCIENCE_BASE_URL ?? "https://agentscience.vercel.app";
+  normalizeAgentScienceBaseUrl(process.env.AGENTSCIENCE_BASE_URL) ??
+  CANONICAL_PRODUCTION_BASE_URL;
 const CONFIG_DIR = join(homedir(), ".config", "agentscience");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 const CODEX_RUNTIME = getCodexPaths({
@@ -115,6 +129,7 @@ Examples:
   agentscience runtime status --json
   agentscience research init --idea "Does fine-tuning improve sepsis prediction?"
   agentscience research run --idea "Adaptive sampling for outbreak triage" --workspace ./research-runs/outbreak --publish
+  agentscience registry validate --url https://example.org/data.csv --name "Example Dataset" --description "Open CSV"
   agentscience registry import --manifest ./docs/dataset-registry-bootstrap.json
 `;
 
@@ -417,21 +432,46 @@ Description:
 Subcommands:
   search       Search the dataset registry.
   list         List recent datasets in the registry.
+  validate     Validate whether a dataset looks openly usable before adding it.
   add          Add a dataset to the registry.
   import       Import a curated registry manifest.
 `,
   registrySearch: `Usage:
   agentscience registry search --query <text> [--limit <n>]
 `,
+  registryValidate: `Usage:
+  agentscience registry validate --url <url> --name <name> --description <text> [--short-name <text>] [--keyword <term>] [--provider-slug <slug>] [--topic-slug <slug>]
+  agentscience registry validate (--manifest <file>|--dataset-manifest <file>|--workspace <dir>)
+
+Description:
+  Runs the CLI's dataset usability checks without writing anything to the registry.
+  For single datasets, provide --url, --name, and --description. For batch validation,
+  point to either the curated registry manifest or the same publish manifest contract
+  accepted by agentscience papers publish. Standalone candidates (no sourcePaperId)
+  are also checked against the strict direct-ingest policy: canonical provider slug,
+  provider-matching canonical dataset URL, and explicit valid topic slugs.
+`,
   registryAdd: `Usage:
-  agentscience registry add --name <name> --url <url> --description <text> [--keyword <term>] [--source-paper-id <id>] [--source-rank <value>]
+  agentscience registry add --name <name> --url <url> --description <text> [--short-name <text>] [--keyword <term>] [--provider-slug <slug>] [--topic-slug <slug>] [--source-paper-id <id>] [--source-rank <value>]
+
+Description:
+  Validates that the dataset looks openly usable before writing it to the registry.
+  Standalone adds (no --source-paper-id) fail closed unless they use a canonical
+  provider slug, a provider-matching canonical dataset URL, and explicit valid
+  topic slugs. Paper-backed adds can still rely on source-paper context.
 `,
   registryImport: `Usage:
-  agentscience registry import --manifest <file> [--dry-run]
+  agentscience registry import (--manifest <file>|--dataset-manifest <file>|--workspace <dir>) [--dry-run]
 
 Description:
   Imports a curated JSON manifest of dataset entries into the registry.
-  The manifest must be a JSON object with version 1 and a datasets array.
+  --dataset-manifest and --workspace use the same publish contract as
+  agentscience papers publish, including the default ${DEFAULT_PUBLISH_MANIFEST_BASENAME}
+  workspace manifest lookup. --manifest keeps supporting the curated registry
+  manifest format, which is the same dataset structure plus optional source
+  paper metadata. Each candidate is validated for open usability before import.
+  Standalone entries (no sourcePaperId) must also satisfy the strict direct-ingest
+  policy and are skipped when they fail.
 
 Example:
   agentscience registry import --manifest ./docs/dataset-registry-bootstrap.json
@@ -464,6 +504,7 @@ function loadConfig() {
     };
     return {
       ...parsed,
+      baseUrl: normalizeAgentScienceBaseUrl(parsed.baseUrl),
       workspaceBase: getWorkspaceBase(parsed),
     };
   } catch {
@@ -473,7 +514,11 @@ function loadConfig() {
 
 function saveConfig(nextConfig) {
   mkdirSync(CONFIG_DIR, { recursive: true });
-  writeFileSync(CONFIG_PATH, `${JSON.stringify(nextConfig, null, 2)}\n`);
+  const normalizedConfig = {
+    ...nextConfig,
+    baseUrl: normalizeAgentScienceBaseUrl(nextConfig.baseUrl),
+  };
+  writeFileSync(CONFIG_PATH, `${JSON.stringify(normalizedConfig, null, 2)}\n`);
 }
 
 function loadJsonFile(filePath, fallback) {
@@ -507,6 +552,142 @@ async function confirmYesNo(question, { output = process.stderr, defaultValue = 
   }
 
   return answer === "y" || answer === "yes";
+}
+
+function isInteractiveShell() {
+  return Boolean(process.stdin.isTTY && process.stderr.isTTY);
+}
+
+function createRegistryDatasetCandidate({
+  name,
+  shortName,
+  url,
+  description,
+  keywords = [],
+  providerSlug,
+  topicSlugs = [],
+  registryEligible,
+  sourcePaperId,
+  sourceRank,
+}) {
+  return {
+    name,
+    shortName: shortName ?? undefined,
+    url,
+    description,
+    keywords,
+    providerSlug: providerSlug ?? undefined,
+    topicSlugs,
+    registryEligible,
+    sourcePaperId: sourcePaperId ?? undefined,
+    sourceRank: sourceRank ?? undefined,
+  };
+}
+
+function loadRegistryInputManifest({ manifestPath, datasetManifestPath, workspace }) {
+  const manifest =
+    datasetManifestPath || workspace
+      ? loadPublishManifest({
+          workspaceDir: workspace ? resolve(workspace) : undefined,
+          manifestPath: datasetManifestPath ?? undefined,
+        })
+      : loadRegistryManifest(manifestPath);
+
+  if (!manifest) {
+    fail(
+      workspace
+        ? `No ${DEFAULT_PUBLISH_MANIFEST_BASENAME} found in workspace ${resolve(workspace)}.`
+        : "Dataset manifest not found.",
+    );
+  }
+
+  return manifest;
+}
+
+async function validateRegistryDatasetCandidate(candidate) {
+  return validateDatasetCandidate(candidate);
+}
+
+async function validateRegistryDatasetCandidates(datasets) {
+  const validations = [];
+  for (const dataset of datasets) {
+    validations.push({
+      candidate: dataset,
+      validation: await validateRegistryDatasetCandidate(dataset),
+    });
+  }
+  return validations;
+}
+
+async function fetchRegistryProviderBySlug(providerSlug, baseUrl, cache) {
+  if (!providerSlug) {
+    return null;
+  }
+
+  if (cache.has(providerSlug)) {
+    return cache.get(providerSlug);
+  }
+
+  const result = await requestJson({
+    path: `/api/v1/registry/providers?q=${encodeURIComponent(providerSlug)}&limit=50`,
+    baseUrl,
+  });
+  const provider = (result.providers ?? []).find((entry) => entry?.slug === providerSlug) ?? null;
+  cache.set(providerSlug, provider);
+  return provider;
+}
+
+async function fetchRegistryTopicSlugSet(baseUrl, cache) {
+  if (cache.topicSlugs) {
+    return cache.topicSlugs;
+  }
+
+  const result = await requestJson({
+    path: "/api/v1/registry/topics?limit=500",
+    baseUrl,
+  });
+  cache.topicSlugs = new Set(
+    (result.topics ?? [])
+      .map((topic) => (typeof topic?.slug === "string" ? topic.slug : null))
+      .filter(Boolean),
+  );
+  return cache.topicSlugs;
+}
+
+async function evaluateRegistryStandalonePolicy(candidate, globalOptions, cache) {
+  if (candidate.sourcePaperId) {
+    return evaluateStandaloneRegistryPolicy({
+      candidate,
+      provider: null,
+      knownTopicSlugs: null,
+    });
+  }
+
+  const provider = candidate.providerSlug
+    ? await fetchRegistryProviderBySlug(candidate.providerSlug, globalOptions.baseUrl, cache.providers)
+    : null;
+  const knownTopicSlugs = await fetchRegistryTopicSlugSet(globalOptions.baseUrl, cache);
+
+  return evaluateStandaloneRegistryPolicy({
+    candidate,
+    provider,
+    knownTopicSlugs,
+  });
+}
+
+async function confirmValidationOverride(candidate, validation, actionLabel) {
+  process.stderr.write(
+    [
+      "",
+      `${actionLabel} review for ${candidate.name}:`,
+      ...formatDatasetValidationLines(validation),
+    ].join("\n") + "\n",
+  );
+
+  return confirmYesNo(
+    `Validation did not classify "${candidate.name}" as OPEN_USABLE. ${actionLabel} it anyway?`,
+    { output: process.stderr },
+  );
 }
 
 function openBrowser(url) {
@@ -585,10 +766,12 @@ function parseGlobalOptions(argv) {
   const help = hasFlag(argv, "--help") || hasFlag(argv, "-h");
   const version = hasFlag(argv, "--version") || hasFlag(argv, "-V");
   const baseUrl =
-    flagValue(argv, "--base-url") ??
-    process.env.AGENTSCIENCE_BASE_URL ??
-    loadConfig().baseUrl ??
-    DEFAULT_BASE_URL;
+    normalizeAgentScienceBaseUrl(
+      flagValue(argv, "--base-url") ??
+      process.env.AGENTSCIENCE_BASE_URL ??
+      loadConfig().baseUrl ??
+      DEFAULT_BASE_URL,
+    );
 
   const filtered = [];
   for (let index = 0; index < argv.length; index += 1) {
@@ -620,7 +803,10 @@ function parseGlobalOptions(argv) {
 }
 
 async function requestJson({ path, method = "GET", token, baseUrl, body, formData }) {
-  const response = await fetch(new URL(path, baseUrl), {
+  const requestUrl = /^https?:\/\//i.test(path)
+    ? new URL(path)
+    : new URL(path, normalizeAgentScienceBaseUrl(baseUrl));
+  const response = await fetch(requestUrl, {
     method,
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -638,7 +824,10 @@ async function requestJson({ path, method = "GET", token, baseUrl, body, formDat
 }
 
 async function requestBuffer({ path, token, baseUrl }) {
-  const response = await fetch(new URL(path, baseUrl), {
+  const requestUrl = /^https?:\/\//i.test(path)
+    ? new URL(path)
+    : new URL(path, normalizeAgentScienceBaseUrl(baseUrl));
+  const response = await fetch(requestUrl, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     redirect: "follow",
   });
@@ -657,6 +846,65 @@ async function requestBuffer({ path, token, baseUrl }) {
 function render(result, mode) {
   if (mode === "json") {
     console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  if (result?.validation?.status && !result?.dataset && !result?.datasets && !result?.imported) {
+    for (const line of formatDatasetValidationLines(result.validation)) {
+      console.log(line);
+    }
+    if (result.standalonePolicy) {
+      for (const line of formatStandaloneRegistryPolicyLines(result.standalonePolicy)) {
+        console.log(line);
+      }
+    }
+    return;
+  }
+
+  if (
+    result?.manifestPath &&
+    Array.isArray(result.datasets) &&
+    result.datasets.every((entry) => entry?.validation?.status)
+  ) {
+      console.log(`Manifest: ${result.manifestPath}`);
+      console.log(`Datasets: ${result.datasets.length}`);
+      if (Array.isArray(result.skipped) && result.skipped.length > 0) {
+        console.log(`Skipped: ${result.skipped.length}`);
+      }
+      for (const entry of result.datasets) {
+        console.log(`${entry.candidate.name}: ${entry.validation.status}`);
+        console.log(`  ${entry.validation.summary}`);
+        if (entry.standalonePolicy && !entry.standalonePolicy.ok) {
+          console.log(`  standalone policy: FAIL`);
+        }
+      }
+      return;
+    }
+
+  if (result?.dataset?.id && result?.validation?.status) {
+    for (const line of formatDatasetValidationLines(result.validation)) {
+      console.log(line);
+    }
+    if (result.standalonePolicy) {
+      for (const line of formatStandaloneRegistryPolicyLines(result.standalonePolicy)) {
+        console.log(line);
+      }
+    }
+    console.log(`Dataset: ${result.dataset.name} (${result.dataset.id})`);
+    console.log(`Created: ${result.created !== false ? "yes" : "no"}`);
+    if (result.validationOverrideAccepted) {
+      console.log("Validation override: accepted");
+    }
+    return;
+  }
+
+  if (result?.manifestPath && Array.isArray(result.imported)) {
+    console.log(`Manifest: ${result.manifestPath}`);
+    console.log(`Imported: ${result.imported.length}`);
+    console.log(`Skipped: ${Array.isArray(result.skipped) ? result.skipped.length : 0}`);
+    if (typeof result.alreadyRegisteredCount === "number") {
+      console.log(`Already registered: ${result.alreadyRegisteredCount}`);
+    }
     return;
   }
 
@@ -1107,14 +1355,26 @@ async function handlePapers(args, globalOptions, config) {
         skipped: [],
       };
     } else if (datasetManifest?.datasets.length) {
-      const checked = await checkRegistryCandidates({
-        datasets: datasetManifest.datasets,
-        token,
-        baseUrl: globalOptions.baseUrl,
-      });
+      const eligibleDatasets = datasetManifest.datasets.filter(
+        (dataset) => dataset.registryEligible !== false,
+      );
+      const ineligibleDatasets = datasetManifest.datasets.filter(
+        (dataset) => dataset.registryEligible === false,
+      );
+      const checked =
+        eligibleDatasets.length > 0
+          ? await checkRegistryCandidates({
+              datasets: eligibleDatasets,
+              token,
+              baseUrl: globalOptions.baseUrl,
+            })
+          : { datasets: [] };
       const proposals = checked.datasets.filter((entry) => entry.status !== "registered");
       const added = [];
-      const skipped = [];
+      const skipped = ineligibleDatasets.map((dataset) => ({
+        name: dataset.name,
+        reason: "registry-ineligible",
+      }));
 
       for (const proposal of proposals) {
         let approved = autoAddDatasets;
@@ -1628,32 +1888,178 @@ async function handleRegistry(args, globalOptions, config) {
     return;
   }
 
+  if (subcommand === "validate") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.registryValidate);
+      return;
+    }
+    const standalonePolicyCache = {
+      providers: new Map(),
+      topicSlugs: null,
+    };
+
+    const name = flagValue(rest, "--name");
+    const shortName = flagValue(rest, "--short-name");
+    const url = flagValue(rest, "--url");
+    const description = flagValue(rest, "--description");
+    const keywords = takeFlag(rest, "--keyword").values.filter(Boolean);
+    const providerSlug = flagValue(rest, "--provider-slug");
+    const topicSlugs = takeFlag(rest, "--topic-slug").values.filter(Boolean);
+    const manifestPath = flagValue(rest, "--manifest");
+    const datasetManifestPath = flagValue(rest, "--dataset-manifest");
+    const workspace = flagValue(rest, "--workspace");
+
+    if (url && (manifestPath || datasetManifestPath || workspace)) {
+      fail(
+        "registry validate accepts either a single dataset (--url, --name, --description) or a manifest source (--manifest, --dataset-manifest, --workspace), but not both.",
+      );
+    }
+
+    if (url) {
+      if (!name || !description) {
+        fail("registry validate requires --url, --name, and --description for single-dataset validation.");
+      }
+
+      const candidate = createRegistryDatasetCandidate({
+        name,
+        shortName,
+        url,
+        description,
+        keywords,
+        providerSlug,
+        topicSlugs,
+      });
+      const validation = await validateRegistryDatasetCandidate(candidate);
+      const standalonePolicy = await evaluateRegistryStandalonePolicy(
+        candidate,
+        globalOptions,
+        standalonePolicyCache,
+      );
+      render({ candidate, validation, standalonePolicy }, globalOptions.outputMode);
+      return;
+    }
+
+    if (!manifestPath && !datasetManifestPath && !workspace) {
+      fail(
+        "registry validate requires either --url with dataset fields, or --manifest, --dataset-manifest, or --workspace.",
+      );
+    }
+
+    const manifest = loadRegistryInputManifest({
+      manifestPath,
+      datasetManifestPath,
+      workspace,
+    });
+    const eligibleDatasets = manifest.datasets.filter((dataset) => dataset.registryEligible !== false);
+    const ineligibleDatasets = manifest.datasets
+      .filter((dataset) => dataset.registryEligible === false)
+      .map((dataset) => ({
+        name: dataset.name,
+        reason: "registry-ineligible",
+      }));
+    const datasets = await validateRegistryDatasetCandidates(eligibleDatasets);
+    const datasetsWithPolicy = [];
+    for (const entry of datasets) {
+      datasetsWithPolicy.push({
+        ...entry,
+        standalonePolicy: await evaluateRegistryStandalonePolicy(
+          entry.candidate,
+          globalOptions,
+          standalonePolicyCache,
+        ),
+      });
+    }
+
+    render(
+      {
+        manifestPath: manifest.manifestPath,
+        total: manifest.datasets.length,
+        skipped: ineligibleDatasets,
+        datasets: datasetsWithPolicy,
+      },
+      globalOptions.outputMode,
+    );
+    return;
+  }
+
   if (subcommand === "add") {
     if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
       console.log(HELP.registryAdd);
       return;
     }
-    const token = requireToken(config);
+    const standalonePolicyCache = {
+      providers: new Map(),
+      topicSlugs: null,
+    };
     const name = flagValue(rest, "--name");
+    const shortName = flagValue(rest, "--short-name");
     const url = flagValue(rest, "--url");
     const description = flagValue(rest, "--description");
     const keywords = takeFlag(rest, "--keyword").values.filter(Boolean);
+    const providerSlug = flagValue(rest, "--provider-slug");
+    const topicSlugs = takeFlag(rest, "--topic-slug").values.filter(Boolean);
     const sourcePaperId = flagValue(rest, "--source-paper-id");
     const sourceRank = flagValue(rest, "--source-rank");
     if (!name || !url || !description) {
       fail("registry add requires --name, --url, and --description.");
     }
+    const candidate = createRegistryDatasetCandidate({
+      name,
+      shortName,
+      url,
+      description,
+      keywords,
+      providerSlug,
+      topicSlugs,
+      sourcePaperId,
+      sourceRank: sourceRank ? Number(sourceRank) : undefined,
+    });
+    const validation = await validateRegistryDatasetCandidate(candidate);
+    const standalonePolicy = await evaluateRegistryStandalonePolicy(
+      candidate,
+      globalOptions,
+      standalonePolicyCache,
+    );
+    let validationOverrideAccepted = false;
+
+    if (!standalonePolicy.ok) {
+      fail(formatStandaloneRegistryPolicyLines(standalonePolicy).join("\n"));
+    }
+
+    if (!validationPassesWithoutOverride(validation)) {
+      if (!candidate.sourcePaperId || !isInteractiveShell()) {
+        fail(
+          [
+            ...formatDatasetValidationLines(validation),
+            candidate.sourcePaperId
+              ? "Non-interactive registry add only accepts OPEN_USABLE datasets."
+              : "Standalone registry add only accepts OPEN_USABLE datasets.",
+            "Run `agentscience registry validate` to inspect the candidate.",
+          ].join("\n"),
+        );
+      }
+
+      const approved = await confirmValidationOverride(candidate, validation, "Registry add");
+      if (!approved) {
+        fail("Registry add aborted.");
+      }
+      validationOverrideAccepted = true;
+    }
+
+    const token = requireToken(config);
+    const result = await addToRegistry({
+      ...candidate,
+      token,
+      baseUrl: globalOptions.baseUrl,
+    });
+
     render(
-      await addToRegistry({
-        name,
-        url,
-        description,
-        keywords,
-        sourcePaperId,
-        sourceRank: sourceRank ? Number(sourceRank) : undefined,
-        token,
-        baseUrl: globalOptions.baseUrl,
-      }),
+      {
+        ...result,
+        validation,
+        standalonePolicy,
+        validationOverrideAccepted,
+      },
       globalOptions.outputMode
     );
     return;
@@ -1664,19 +2070,59 @@ async function handleRegistry(args, globalOptions, config) {
       console.log(HELP.registryImport);
       return;
     }
-    const token = requireToken(config);
+    const standalonePolicyCache = {
+      providers: new Map(),
+      topicSlugs: null,
+    };
     const manifestPath = flagValue(rest, "--manifest");
+    const datasetManifestPath = flagValue(rest, "--dataset-manifest");
+    const workspace = flagValue(rest, "--workspace");
     const dryRun = hasFlag(rest, "--dry-run");
-    if (!manifestPath) {
-      fail("registry import requires --manifest.");
+    if (!manifestPath && !datasetManifestPath && !workspace) {
+      fail("registry import requires --manifest, --dataset-manifest, or --workspace.");
     }
 
-    const manifest = loadRegistryManifest(manifestPath);
-    const check = await checkRegistryCandidates({
-      datasets: manifest.datasets,
-      token,
-      baseUrl: globalOptions.baseUrl,
+    const manifest = loadRegistryInputManifest({
+      manifestPath,
+      datasetManifestPath,
+      workspace,
     });
+    const eligibleDatasets = manifest.datasets.filter((dataset) => dataset.registryEligible !== false);
+    const ineligibleDatasets = manifest.datasets
+      .filter((dataset) => dataset.registryEligible === false)
+      .map((dataset) => ({
+        name: dataset.name,
+        reason: "registry-ineligible",
+      }));
+    const token = dryRun ? config.token ?? process.env.AGENTSCIENCE_TOKEN : requireToken(config);
+    const check =
+      eligibleDatasets.length > 0
+        ? await checkRegistryCandidates({
+            datasets: eligibleDatasets,
+            token,
+            baseUrl: globalOptions.baseUrl,
+          })
+        : { datasets: [] };
+    const validations = await validateRegistryDatasetCandidates(eligibleDatasets);
+    const checkedDatasets = eligibleDatasets.map((dataset, index) => ({
+      ...(check.datasets[index] ?? {
+        candidate: dataset,
+        status: "new",
+        matches: [],
+      }),
+      validation: validations[index]?.validation,
+    }));
+    const checkedDatasetsWithPolicy = [];
+    for (const dataset of checkedDatasets) {
+      checkedDatasetsWithPolicy.push({
+        ...dataset,
+        standalonePolicy: await evaluateRegistryStandalonePolicy(
+          dataset.candidate,
+          globalOptions,
+          standalonePolicyCache,
+        ),
+      });
+    }
 
     if (dryRun) {
       render(
@@ -1684,7 +2130,8 @@ async function handleRegistry(args, globalOptions, config) {
           manifestPath: manifest.manifestPath,
           dryRun: true,
           total: manifest.datasets.length,
-          datasets: check.datasets,
+          skipped: ineligibleDatasets,
+          datasets: checkedDatasetsWithPolicy,
         },
         globalOptions.outputMode,
       );
@@ -1692,18 +2139,61 @@ async function handleRegistry(args, globalOptions, config) {
     }
 
     const imported = [];
-    for (const dataset of manifest.datasets) {
+    const skipped = [...ineligibleDatasets];
+    for (const dataset of checkedDatasetsWithPolicy) {
+      let validationOverrideAccepted = false;
+
+      if (!dataset.standalonePolicy.ok) {
+        skipped.push({
+          name: dataset.candidate.name,
+          reason: "policy-failed",
+          policyErrors: dataset.standalonePolicy.errors,
+        });
+        continue;
+      }
+
+      if (!validationPassesWithoutOverride(dataset.validation)) {
+        if (!dataset.candidate.sourcePaperId || !isInteractiveShell()) {
+          skipped.push({
+            name: dataset.candidate.name,
+            reason: "validation-failed",
+            validationStatus: dataset.validation.status,
+            validationSummary: dataset.validation.summary,
+          });
+          continue;
+        }
+
+        const approved = await confirmValidationOverride(
+          dataset.candidate,
+          dataset.validation,
+          "Registry import",
+        );
+        if (!approved) {
+          skipped.push({
+            name: dataset.candidate.name,
+            reason: "validation-declined",
+            validationStatus: dataset.validation.status,
+            validationSummary: dataset.validation.summary,
+          });
+          continue;
+        }
+
+        validationOverrideAccepted = true;
+      }
+
       imported.push(
-        await addToRegistry({
-          name: dataset.name,
-          url: dataset.url,
-          description: dataset.description,
-          keywords: dataset.keywords,
-          sourcePaperId: dataset.sourcePaperId ?? undefined,
-          sourceRank: dataset.sourceRank ?? undefined,
-          token,
-          baseUrl: globalOptions.baseUrl,
-        }),
+        {
+          ...(await addToRegistry({
+            ...dataset.candidate,
+            token,
+            baseUrl: globalOptions.baseUrl,
+          })),
+          checkStatus: dataset.status,
+          matches: dataset.matches,
+          validation: dataset.validation,
+          standalonePolicy: dataset.standalonePolicy,
+          validationOverrideAccepted,
+        },
       );
     }
 
@@ -1712,6 +2202,9 @@ async function handleRegistry(args, globalOptions, config) {
         manifestPath: manifest.manifestPath,
         dryRun: false,
         total: manifest.datasets.length,
+        alreadyRegisteredCount: checkedDatasetsWithPolicy.filter((entry) => entry.status === "registered")
+          .length,
+        skipped,
         imported,
       },
       globalOptions.outputMode,
@@ -1766,7 +2259,10 @@ async function startDeviceAuthorization(globalOptions, tokenName) {
   }
 
   const pollUrl = new URL(device.pollUrl);
-  const pollPath = `${pollUrl.pathname}${pollUrl.search}`;
+  const pollRequestUrl = pollUrl.toString();
+  const resolvedDeviceBaseUrl = normalizeAgentScienceBaseUrl(
+    device.verificationUrl ? new URL(device.verificationUrl).origin : pollUrl.origin,
+  );
   const startedAt = Date.now();
   const timeoutMs = 10 * 60 * 1000;
 
@@ -1774,14 +2270,14 @@ async function startDeviceAuthorization(globalOptions, tokenName) {
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
     const result = await requestJson({
-      path: pollPath,
-      baseUrl: globalOptions.baseUrl,
+      path: pollRequestUrl,
+      baseUrl: resolvedDeviceBaseUrl,
     });
 
     if (result.status === "complete" && result.token) {
       saveConfig({
         ...loadConfig(),
-        baseUrl: globalOptions.baseUrl,
+        baseUrl: resolvedDeviceBaseUrl,
         token: result.token,
       });
       return result.token;

@@ -10,10 +10,15 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, copyFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  CANONICAL_PRODUCTION_BASE_URL,
+  normalizeAgentScienceBaseUrl,
+} from "./base-url.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_BASE_URL =
-  process.env.AGENTSCIENCE_BASE_URL ?? "https://agentscience.vercel.app";
+  normalizeAgentScienceBaseUrl(process.env.AGENTSCIENCE_BASE_URL) ??
+  CANONICAL_PRODUCTION_BASE_URL;
 
 function runCommand(command, args, options = {}) {
   return execFileSync(command, args, {
@@ -24,7 +29,7 @@ function runCommand(command, args, options = {}) {
 }
 
 async function requestJson(path, { method = "GET", token, body, baseUrl = DEFAULT_BASE_URL } = {}) {
-  const response = await fetch(new URL(path, baseUrl), {
+  const response = await fetch(new URL(path, normalizeAgentScienceBaseUrl(baseUrl)), {
     method,
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -177,12 +182,14 @@ export async function listRegistry({ limit = 20, token, baseUrl } = {}) {
 
 export async function addToRegistry({
   name,
+  shortName,
   url,
   description,
   domain,
   keywords,
   providerSlug,
   topicSlugs,
+  registryEligible,
   sourcePaperId,
   sourceRank,
   token,
@@ -194,12 +201,14 @@ export async function addToRegistry({
     baseUrl,
     body: {
       name,
+      shortName,
       url,
       description,
       domain,
       keywords,
       providerSlug,
       topicSlugs,
+      registryEligible,
       sourcePaperId,
       sourceRank,
     },

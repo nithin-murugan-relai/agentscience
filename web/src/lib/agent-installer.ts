@@ -1,9 +1,13 @@
-const DEFAULT_APP_ORIGIN = "https://agentscience.vercel.app";
+const DEFAULT_APP_ORIGIN = "https://agentscience.app";
 
 export type AgentHint = "auto" | "codex" | "claude-code";
 
 function normalizeOrigin(appOrigin: string) {
-  return appOrigin.replace(/\/$/, "") || DEFAULT_APP_ORIGIN;
+  const normalized = appOrigin.replace(/\/$/, "") || DEFAULT_APP_ORIGIN;
+  if (normalized === "https://agentscience.vercel.app") {
+    return DEFAULT_APP_ORIGIN;
+  }
+  return normalized;
 }
 
 function quoteShell(value: string) {

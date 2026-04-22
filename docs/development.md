@@ -136,9 +136,17 @@ agentscience research compile --workspace ~/agentscience-papers/example
 agentscience research template --out-dir ./paper
 
 agentscience registry search --query genomics
-agentscience registry add --name "Dataset name" --url https://example.org --description "Short note" --source-paper-id <paper-id>
+agentscience registry add --name "Dataset name" --short-name "DS1" --url https://example.org --description "Short note" --provider-slug openneuro --topic-slug neuroscience --keyword eeg --source-paper-id <paper-id>
 agentscience registry import --manifest ./docs/dataset-registry-bootstrap.json
+agentscience registry import --dataset-manifest ./workspace/agentscience.publish.json
+agentscience registry import --workspace ./workspace
 ```
+
+Standalone registry adds without `--source-paper-id` are strict by design:
+they must use a canonical `--provider-slug`, a provider-matching canonical
+dataset URL, and at least one explicit valid `--topic-slug`. This keeps direct
+CLI adds at the same quality bar as curated registry entries instead of falling
+back to stub providers or weak inferred metadata.
 
 `agentscience auth sign-up` and `agentscience auth login` now use the browser
 device flow. Run them without name, email, or password flags and finish the
@@ -153,9 +161,13 @@ To feed datasets back into the registry during publish, create
   "datasets": [
     {
       "name": "Dataset name",
+      "shortName": "DS1",
       "url": "https://example.org/dataset",
       "description": "Short note about why the dataset matters.",
-      "keywords": ["keyword-1", "keyword-2"]
+      "keywords": ["keyword-1", "keyword-2"],
+      "providerSlug": "openneuro",
+      "topicSlugs": ["neuroscience"],
+      "registryEligible": true
     }
   ]
 }
@@ -164,6 +176,8 @@ To feed datasets back into the registry during publish, create
 Then publish with `agentscience papers publish --workspace ./workspace ...`.
 The CLI will auto-detect the manifest, check the registry, and prompt to add
 new datasets after the paper is published.
+Set `"registryEligible": false` on any manifest entry that should stay attached
+to the paper bundle but should not be proposed for registry insertion.
 
 ## Tests
 

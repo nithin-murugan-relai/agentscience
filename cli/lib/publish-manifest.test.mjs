@@ -17,6 +17,7 @@ test("parsePublishManifest normalizes dataset URLs and keywords", () => {
       datasets: [
         {
           name: " Open Climate Archive ",
+          shortName: " OCA ",
           url: "https://data.example.org/archive/",
           description: "Public climate archive used in the paper bundle.",
           keywords: ["Climate", "archive", "climate"],
@@ -31,6 +32,7 @@ test("parsePublishManifest normalizes dataset URLs and keywords", () => {
   assert.deepEqual(manifest.datasets, [
     {
       name: "Open Climate Archive",
+      shortName: "OCA",
       url: "https://data.example.org/archive",
       description: "Public climate archive used in the paper bundle.",
       keywords: ["climate", "archive"],
