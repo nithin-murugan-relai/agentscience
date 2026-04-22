@@ -5,6 +5,7 @@ import { getApiUser, unauthorizedJson } from "@/lib/api-auth";
 import { getDatasetRegistry } from "@/lib/datasets";
 import {
   createDatasetRegistryEntry,
+  DatasetRegistryValidationError,
   datasetRegistryCandidateSchema,
 } from "@/lib/dataset-registry";
 import { parsePositiveInt } from "@/lib/public-api";
@@ -71,10 +72,12 @@ export async function GET(request: Request) {
  * Body: { name, shortName?, url, description, keywords?, providerSlug?,
  *         topicSlugs?, sourcePaperId?, sourceRank? }
  *
- * If providerSlug is omitted, the dataset auto-links to the provider matching
- * its URL domain (creating a stub provider row if none exists).
+ * Standalone adds (no sourcePaperId) are strict: they must supply a canonical
+ * providerSlug, a URL that matches that provider's dataset URL template, and
+ * explicit valid topicSlugs. Paper-backed adds may still infer provider/topic
+ * context from the source paper as part of publish-time registry sync.
  *
- * If topicSlugs is omitted, AgentScience infers topics from the dataset
+ * If topicSlugs is omitted for a paper-backed add, AgentScience infers topics from the dataset
  * metadata plus any linked source-paper context, then falls back to provider
  * topics only when they are the best available signal. Unknown topic slugs are
  * dropped (not auto-created) — agents must propose new topics via
@@ -106,12 +109,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await createDatasetRegistryEntry({
-    userId: user.id,
-    dataset: parsed.data,
-    sourcePaperId: parsed.data.sourcePaperId ?? null,
-    sourceRank: parsed.data.sourceRank ?? null,
-  });
+  let result;
+  try {
+    result = await createDatasetRegistryEntry({
+      userId: user.id,
+      dataset: parsed.data,
+      sourcePaperId: parsed.data.sourcePaperId ?? null,
+      sourceRank: parsed.data.sourceRank ?? null,
+    });
+  } catch (error) {
+    if (error instanceof DatasetRegistryValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
+  }
 
   return NextResponse.json(
     {

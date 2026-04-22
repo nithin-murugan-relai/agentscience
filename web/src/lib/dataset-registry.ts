@@ -127,6 +127,25 @@ export type DatasetRegistryCheckResult = {
   }>;
 };
 
+type DatasetProviderValidationRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  domain: string;
+  searchKind: string | null;
+  searchEndpoint: string | null;
+  searchQueryTemplate: string | null;
+  datasetUrlTemplate: string | null;
+  agentInstructions: string | null;
+};
+
+export class DatasetRegistryValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DatasetRegistryValidationError";
+  }
+}
+
 function normalizeWhitespace(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -228,6 +247,156 @@ function normalizeTopicSlugs(values: string[] | undefined): string[] {
   return [...new Set(parsed.data.filter((slug) => slug.length > 0))];
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isCanonicalDatasetProvider(provider: DatasetProviderValidationRecord | null | undefined) {
+  return Boolean(
+    provider?.searchKind &&
+      provider.searchEndpoint &&
+      provider.searchQueryTemplate &&
+      provider.datasetUrlTemplate &&
+      provider.agentInstructions,
+  );
+}
+
+function normalizeUrlForProviderComparison(value: string, providerDomain: string) {
+  const parsed = new URL(normalizeDatasetUrl(value));
+  parsed.hostname = providerDomain;
+  return parsed.toString();
+}
+
+function extractProviderDatasetIdentifiers(
+  template: string,
+  datasetUrl: string,
+  providerDomain: string,
+) {
+  const tokenizedTemplate = template.replace(/\{([a-zA-Z][a-zA-Z0-9_]*)\}/g, (_, token) => {
+    return `__TOKEN_${token}__`;
+  });
+  const normalizedTemplate = normalizeUrlForProviderComparison(tokenizedTemplate, providerDomain);
+  const normalizedDatasetUrl = normalizeUrlForProviderComparison(datasetUrl, providerDomain);
+  const patternSource = escapeRegex(normalizedTemplate).replace(
+    /__TOKEN_([A-Za-z0-9_]+)__/g,
+    (_, token) => `(?<${token}>.+?)`,
+  );
+  const match = new RegExp(`^${patternSource}$`, "i").exec(normalizedDatasetUrl);
+  if (!match?.groups) {
+    return null;
+  }
+
+  const identifiers = Object.fromEntries(
+    Object.entries(match.groups)
+      .map(([key, value]) => [key, decodeURIComponent(value)])
+      .filter(([, value]) => typeof value === "string" && value.trim().length > 0),
+  );
+
+  return Object.keys(identifiers).length > 0 ? identifiers : null;
+}
+
+async function findDatasetProviderBySlug(slug: string) {
+  return prisma.datasetProvider.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      domain: true,
+      searchKind: true,
+      searchEndpoint: true,
+      searchQueryTemplate: true,
+      datasetUrlTemplate: true,
+      agentInstructions: true,
+    },
+  });
+}
+
+async function findDatasetProviderByDomain(domain: string) {
+  return prisma.datasetProvider.findUnique({
+    where: { domain },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      domain: true,
+      searchKind: true,
+      searchEndpoint: true,
+      searchQueryTemplate: true,
+      datasetUrlTemplate: true,
+      agentInstructions: true,
+    },
+  });
+}
+
+async function enforceStandaloneDatasetRegistryPolicy(input: {
+  candidate: DatasetRegistryCheckResult["candidate"];
+}) {
+  const { candidate } = input;
+
+  if (!candidate.providerSlug) {
+    throw new DatasetRegistryValidationError(
+      "Standalone dataset registry adds require --provider-slug and it must reference a canonical provider.",
+    );
+  }
+
+  const provider = await findDatasetProviderBySlug(candidate.providerSlug);
+  if (!provider) {
+    throw new DatasetRegistryValidationError(
+      `Unknown providerSlug '${candidate.providerSlug}'. Use a canonical dataset provider slug from the provider catalog.`,
+    );
+  }
+
+  if (!isCanonicalDatasetProvider(provider)) {
+    throw new DatasetRegistryValidationError(
+      `Provider '${provider.slug}' is not a canonical dataset provider yet, so standalone registry adds are blocked for it.`,
+    );
+  }
+
+  if (normalizeDatasetDomainFromUrl(candidate.url) !== provider.domain) {
+    throw new DatasetRegistryValidationError(
+      `Dataset URL domain '${candidate.domain}' does not match the canonical provider domain '${provider.domain}'.`,
+    );
+  }
+
+  const identifiers = extractProviderDatasetIdentifiers(
+    provider.datasetUrlTemplate!,
+    candidate.url,
+    provider.domain,
+  );
+  if (!identifiers) {
+    throw new DatasetRegistryValidationError(
+      `Dataset URL does not match provider '${provider.slug}' URL template '${provider.datasetUrlTemplate}'. Use a canonical dataset page URL, not an ad hoc export or query result.`,
+    );
+  }
+
+  if (candidate.topicSlugs.length === 0) {
+    throw new DatasetRegistryValidationError(
+      "Standalone dataset registry adds require at least one explicit --topic-slug.",
+    );
+  }
+
+  if (candidate.unknownTopicSlugs.length > 0) {
+    throw new DatasetRegistryValidationError(
+      `Unknown topic slug(s): ${candidate.unknownTopicSlugs.join(", ")}.`,
+    );
+  }
+
+  const resolvedTopics = await resolveTopicIds(candidate.topicSlugs);
+  if (resolvedTopics.ids.length === 0) {
+    throw new DatasetRegistryValidationError(
+      "Standalone dataset registry adds require at least one valid explicit topic slug.",
+    );
+  }
+
+  return {
+    providerId: provider.id,
+    topicConnect: resolvedTopics.ids.map((id) => ({ id })),
+    provider,
+    identifiers,
+  };
+}
+
 /**
  * Resolve the provider a dataset should be linked to on create.
  * Priority: explicit providerSlug → provider matching domain → auto-create a
@@ -240,17 +409,11 @@ async function resolveProviderIdForCandidate(input: {
 }): Promise<string | null> {
   const normalizedDomain = input.domain.toLowerCase();
   if (input.providerSlug) {
-    const bySlug = await prisma.datasetProvider.findUnique({
-      where: { slug: input.providerSlug },
-      select: { id: true },
-    });
+    const bySlug = await findDatasetProviderBySlug(input.providerSlug);
     if (bySlug) return bySlug.id;
   }
 
-  const byDomain = await prisma.datasetProvider.findUnique({
-    where: { domain: normalizedDomain },
-    select: { id: true },
-  });
+  const byDomain = await findDatasetProviderByDomain(normalizedDomain);
   if (byDomain) return byDomain.id;
 
   if (!normalizedDomain) return null;
@@ -419,29 +582,41 @@ export async function createDatasetRegistryEntry(input: {
     };
   }
 
-  const providerId = await resolveProviderIdForCandidate({
-    providerSlug: checked.candidate.providerSlug,
-    domain: checked.candidate.domain,
-  });
+  const isStandaloneAdd = !input.sourcePaperId;
 
-  // Resolve topics: explicit slugs take precedence. Otherwise classify from
-  // the dataset metadata (name/description/keywords plus source-paper context)
-  // and only fall back to provider topics when they are the best signal.
+  let providerId: string | null;
   let topicConnect: Array<{ id: string }> = [];
-  if (checked.candidate.topicSlugs.length > 0) {
-    const resolved = await resolveTopicIds(checked.candidate.topicSlugs);
-    topicConnect = resolved.ids.map((id) => ({ id }));
-  } else {
-    const inferredTopicIds = await inferDatasetTopicIdsForCandidate({
-      name: checked.candidate.name,
-      shortName: checked.candidate.shortName,
-      description: checked.candidate.description,
-      keywords: checked.candidate.keywords,
-      domain: checked.candidate.domain,
-      providerId,
-      sourcePaperId: input.sourcePaperId ?? null,
+
+  if (isStandaloneAdd) {
+    const standalonePolicy = await enforceStandaloneDatasetRegistryPolicy({
+      candidate: checked.candidate,
     });
-    topicConnect = inferredTopicIds.map((id) => ({ id }));
+    providerId = standalonePolicy.providerId;
+    topicConnect = standalonePolicy.topicConnect;
+  } else {
+    providerId = await resolveProviderIdForCandidate({
+      providerSlug: checked.candidate.providerSlug,
+      domain: checked.candidate.domain,
+    });
+
+    // Resolve topics: explicit slugs take precedence. Otherwise classify from
+    // the dataset metadata (name/description/keywords plus source-paper context)
+    // and only fall back to provider topics when they are the best signal.
+    if (checked.candidate.topicSlugs.length > 0) {
+      const resolved = await resolveTopicIds(checked.candidate.topicSlugs);
+      topicConnect = resolved.ids.map((id) => ({ id }));
+    } else {
+      const inferredTopicIds = await inferDatasetTopicIdsForCandidate({
+        name: checked.candidate.name,
+        shortName: checked.candidate.shortName,
+        description: checked.candidate.description,
+        keywords: checked.candidate.keywords,
+        domain: checked.candidate.domain,
+        providerId,
+        sourcePaperId: input.sourcePaperId ?? null,
+      });
+      topicConnect = inferredTopicIds.map((id) => ({ id }));
+    }
   }
 
   const created = await prisma.datasetEntry.create({

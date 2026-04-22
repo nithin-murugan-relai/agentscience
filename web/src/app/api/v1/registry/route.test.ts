@@ -149,6 +149,15 @@ test("GET /api/v1/registry resolves public source paper metadata", async () => {
 
 test("POST /api/v1/registry stores a normalized hostname from the validated URL", async () => {
   const { token, user } = await createApiUserWithToken();
+  const paper = await prisma.paper.create({
+    data: {
+      slug: "normalized-hostname-registry-test",
+      title: "Normalized Hostname Registry Test",
+      abstract: "Paper-backed add used to verify that the API derives its own trusted hostname.",
+      markdown: "# Methods",
+      visibility: "PUBLIC",
+    },
+  });
   const response = await postRegistryRoute(
     new Request("http://localhost/api/v1/registry", {
       method: "POST",
@@ -162,6 +171,7 @@ test("POST /api/v1/registry stores a normalized hostname from the validated URL"
         domain: "wrong.example.org",
         description: "Public climate archive used to verify that the API derives its own trusted hostname.",
         keywords: ["Climate", "climate", "archive"],
+        sourcePaperId: paper.id,
       }),
     })
   );
@@ -178,8 +188,16 @@ test("POST /api/v1/registry stores a normalized hostname from the validated URL"
   assert.deepEqual(stored.keywords, ["climate", "archive"]);
 });
 
-test("POST /api/v1/registry auto-links a new dataset to the existing provider for its domain", async () => {
+test("POST /api/v1/registry accepts a standalone add only when providerSlug is canonical and topics are explicit", async () => {
   const { token, user } = await createApiUserWithToken();
+  const neuroscience = await prisma.datasetTopic.create({
+    data: {
+      slug: "neuroscience",
+      name: "Neuroscience",
+      area: "LIFE_SCIENCES",
+      status: "ACTIVE",
+    },
+  });
 
   const provider = await prisma.datasetProvider.create({
     data: {
@@ -191,7 +209,7 @@ test("POST /api/v1/registry auto-links a new dataset to the existing provider fo
       searchKind: "GRAPHQL",
       searchEndpoint: "https://openneuro.org/crn/graphql",
       searchQueryTemplate: "query { datasets(search: {{query}}) { ... } }",
-      datasetUrlTemplate: "https://openneuro.org/datasets/{{accession}}",
+      datasetUrlTemplate: "https://openneuro.org/datasets/{accession}",
       agentInstructions: "Use GraphQL to search.",
     },
   });
@@ -207,6 +225,8 @@ test("POST /api/v1/registry auto-links a new dataset to the existing provider fo
         name: "OpenNeuro ds099999",
         url: "https://openneuro.org/datasets/ds099999",
         description: "A newly registered OpenNeuro dataset used to verify provider auto-linking.",
+        providerSlug: "openneuro",
+        topicSlugs: ["neuroscience"],
       }),
     }),
   );
@@ -221,20 +241,35 @@ test("POST /api/v1/registry auto-links a new dataset to the existing provider fo
 
   const stored = await prisma.datasetEntry.findFirstOrThrow({
     where: { addedBy: user.id },
+    include: { topics: { select: { id: true } } },
   });
   assert.equal(stored.providerId, provider.id);
+  assert.deepEqual(stored.topics.map((topic) => topic.id), [neuroscience.id]);
 });
 
-test("POST /api/v1/registry honors explicit providerSlug when supplied", async () => {
+test("POST /api/v1/registry rejects standalone adds whose URL does not match the canonical provider template", async () => {
   const { token } = await createApiUserWithToken();
+  await prisma.datasetTopic.create({
+    data: {
+      slug: "machine-learning",
+      name: "Machine Learning",
+      area: "COMPUTING_ENGINEERING",
+      status: "ACTIVE",
+    },
+  });
 
-  const provider = await prisma.datasetProvider.create({
+  await prisma.datasetProvider.create({
     data: {
       slug: "huggingface",
       name: "Hugging Face Datasets",
       homeUrl: "https://huggingface.co",
       domain: "huggingface.co",
       description: "ML dataset hub.",
+      searchKind: "REST",
+      searchEndpoint: "https://huggingface.co/api/datasets",
+      searchQueryTemplate: "https://huggingface.co/api/datasets?search={q}",
+      datasetUrlTemplate: "https://huggingface.co/datasets/{datasetId}",
+      agentInstructions: "Use the public REST dataset search endpoint.",
     },
   });
 
@@ -250,18 +285,26 @@ test("POST /api/v1/registry honors explicit providerSlug when supplied", async (
         url: "https://mirror.example.com/datasets/squad",
         description: "A dataset mirrored on an unrelated host but conceptually hosted by HuggingFace.",
         providerSlug: "huggingface",
+        topicSlugs: ["machine-learning"],
       }),
     }),
   );
 
-  assert.equal(response.status, 201);
+  assert.equal(response.status, 400);
   const payload = await response.json();
-  assert.equal(payload.dataset.provider?.id, provider.id);
-  assert.equal(payload.dataset.provider?.slug, "huggingface");
+  assert.match(payload.error, /canonical provider domain/i);
 });
 
-test("POST /api/v1/registry falls back to domain-based provider linking when providerSlug is unknown", async () => {
+test("POST /api/v1/registry rejects standalone adds when providerSlug is unknown", async () => {
   const { token } = await createApiUserWithToken();
+  await prisma.datasetTopic.create({
+    data: {
+      slug: "interdisciplinary",
+      name: "Interdisciplinary",
+      area: "OTHER",
+      status: "ACTIVE",
+    },
+  });
 
   const response = await postRegistryRoute(
     new Request("http://localhost/api/v1/registry", {
@@ -274,17 +317,16 @@ test("POST /api/v1/registry falls back to domain-based provider linking when pro
         name: "Dataset on fresh domain",
         url: "https://fresh-domain.example.org/datasets/foo",
         description:
-          "Unknown providerSlug should not block registration; the resolver falls back to the URL domain and auto-creates a stub provider.",
+          "Unknown providerSlug should block standalone registration.",
         providerSlug: "not-a-real-provider-slug",
+        topicSlugs: ["interdisciplinary"],
       }),
     }),
   );
 
-  assert.equal(response.status, 201);
+  assert.equal(response.status, 400);
   const payload = await response.json();
-  assert.ok(payload.dataset.provider, "dataset should be linked to an auto-created provider");
-  assert.equal(payload.dataset.provider.domain, "fresh-domain.example.org");
-  assert.equal(payload.dataset.provider.slug, "fresh-domain-example-org");
+  assert.match(payload.error, /Unknown providerSlug/);
 });
 
 test("GET /api/v1/registry filters datasets by area and topic", async () => {
@@ -360,14 +402,28 @@ test("GET /api/v1/registry rejects unknown area values", async () => {
   assert.equal(response.status, 400);
 });
 
-test("POST /api/v1/registry tags explicit topicSlugs and surfaces unknown ones on the check payload", async () => {
+test("POST /api/v1/registry rejects standalone adds when any topicSlug is unknown", async () => {
   const { token } = await createApiUserWithToken();
-  const neuroscience = await prisma.datasetTopic.create({
+  await prisma.datasetTopic.create({
     data: {
       slug: "neuroscience",
       name: "Neuroscience",
       area: "LIFE_SCIENCES",
       status: "ACTIVE",
+    },
+  });
+  await prisma.datasetProvider.create({
+    data: {
+      slug: "openneuro",
+      name: "OpenNeuro",
+      homeUrl: "https://openneuro.org",
+      domain: "openneuro.org",
+      description: "Neuroimaging datasets.",
+      searchKind: "GRAPHQL",
+      searchEndpoint: "https://openneuro.org/crn/graphql",
+      searchQueryTemplate: "query Search($q: String!) { datasets(first: 25, query: { text: $q }) { edges { node { id } } } }",
+      datasetUrlTemplate: "https://openneuro.org/datasets/{datasetId}",
+      agentInstructions: "Use GraphQL to search.",
     },
   });
 
@@ -382,30 +438,19 @@ test("POST /api/v1/registry tags explicit topicSlugs and surfaces unknown ones o
         name: "OpenNeuro ds088888",
         url: "https://openneuro.org/datasets/ds088888",
         description: "Tagged explicitly with neuroscience; the unknown slug should be dropped.",
+        providerSlug: "openneuro",
         topicSlugs: ["neuroscience", "not-a-real-topic"],
       }),
     }),
   );
-  assert.equal(response.status, 201);
+  assert.equal(response.status, 400);
 
   const payload = await response.json();
-  assert.deepEqual(
-    payload.dataset.topics.map((t: { slug: string }) => t.slug),
-    ["neuroscience"],
-  );
-  assert.deepEqual(payload.check.candidate.unknownTopicSlugs, ["not-a-real-topic"]);
-
-  const stored = await prisma.datasetEntry.findFirstOrThrow({
-    where: { url: "https://openneuro.org/datasets/ds088888" },
-    include: { topics: { select: { id: true } } },
-  });
-  assert.deepEqual(
-    stored.topics.map((t: { id: string }) => t.id).sort(),
-    [neuroscience.id].sort(),
-  );
+  assert.match(payload.error, /Unknown topic slug/);
+  assert.equal(await prisma.datasetEntry.count(), 0);
 });
 
-test("POST /api/v1/registry falls back to canonical provider topics when metadata is sparse", async () => {
+test("POST /api/v1/registry lets paper-backed adds infer topics from canonical provider context", async () => {
   const { token } = await createApiUserWithToken();
   const neuroscience = await prisma.datasetTopic.create({
     data: {
@@ -422,7 +467,21 @@ test("POST /api/v1/registry falls back to canonical provider topics when metadat
       homeUrl: "https://openneuro.org",
       domain: "openneuro.org",
       description: "Neuroimaging datasets.",
+      searchKind: "GRAPHQL",
+      searchEndpoint: "https://openneuro.org/crn/graphql",
+      searchQueryTemplate: "query { datasets(search: {{query}}) { ... } }",
+      datasetUrlTemplate: "https://openneuro.org/datasets/{datasetId}",
+      agentInstructions: "Use GraphQL to search.",
       topics: { connect: [{ id: neuroscience.id }] },
+    },
+  });
+  const paper = await prisma.paper.create({
+    data: {
+      slug: "paper-backed-openneuro-registry-test",
+      title: "Paper-backed OpenNeuro Registry Test",
+      abstract: "Paper-backed add should still infer topics from canonical provider context.",
+      markdown: "# Methods",
+      visibility: "PUBLIC",
     },
   });
 
@@ -438,6 +497,7 @@ test("POST /api/v1/registry falls back to canonical provider topics when metadat
         url: "https://openneuro.org/datasets/ds077777",
         description:
           "Minimal metadata; the dataset should still inherit neuroscience from its canonical provider.",
+        sourcePaperId: paper.id,
       }),
     }),
   );
@@ -450,7 +510,7 @@ test("POST /api/v1/registry falls back to canonical provider topics when metadat
   );
 });
 
-test("POST /api/v1/registry infers specific topics before falling back to an auto-created stub provider", async () => {
+test("POST /api/v1/registry rejects standalone adds that omit providerSlug even when the metadata is strong", async () => {
   const { token } = await createApiUserWithToken();
   await prisma.datasetTopic.createMany({
     data: [
@@ -497,14 +557,10 @@ test("POST /api/v1/registry infers specific topics before falling back to an aut
       }),
     }),
   );
-  assert.equal(response.status, 201);
+  assert.equal(response.status, 400);
 
   const payload = await response.json();
-  assert.deepEqual(
-    payload.dataset.topics.map((t: { slug: string }) => t.slug).sort(),
-    ["neuroscience", "public-health"],
-  );
-  assert.equal(payload.dataset.provider?.slug, "census-gov");
+  assert.match(payload.error, /require --provider-slug/i);
 });
 
 test("POST /api/v1/registry reuses an existing dataset when the normalized URL already exists", async () => {
