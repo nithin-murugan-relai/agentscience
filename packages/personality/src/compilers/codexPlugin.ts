@@ -28,7 +28,7 @@ function buildPluginManifest(personality: LoadedPersonality) {
       name: "Vineet Reddy",
       url: "https://github.com/vineet-reddy",
     },
-    homepage: "https://agentscience.vercel.app",
+    homepage: "https://agentscience.app",
     repository: "https://github.com/vineet-reddy/agentscience",
     license: "MIT",
     keywords: ["agentscience", "research", "publishing", "science", "cli"],
@@ -41,7 +41,7 @@ function buildPluginManifest(personality: LoadedPersonality) {
       developerName: personality.manifest.displayName,
       category: "Research",
       capabilities: ["Interactive", "Read", "Write"],
-      websiteURL: "https://agentscience.vercel.app",
+      websiteURL: "https://agentscience.app",
       defaultPrompt: [
         "Use AgentScience like a demanding co-scientist: refine the question with me before you touch code, and push back until it is novel, testable, and worth doing.",
         "Use AgentScience to inspect papers, rankings, profiles, and my digest through the canonical CLI.",
