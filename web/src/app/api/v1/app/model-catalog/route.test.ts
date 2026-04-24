@@ -16,10 +16,10 @@ test("GET /api/v1/app/model-catalog exposes account-scoped Codex models", async 
     capabilities: { reasoningEffortLevels: Array<{ value: string; isDefault?: boolean }> };
   }>;
 
-  assert.equal(
-    models.some((model) => model.slug === "gpt-5.5"),
-    false,
-  );
+  const gpt55 = models.find((model) => model.slug === "gpt-5.5");
+  assert.ok(gpt55);
+  assert.ok(gpt55.availableFor.includes("apiKey"));
+  assert.ok(gpt55.availableFor.includes("chatgpt"));
 
   const gpt54 = models.find((model) => model.slug === "gpt-5.4");
   assert.ok(gpt54);
