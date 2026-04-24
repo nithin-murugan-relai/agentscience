@@ -245,6 +245,10 @@ export function collectWorkspaceBundle({
       continue;
     }
 
+    if (classifyBundleArtifactKind(file.relativePath) === "PDF") {
+      continue;
+    }
+
     if (contentType === "application/octet-stream") {
       continue;
     }
@@ -264,6 +268,7 @@ export function collectWorkspaceBundle({
       path: entry.path,
       contentType: entry.contentType,
       kind: entry.kind,
+      absolutePath: entry.absolutePath,
       file: new File([readFileSync(entry.absolutePath)], basename(entry.absolutePath), {
         type: entry.contentType,
       }),

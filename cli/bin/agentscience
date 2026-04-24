@@ -10,6 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { createHash, randomUUID } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { createInterface } from "node:readline";
@@ -62,6 +63,7 @@ import {
   CANONICAL_PRODUCTION_BASE_URL,
   normalizeAgentScienceBaseUrl,
 } from "../lib/base-url.mjs";
+import { upload as uploadBlob } from "@vercel/blob/client";
 import {
   getWorkspaceBase,
   initPaperWorkspace,
@@ -416,7 +418,7 @@ Description:
   agentscience research compile --workspace <dir> [--tex-file <filename>]
 
 Description:
-  Runs pdflatex + bibtex in the workspace to produce a compiled PDF.
+  Runs latexmk when available, falling back to pdflatex + bibtex, to produce a compiled PDF.
   Defaults to paper.tex if --tex-file is not specified.
 `,
   researchTemplate: `Usage:
@@ -802,7 +804,15 @@ function parseGlobalOptions(argv) {
   };
 }
 
-async function requestJson({ path, method = "GET", token, baseUrl, body, formData }) {
+async function requestJson({
+  path,
+  method = "GET",
+  token,
+  baseUrl,
+  body,
+  formData,
+  exitOnError = true,
+}) {
   const requestUrl = /^https?:\/\//i.test(path)
     ? new URL(path)
     : new URL(path, normalizeAgentScienceBaseUrl(baseUrl));
@@ -817,7 +827,11 @@ async function requestJson({ path, method = "GET", token, baseUrl, body, formDat
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    fail(payload.error || `Request failed with status ${response.status}.`, 1);
+    const message = payload.error || `Request failed with status ${response.status}.`;
+    if (!exitOnError) {
+      throw new Error(message);
+    }
+    fail(message, 1);
   }
 
   return payload;
@@ -841,6 +855,193 @@ async function requestBuffer({ path, token, baseUrl }) {
     buffer: Buffer.from(await response.arrayBuffer()),
     contentType: response.headers.get("content-type"),
   };
+}
+
+function sha256Hex(buffer) {
+  return createHash("sha256").update(buffer).digest("hex");
+}
+
+function joinApiUrl(baseUrl, pathname) {
+  return new URL(pathname, normalizeAgentScienceBaseUrl(baseUrl)).toString();
+}
+
+function safeBlobPathSegment(value) {
+  return String(value || "file")
+    .replace(/\\/g, "/")
+    .split("/")
+    .filter(Boolean)
+    .join("/")
+    .replace(/[^a-zA-Z0-9._/-]+/g, "-")
+    .replace(/\/+/g, "/")
+    .replace(/^\/+/, "");
+}
+
+function isInlineTextContent(contentType, bytes) {
+  return (
+    bytes.length <= 256 * 1024 &&
+    (contentType.startsWith("text/") ||
+      contentType === "application/json" ||
+      contentType === "application/x-bibtex" ||
+      contentType === "application/x-latex" ||
+      contentType === "application/yaml" ||
+      contentType === "application/toml" ||
+      contentType === "application/typescript")
+  );
+}
+
+async function uploadPublishBlob({
+  baseUrl,
+  token,
+  userId,
+  uploadId,
+  role,
+  relativePath,
+  fileName,
+  contentType,
+  bytes,
+}) {
+  const pathname = safeBlobPathSegment(
+    `papers/staged/${userId}/${uploadId}/${role}/${relativePath || fileName}`,
+  );
+  const blob = await uploadBlob(pathname, new Blob([bytes], { type: contentType }), {
+    access: "public",
+    contentType,
+    multipart: bytes.length > 8 * 1024 * 1024,
+    handleUploadUrl: joinApiUrl(baseUrl, "/api/v1/uploads/blob"),
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    clientPayload: JSON.stringify({
+      role,
+      fileName,
+      sizeBytes: bytes.length,
+    }),
+  });
+
+  return {
+    url: blob.url,
+    pathname: blob.pathname,
+    downloadUrl: blob.downloadUrl,
+    sizeBytes: bytes.length,
+  };
+}
+
+async function buildBlobBackedPaperPayload({
+  baseUrl,
+  token,
+  userId,
+  pdfPath,
+  workspaceBundle,
+}) {
+  const uploadId = randomUUID();
+  const uploaded = { artifacts: [], figures: [] };
+  const artifacts = [];
+  const figures = [];
+
+  try {
+    const pdfBytes = readFileSync(pdfPath);
+    const pdfContentType = "application/pdf";
+    const pdf = {
+      fileName: basename(pdfPath),
+      mimeType: pdfContentType,
+      ...(await uploadPublishBlob({
+        baseUrl,
+        token,
+        userId,
+        uploadId,
+        role: "pdf",
+        relativePath: basename(pdfPath),
+        fileName: basename(pdfPath),
+        contentType: pdfContentType,
+        bytes: pdfBytes,
+      })),
+    };
+    uploaded.pdf = pdf;
+
+    for (const artifact of workspaceBundle.artifacts) {
+      const bytes = readFileSync(artifact.absolutePath);
+      const uploadedArtifact = {
+        path: artifact.path,
+        contentType: artifact.contentType,
+        kind: artifact.kind,
+        sha256: sha256Hex(bytes),
+        ...(await uploadPublishBlob({
+          baseUrl,
+          token,
+          userId,
+          uploadId,
+          role: "artifacts",
+          relativePath: artifact.path,
+          fileName: basename(artifact.path),
+          contentType: artifact.contentType,
+          bytes,
+        })),
+        textContent: isInlineTextContent(artifact.contentType, bytes)
+          ? bytes.toString("utf8")
+          : undefined,
+      };
+      artifacts.push(uploadedArtifact);
+      uploaded.artifacts.push(uploadedArtifact);
+    }
+
+    for (const figure of workspaceBundle.figures) {
+      const bytes = readFileSync(figure.absolutePath);
+      const uploadedFigure = {
+        fileName: figure.fileName,
+        mimeType: figure.contentType,
+        ...(await uploadPublishBlob({
+          baseUrl,
+          token,
+          userId,
+          uploadId,
+          role: "figures",
+          relativePath: figure.fileName,
+          fileName: figure.fileName,
+          contentType: figure.contentType,
+          bytes,
+        })),
+      };
+      figures.push(uploadedFigure);
+      uploaded.figures.push(uploadedFigure);
+    }
+
+    return { pdf, artifacts, figures };
+  } catch (error) {
+    await cleanupUploadedBlobs({ baseUrl, token, blobPayload: uploaded });
+    throw error;
+  }
+}
+
+function collectUploadedBlobPathnames(blobPayload) {
+  return [
+    blobPayload?.pdf?.pathname,
+    ...(blobPayload?.artifacts ?? []).map((artifact) => artifact.pathname),
+    ...(blobPayload?.figures ?? []).map((figure) => figure.pathname),
+  ].filter(Boolean);
+}
+
+async function cleanupUploadedBlobs({ baseUrl, token, blobPayload }) {
+  const pathnames = collectUploadedBlobPathnames(blobPayload);
+  if (pathnames.length === 0) {
+    return;
+  }
+
+  try {
+    await requestJson({
+      path: "/api/v1/uploads/blob",
+      method: "DELETE",
+      baseUrl,
+      token,
+      body: { pathnames },
+      exitOnError: false,
+    });
+  } catch (error) {
+    console.error(
+      `Warning: failed to clean up ${pathnames.length} uploaded blob(s): ${
+        error instanceof Error ? error.message : "unknown error"
+      }`
+    );
+  }
 }
 
 function render(result, mode) {
@@ -1289,59 +1490,53 @@ async function handlePapers(args, globalOptions, config) {
       workspaceDir: resolvedWorkspace,
       figurePaths: figureFlags,
     });
-    const form = new FormData();
-    form.set("title", title);
-    form.set("abstract", abstractText.trim());
-    if (summaryText) form.set("markdown", summaryText.trim());
-    form.set("latexSource", readFileSync(resolvedLatexFile, "utf8"));
-    form.set(
-      "pdf",
-      new File([readFileSync(resolvedPdfFile)], basename(resolvedPdfFile), {
-        type: "application/pdf",
-      })
-    );
-    if (bundle.artifacts.length) {
-      form.set(
-        "artifactManifest",
-        JSON.stringify(
-          bundle.artifacts.map(({ fieldName, path, contentType, kind }) => ({
-            fieldName,
-            path,
-            contentType,
-            kind,
-          }))
-        )
-      );
-      for (const artifact of bundle.artifacts) {
-        form.set(artifact.fieldName, artifact.file);
-      }
-    }
-    if (githubUrl) form.set("githubUrl", githubUrl);
-    if (bibFile) {
-      form.set("bibSource", readFileSync(resolve(bibFile), "utf8"));
-    }
-    if (canonicalUrl) form.set("canonicalUrl", canonicalUrl);
-    if (doi) form.set("doi", doi);
-    if (ideaNote) form.set("ideaNote", ideaNote);
-    if (keywordFlags.length) form.set("keywords", JSON.stringify(keywordFlags));
-    if (referenceFlags.length) form.set("references", JSON.stringify(referenceFlags));
-
-    for (const figure of bundle.figures) {
-      form.append(
-        "figures",
-        new File([readFileSync(figure.absolutePath)], figure.fileName, {
-          type: figure.contentType,
-        })
-      );
-    }
-
-    const result = await requestJson({
-      path: "/api/v1/papers",
-      method: "POST",
+    const user = await requestJson({
+      path: "/api/v1/me",
       baseUrl: globalOptions.baseUrl,
       token,
-      formData: form,
     });
+    const blobPayload = await buildBlobBackedPaperPayload({
+      baseUrl: globalOptions.baseUrl,
+      token,
+      userId: user.id,
+      pdfPath: resolvedPdfFile,
+      workspaceBundle: bundle,
+    });
+    const body = {
+      title,
+      abstract: abstractText.trim(),
+      ...(summaryText ? { markdown: summaryText.trim() } : {}),
+      latexSource: readFileSync(resolvedLatexFile, "utf8"),
+      ...(githubUrl ? { githubUrl } : {}),
+      ...(canonicalUrl ? { canonicalUrl } : {}),
+      ...(doi ? { doi } : {}),
+      ...(ideaNote ? { ideaNote } : {}),
+      ...(keywordFlags.length ? { keywords: keywordFlags } : {}),
+      ...(referenceFlags.length ? { references: referenceFlags } : {}),
+      ...blobPayload,
+    };
+    if (bibFile) {
+      body.bibSource = readFileSync(resolve(bibFile), "utf8");
+    }
+
+    let result;
+    try {
+      result = await requestJson({
+        path: "/api/v1/papers",
+        method: "POST",
+        baseUrl: globalOptions.baseUrl,
+        token,
+        body,
+        exitOnError: false,
+      });
+    } catch (error) {
+      await cleanupUploadedBlobs({
+        baseUrl: globalOptions.baseUrl,
+        token,
+        blobPayload,
+      });
+      fail(error instanceof Error ? error.message : "Paper publish failed.");
+    }
 
     let registrySync;
     if (skipRegistrySync) {
@@ -1582,49 +1777,109 @@ async function handlePapers(args, globalOptions, config) {
     const workspace = flagValue(restAfterSlug, "--workspace");
     const keywordFlags = takeFlag(restAfterSlug, "--keyword").values.filter(Boolean);
 
-    const form = new FormData();
-    if (title) form.set("title", title);
-    if (abstractText) form.set("abstract", abstractText.trim());
-    if (latexFile) form.set("latexSource", readFileSync(resolve(latexFile), "utf8"));
-    if (pdfFile) {
-      form.set(
-        "pdf",
-        new File([readFileSync(resolve(pdfFile))], basename(pdfFile), {
-          type: "application/pdf",
-        })
-      );
-    }
-    if (bibFile) form.set("bibSource", readFileSync(resolve(bibFile), "utf8"));
-    if (keywordFlags.length) form.set("keywords", JSON.stringify(keywordFlags));
+    const body = {};
+    const uploadedBlobPayload = { artifacts: [], figures: [] };
+    if (title) body.title = title;
+    if (abstractText) body.abstract = abstractText.trim();
+    if (latexFile) body.latexSource = readFileSync(resolve(latexFile), "utf8");
+    if (bibFile) body.bibSource = readFileSync(resolve(bibFile), "utf8");
+    if (keywordFlags.length) body.keywords = keywordFlags;
     if (workspace) {
       const bundle = collectWorkspaceBundle({
         workspaceDir: resolve(workspace),
       });
-      if (bundle.artifacts.length) {
-        form.set(
-          "artifactManifest",
-          JSON.stringify(
-            bundle.artifacts.map(({ fieldName, path, contentType, kind }) => ({
-              fieldName,
-              path,
-              contentType,
-              kind,
-            }))
-          )
+      const user = await requestJson({
+        path: "/api/v1/me",
+        baseUrl: globalOptions.baseUrl,
+        token,
+      });
+      if (pdfFile) {
+        const blobPayload = await buildBlobBackedPaperPayload({
+          baseUrl: globalOptions.baseUrl,
+          token,
+          userId: user.id,
+          pdfPath: resolve(pdfFile),
+          workspaceBundle: bundle,
+        });
+        body.pdf = blobPayload.pdf;
+        body.artifacts = blobPayload.artifacts;
+        uploadedBlobPayload.pdf = blobPayload.pdf;
+        uploadedBlobPayload.artifacts = blobPayload.artifacts;
+      } else {
+        const uploadId = randomUUID();
+        const artifacts = await Promise.all(
+          bundle.artifacts.map(async (artifact) => {
+            const bytes = readFileSync(artifact.absolutePath);
+            return {
+              path: artifact.path,
+              contentType: artifact.contentType,
+              kind: artifact.kind,
+              sha256: sha256Hex(bytes),
+              ...(await uploadPublishBlob({
+                baseUrl: globalOptions.baseUrl,
+                token,
+                userId: user.id,
+                uploadId,
+                role: "artifacts",
+                relativePath: artifact.path,
+                fileName: basename(artifact.path),
+                contentType: artifact.contentType,
+                bytes,
+              })),
+              textContent: isInlineTextContent(artifact.contentType, bytes)
+                ? bytes.toString("utf8")
+                : undefined,
+            };
+          })
         );
-        for (const artifact of bundle.artifacts) {
-          form.set(artifact.fieldName, artifact.file);
-        }
+        body.artifacts = artifacts;
+        uploadedBlobPayload.artifacts = artifacts;
       }
+    } else if (pdfFile) {
+      const user = await requestJson({
+        path: "/api/v1/me",
+        baseUrl: globalOptions.baseUrl,
+        token,
+      });
+      const uploadId = randomUUID();
+      const resolvedPdfFile = resolve(pdfFile);
+      const bytes = readFileSync(resolvedPdfFile);
+      body.pdf = {
+        fileName: basename(resolvedPdfFile),
+        mimeType: "application/pdf",
+        ...(await uploadPublishBlob({
+          baseUrl: globalOptions.baseUrl,
+          token,
+          userId: user.id,
+          uploadId,
+          role: "pdf",
+          relativePath: basename(resolvedPdfFile),
+          fileName: basename(resolvedPdfFile),
+          contentType: "application/pdf",
+          bytes,
+        })),
+      };
+      uploadedBlobPayload.pdf = body.pdf;
     }
 
-    const result = await requestJson({
-      path: `/api/v1/papers/${slug}`,
-      method: "PATCH",
-      baseUrl: globalOptions.baseUrl,
-      token,
-      formData: form,
-    });
+    let result;
+    try {
+      result = await requestJson({
+        path: `/api/v1/papers/${slug}`,
+        method: "PATCH",
+        baseUrl: globalOptions.baseUrl,
+        token,
+        body,
+        exitOnError: false,
+      });
+    } catch (error) {
+      await cleanupUploadedBlobs({
+        baseUrl: globalOptions.baseUrl,
+        token,
+        blobPayload: uploadedBlobPayload,
+      });
+      fail(error instanceof Error ? error.message : "Paper update failed.");
+    }
     render(result, globalOptions.outputMode);
     return;
   }

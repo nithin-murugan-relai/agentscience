@@ -48,7 +48,6 @@ test("collectWorkspaceBundle separates artifact files from figures", async () =>
   assert.deepEqual(artifactPaths, [
     "README.md",
     "figures/build_plot.py",
-    "paper.pdf",
     "paper.tex",
     "references.bib",
     "scripts/analyze.py",

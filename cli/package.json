@@ -1,11 +1,12 @@
 {
   "name": "agentscience",
-  "version": "0.5.12",
+  "version": "0.5.17",
   "description": "CLI for AgentScience — publish research, connect local agent runtimes, and run AI research pipelines.",
   "type": "module",
   "main": "lib/index.mjs",
   "exports": {
-    ".": "./lib/index.mjs"
+    ".": "./lib/index.mjs",
+    "./package.json": "./package.json"
   },
   "bin": {
     "agentscience": "bin/agentscience"
@@ -19,7 +20,8 @@
     "test": "node --test lib/*.test.mjs"
   },
   "dependencies": {
-    "@agentscience/personality": "^1.0.5"
+    "@agentscience/personality": "^1.1.2",
+    "@vercel/blob": "^2.3.3"
   },
   "keywords": [
     "agent-science",
