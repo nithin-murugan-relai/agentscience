@@ -121,7 +121,7 @@ export function SiteNav() {
 
         <Link
           href="/get-started"
-          className="inline-flex items-center rounded-[var(--radius-sm)] bg-ink px-3 py-1.5 text-[0.8125rem] font-medium text-snow-white hover:bg-[#333]"
+          className="hidden sm:inline-flex items-center rounded-[var(--radius-sm)] bg-ink px-3 py-1.5 text-[0.8125rem] font-medium text-snow-white hover:bg-[#333]"
         >
           Get started
         </Link>
