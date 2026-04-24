@@ -1,35 +1,41 @@
 % AgentScience Standard Paper Template
 % All papers published through AgentScience use this template.
-% Do not modify the preamble or layout. Fill in the content sections.
+% Fill in the content sections and use the helper macros below for figures,
+% tables, proofs, derivations, and supplementary material.
 
-\documentclass[11pt]{article}
+\documentclass[10pt]{article}
 
 % --- Page layout ---
-\usepackage[
-  top=1in,
-  bottom=1in,
-  left=1in,
-  right=1in
-]{geometry}
+\usepackage[margin=0.95in]{geometry}
 
 % --- Typography ---
 \usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
 \usepackage{lmodern}
 \usepackage{microtype}
 \usepackage{xcolor}
+\pagecolor{white}
+\color{black}
 
-% --- Math and symbols ---
-\usepackage{amsmath,amssymb}
+% --- Math, theorem, and proof support ---
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
 
 % --- Figures and tables ---
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{float}
 \usepackage{caption}
-\captionsetup{
-  font=small,
-  labelfont=bf
-}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{placeins}
+
+% --- Layout helpers ---
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{xparse}
+\usepackage{etoolbox}
 
 % --- Citations ---
 \usepackage[numbers,sort&compress]{natbib}
@@ -43,80 +49,235 @@
   urlcolor=blue!60!black
 ]{hyperref}
 
-% --- Code listings (optional, for methods) ---
-\usepackage{listings}
-\lstset{
-  basicstyle=\ttfamily\footnotesize,
-  breaklines=true,
-  frame=single,
-  framerule=0.4pt,
-  xleftmargin=1em,
-  framexleftmargin=0.5em
+% --- Conservative publication styling ---
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{0pt}
+\linespread{1.03}
+\setlist{nosep,leftmargin=1.5em}
+\captionsetup{
+  font=small,
+  labelfont=bf,
+  labelsep=period,
+  skip=4pt
 }
+\captionsetup[sub]{
+  font=footnotesize,
+  labelfont=bf
+}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.75em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.75em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\itshape}{\thesubsubsection}{0.75em}{}
+\titlespacing*{\section}{0pt}{1.8ex plus 0.4ex minus 0.2ex}{0.9ex plus 0.2ex}
+\titlespacing*{\subsection}{0pt}{1.4ex plus 0.3ex minus 0.2ex}{0.6ex plus 0.2ex}
+\titlespacing*{\subsubsection}{0pt}{1.1ex plus 0.2ex minus 0.2ex}{0.4ex plus 0.2ex}
 
-% --- Page furniture ---
-\usepackage{fancyhdr}
-\pagestyle{fancy}
-\fancyhf{}
-\renewcommand{\headrulewidth}{0pt}
-\renewcommand{\footrulewidth}{0pt}
-\fancyfoot[C]{\footnotesize\thepage}
+% --- Theorem environments ---
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
 
-% --- Title formatting (titlesec is optional; skip if not installed) ---
-\IfFileExists{titlesec.sty}{%
-  \usepackage{titlesec}
-  \titleformat{\section}{\normalfont\large\bfseries}{\thesection}{1em}{}
-  \titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{1em}{}
-}{}
+% --- Manuscript metadata ---
+\newcommand{\paperabstract}{}  % redefine before \begin{document}
+\newcommand{\paperkeywords}{}  % redefine before \begin{document}
 
-\newcommand{\paperabstract}{}  % placeholder; redefine before \begin{document}
-\newcommand{\paperkeywords}{}  % placeholder; redefine before \begin{document}
+% --- Front matter ---
+\makeatletter
+\newcommand{\makepaperfront}{%
+  \begin{center}
+    {\LARGE\bfseries \@title\par}
+    \vspace{0.55em}
+    {\normalsize \@author\par}
+    \ifstrempty{\@date}{}{%
+      \vspace{0.25em}
+      {\footnotesize\color{black!70}\@date\par}
+    }
+  \end{center}
+  \vspace{0.55em}
+  \begin{center}
+    \begin{minipage}{0.88\textwidth}
+      \hrule height 0.4pt
+      \vspace{0.75em}
+      {\small\noindent\textbf{Abstract.} \paperabstract\par}
+      \ifstrempty{\paperkeywords}{}{%
+        \vspace{0.6em}
+        {\small\noindent\textbf{Keywords:} \paperkeywords\par}
+      }
+      \vspace{0.75em}
+      \hrule height 0.4pt
+    \end{minipage}
+  \end{center}
+  \vspace{1.1em}
+}
+\makeatother
 
 % ============================================================================
-% PAPER CONTENT — Fill in everything below this line.
+% Template API for agents
+%
+% Content class mapping:
+%   main_figure   -> \mainfigure{path}{caption}{label}
+%   main_figure   -> \widemainfigure{path}{caption}{label}
+%   supp_figure   -> \suppfigure{path}{caption}{label}
+%   main_table    -> \maintable{caption}{label}{tabular/body}
+%   supp_table    -> \supptable{caption}{label}{tabular/body}
+%   appendix_note -> \appendixnote{heading}{body}
+%   proof         -> \proofblock{heading}{body}
+%   derivation    -> \derivationblock{heading}{body}
+%
+% Main figures/tables appear where their macro is called. Supplementary
+% figures, tables, notes, proofs, and derivations are collected and printed at
+% the back by \printsupplement, with separate Figure S1/Table S1 numbering.
+% ============================================================================
+
+\NewDocumentCommand{\agentfigureinclude}{m m}{%
+  \IfFileExists{#2}{%
+    \includegraphics[width=#1]{#2}%
+  }{%
+    \fbox{%
+      \begin{minipage}[c][1.55in][c]{0.72\linewidth}
+        \centering\footnotesize Missing figure file:\\\texttt{#2}
+      \end{minipage}%
+    }%
+  }%
+}
+
+\NewDocumentCommand{\mainfigure}{m +m m}{%
+  \begin{figure}[htbp]
+    \centering
+    \agentfigureinclude{0.75\textwidth}{#1}
+    \captionsetup{width=0.82\textwidth}
+    \caption{#2}
+    \label{#3}
+  \end{figure}
+  \FloatBarrier
+}
+
+\NewDocumentCommand{\widemainfigure}{m +m m}{%
+  \begin{figure}[htbp]
+    \centering
+    \agentfigureinclude{0.9\textwidth}{#1}
+    \captionsetup{width=0.92\textwidth}
+    \caption{#2}
+    \label{#3}
+  \end{figure}
+  \FloatBarrier
+}
+
+\NewDocumentCommand{\maintable}{m m +m}{%
+  \begin{table}[htbp]
+    \centering
+    \caption{#1}
+    \label{#2}
+    \small
+    #3
+  \end{table}
+  \FloatBarrier
+}
+
+\newcommand{\supplementcontent}{}
+
+\NewDocumentCommand{\suppfigure}{m +m m}{%
+  \gappto{\supplementcontent}{%
+    \begin{figure}[htbp]
+      \centering
+      \agentfigureinclude{0.75\textwidth}{#1}
+      \captionsetup{width=0.82\textwidth}
+      \caption{#2}
+      \label{#3}
+    \end{figure}
+    \FloatBarrier
+  }%
+}
+
+\NewDocumentCommand{\supptable}{m m +m}{%
+  \gappto{\supplementcontent}{%
+    \begin{table}[htbp]
+      \centering
+      \caption{#1}
+      \label{#2}
+      \small
+      #3
+    \end{table}
+    \FloatBarrier
+  }%
+}
+
+\NewDocumentCommand{\appendixnote}{m +m}{%
+  \gappto{\supplementcontent}{%
+    \subsection*{#1}
+    #2
+  }%
+}
+
+\NewDocumentCommand{\proofblock}{m +m}{%
+  \gappto{\supplementcontent}{%
+    \subsection*{#1}
+    \begin{proof}
+      #2
+    \end{proof}
+  }%
+}
+
+\NewDocumentCommand{\derivationblock}{m +m}{%
+  \gappto{\supplementcontent}{%
+    \subsection*{#1}
+    #2
+  }%
+}
+
+\newcommand{\printsupplement}{%
+  \ifstrempty{\supplementcontent}{}{%
+    \clearpage
+    \appendix
+    \setcounter{figure}{0}
+    \setcounter{table}{0}
+    \renewcommand{\thefigure}{S\arabic{figure}}
+    \renewcommand{\thetable}{S\arabic{table}}
+    \section*{Supplementary Material}
+    \addcontentsline{toc}{section}{Supplementary Material}
+    \supplementcontent
+  }%
+}
+
+% ============================================================================
+% PAPER CONTENT - Fill in everything below this line.
 % ============================================================================
 
 \title{%
   % PAPER TITLE HERE
-  % Keep it clear and specific. Describe the finding, not the topic.
+  % Keep it clear and specific. Describe the finding, not just the topic.
 }
 
 \author{%
-  % AUTHOR NAME — use the researcher's name from: agentscience config get
+  % AUTHOR NAME - use the researcher's name from: agentscience config get
   % Example: Jane Doe\thanks{MIT}
-  % Do NOT list AI tools, bots, or "AgentScience Research" as authors.
-  % The author is the person who initiated and directed the research.
-  % If the researcher has an affiliation, include it via \thanks{}.
+  % Do not list AI tools, bots, or "AgentScience Research" as authors.
 }
 
 \date{}
 
-% Define abstract content (will be rendered in single-column header)
 \renewcommand{\paperabstract}{%
 % 150-250 words. State the problem, approach, key finding, and why it matters.
-% Write this section LAST even though it appears first.
+% Write this section last even though it appears first.
 }
 
-% Define keywords
 \renewcommand{\paperkeywords}{keyword1, keyword2, keyword3}
 
 \begin{document}
 
-\maketitle
-
-\begin{abstract}
-\paperabstract
-\end{abstract}
-
-\noindent\textbf{Keywords:} \paperkeywords
-\vspace{1.25em}
+\makepaperfront
 
 \section{Introduction}
 % What is the problem? Why does it matter? What has been done before?
 % What is the gap in existing work? What did you do to address it?
 
 \section{Related Work}
-% Survey of prior work. Use real citations only. BibTeX format.
+% Survey prior work. Use real citations only. BibTeX format.
 % If you cannot find a DOI, note the source honestly.
 
 \section{Methods}
@@ -125,16 +286,23 @@
 % Be specific enough that someone could reproduce your work.
 
 \section{Results}
-% Present your findings using figures and tables.
-% Reference every figure in the text. Let the data speak.
+% Present only the main narrative figures and tables here. Reference every main
+% figure/table in the prose. Route QC, robustness checks, ablations, proofs,
+% derivations, and secondary analyses to the supplement.
 %
-% Example figure inclusion:
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=\textwidth]{figures/figure-1.png}
-%   \caption{Description of what this figure shows.}
-%   \label{fig:result1}
-% \end{figure}
+% Example:
+% \mainfigure{figures/figure-1.png}{Main result caption.}{fig:main-result}
+% \widemainfigure{figures/figure-2.png}{Wide result caption.}{fig:wide-result}
+% \maintable{Summary of cohorts.}{tab:cohorts}{%
+%   \begin{tabular}{lrr}
+%     \toprule
+%     Cohort & Samples & Features \\
+%     \midrule
+%     A & 100 & 25 \\
+%     B & 120 & 25 \\
+%     \bottomrule
+%   \end{tabular}
+% }
 
 \section{Discussion}
 % What do the results mean? What are the limitations?
@@ -147,6 +315,24 @@
 
 \section*{Acknowledgments}
 % Optional. Credit data sources, tools, or collaborators.
+
+% Supplement examples:
+% \suppfigure{figures/qc-plot.png}{Quality-control diagnostic.}{fig:supp-qc}
+% \supptable{Extended robustness checks.}{tab:supp-robustness}{%
+%   \begin{tabular}{lrr}
+%     \toprule
+%     Model & Estimate & p-value \\
+%     \midrule
+%     Baseline & 0.12 & 0.03 \\
+%     Adjusted & 0.10 & 0.05 \\
+%     \bottomrule
+%   \end{tabular}
+% }
+% \appendixnote{Supplementary Methods}{Additional implementation details.}
+% \proofblock{Proof of Proposition 1}{Proof text.}
+% \derivationblock{Loss Derivation}{Derivation text.}
+
+\printsupplement
 
 \bibliography{references}
 

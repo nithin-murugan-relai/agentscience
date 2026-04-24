@@ -7,7 +7,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, copyFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -26,6 +26,28 @@ function runCommand(command, args, options = {}) {
     maxBuffer: 20 * 1024 * 1024,
     ...options,
   });
+}
+
+function executableName(name) {
+  return process.platform === "win32" ? `${name}.exe` : name;
+}
+
+function resolvePaperToolchainCommand(name) {
+  const binDir = process.env.AGENTSCIENCE_PAPER_TOOLCHAIN_BIN_DIR?.trim();
+  return binDir ? join(binDir, executableName(name)) : name;
+}
+
+function canRunCommand(command, args = ["--version"]) {
+  try {
+    execFileSync(command, args, {
+      encoding: "utf8",
+      stdio: "ignore",
+      maxBuffer: 1024 * 1024,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function requestJson(path, { method = "GET", token, body, baseUrl = DEFAULT_BASE_URL } = {}) {
@@ -81,22 +103,36 @@ export function compilePaper(workspaceDir, texFileName = "paper.tex") {
 
   const slug = basename(texFileName, ".tex");
 
-  runCommand("pdflatex", ["-interaction=nonstopmode", texFileName], {
-    cwd: workspaceDir,
-  });
+  const latexmk = resolvePaperToolchainCommand("latexmk");
+  if (canRunCommand(latexmk, ["-v"])) {
+    runCommand(
+      latexmk,
+      ["-pdf", "-interaction=nonstopmode", "-halt-on-error", texFileName],
+      {
+        cwd: workspaceDir,
+      },
+    );
+  } else {
+    const pdflatex = resolvePaperToolchainCommand("pdflatex");
+    const bibtex = resolvePaperToolchainCommand("bibtex");
 
-  // Only run bibtex if a non-empty .bib file exists
-  const bibPath = join(workspaceDir, "references.bib");
-  if (existsSync(bibPath) && readFileSync(bibPath, "utf8").trim().length > 0) {
-    runCommand("bibtex", [slug], { cwd: workspaceDir });
-    runCommand("pdflatex", ["-interaction=nonstopmode", texFileName], {
+    runCommand(pdflatex, ["-interaction=nonstopmode", "-halt-on-error", texFileName], {
+      cwd: workspaceDir,
+    });
+
+    // Only run bibtex if a non-empty .bib file exists
+    const bibPath = join(workspaceDir, "references.bib");
+    if (existsSync(bibPath) && readFileSync(bibPath, "utf8").trim().length > 0) {
+      runCommand(bibtex, [slug], { cwd: workspaceDir });
+      runCommand(pdflatex, ["-interaction=nonstopmode", "-halt-on-error", texFileName], {
+        cwd: workspaceDir,
+      });
+    }
+
+    runCommand(pdflatex, ["-interaction=nonstopmode", "-halt-on-error", texFileName], {
       cwd: workspaceDir,
     });
   }
-
-  runCommand("pdflatex", ["-interaction=nonstopmode", texFileName], {
-    cwd: workspaceDir,
-  });
 
   const pdfPath = join(workspaceDir, `${slug}.pdf`);
   if (!existsSync(pdfPath)) {
