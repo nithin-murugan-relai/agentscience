@@ -90,7 +90,10 @@ model Paper {
   latexSource    String?
   bibSource      String?
   pdfUrl         String?
-  pdfData        Bytes?
+  pdfStorageUrl  String?
+  pdfStoragePath String?
+  pdfDownloadUrl String?
+  pdfSizeBytes   Int?
   pdfMimeType    String?
   pdfFileName    String?
   canonicalUrl   String?
@@ -236,8 +239,10 @@ model PaperAsset {
   mimeType    String
   caption     String?
   textContent String?
-  bytes       Bytes?
-  sizeBytes   Int?
+  blobUrl     String
+  blobPath    String
+  downloadUrl String?
+  sizeBytes   Int
   createdAt   DateTime       @default(now())
   paper       Paper          @relation(fields: [paperId], references: [id], onDelete: Cascade)
 
@@ -254,7 +259,9 @@ model PaperArtifact {
   contentType  String
   sha256       String
   textContent  String?
-  bytes        Bytes?
+  blobUrl      String
+  blobPath     String
+  downloadUrl  String?
   sizeBytes    Int
   createdAt    DateTime          @default(now())
   paper        Paper             @relation(fields: [paperId], references: [id], onDelete: Cascade)

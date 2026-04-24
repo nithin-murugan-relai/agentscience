@@ -8,7 +8,7 @@ import {
   serializePaperDetail,
   updatePaper,
 } from "@/lib/platform";
-import { parseArtifactUploads } from "@/lib/paper-upload";
+import { paperBlobPayloadSchema } from "@/lib/paper-blob-payload";
 
 type RouteProps = {
   params: Promise<{ slug: string }>;
@@ -62,28 +62,14 @@ export async function PATCH(request: Request, { params }: RouteProps) {
     let latexSource: string | undefined;
     let bibSource: string | undefined;
     let keywords: string[] | undefined;
-    let pdf: { fileName: string; mimeType: string; bytes: Buffer } | null = null;
+    let pdf;
     let artifacts;
 
     if (contentType.includes("multipart/form-data")) {
-      const form = await request.formData();
-      if (form.has("title")) title = form.get("title") as string;
-      if (form.has("abstract")) abstract = form.get("abstract") as string;
-      if (form.has("markdown")) markdown = form.get("markdown") as string;
-      if (form.has("latexSource")) latexSource = form.get("latexSource") as string;
-      if (form.has("bibSource")) bibSource = form.get("bibSource") as string;
-      if (form.has("keywords")) {
-        keywords = JSON.parse(form.get("keywords") as string);
-      }
-      const pdfFile = form.get("pdf") as File | null;
-      if (pdfFile) {
-        pdf = {
-          fileName: pdfFile.name,
-          mimeType: pdfFile.type || "application/pdf",
-          bytes: Buffer.from(await pdfFile.arrayBuffer()),
-        };
-      }
-      artifacts = await parseArtifactUploads(form);
+      throw new UserFacingError(
+        "Paper updates now expect JSON metadata with pre-uploaded blob files.",
+        415
+      );
     } else {
       const body = await request.json();
       title = body.title;
@@ -92,7 +78,15 @@ export async function PATCH(request: Request, { params }: RouteProps) {
       latexSource = body.latexSource;
       bibSource = body.bibSource;
       keywords = body.keywords;
-      artifacts = body.artifacts;
+      const blobPayload = paperBlobPayloadSchema.partial().safeParse(body);
+      if (!blobPayload.success) {
+        throw new UserFacingError(
+          blobPayload.error.issues[0]?.message ?? "Invalid uploaded file metadata.",
+          400
+        );
+      }
+      pdf = blobPayload.data.pdf ?? null;
+      artifacts = blobPayload.data.artifacts;
     }
 
     const detail = await updatePaper(slug, user.id, {

@@ -7,6 +7,14 @@ type RouteProps = {
   params: Promise<{ slug: string; kind: string }>;
 };
 
+async function fetchBlobBytes(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Blob fetch failed with status ${response.status}.`);
+  }
+  return new Uint8Array(await response.arrayBuffer());
+}
+
 export async function GET(_: Request, { params }: RouteProps) {
   const { slug, kind } = await params;
   const paper = await getPaperDetail(slug);
@@ -16,13 +24,8 @@ export async function GET(_: Request, { params }: RouteProps) {
   }
 
   if (kind === "pdf") {
-    if (paper.pdfData) {
-      return new NextResponse(paper.pdfData, {
-        headers: {
-          "Content-Type": paper.pdfMimeType ?? "application/pdf",
-          "Content-Disposition": `inline; filename="${paper.pdfFileName ?? `${paper.slug}.pdf`}"`,
-        },
-      });
+    if (paper.pdfStorageUrl) {
+      return NextResponse.redirect(paper.pdfDownloadUrl ?? paper.pdfStorageUrl, { status: 307 });
     }
 
     if (paper.pdfUrl) {
@@ -49,11 +52,26 @@ export async function GET(_: Request, { params }: RouteProps) {
   }
 
   if (kind === "zip") {
+    const totalBlobBytes =
+      (paper.pdfSizeBytes ?? 0) +
+      paper.artifacts.reduce((sum, artifact) => sum + artifact.sizeBytes, 0) +
+      paper.assets.reduce((sum, asset) => sum + (asset.sizeBytes ?? 0), 0);
+
+    if (totalBlobBytes > 4 * 1024 * 1024) {
+      return NextResponse.json(
+        {
+          error:
+            "This bundle is too large to zip through the API. Download individual files instead.",
+        },
+        { status: 413 }
+      );
+    }
+
     const files: Record<string, Uint8Array> = {};
     const encoder = new TextEncoder();
 
-    if (paper.pdfData) {
-      files[`${paper.slug}.pdf`] = new Uint8Array(paper.pdfData);
+    if (paper.pdfStorageUrl) {
+      files[`${paper.slug}.pdf`] = await fetchBlobBytes(paper.pdfStorageUrl);
     }
     if (paper.latexSource) {
       files[`${paper.slug}.tex`] = encoder.encode(paper.latexSource);
@@ -66,18 +84,18 @@ export async function GET(_: Request, { params }: RouteProps) {
       const path = `code/${artifact.path}`;
       if (artifact.textContent) {
         files[path] = encoder.encode(artifact.textContent);
-      } else if (artifact.bytes) {
-        files[path] = new Uint8Array(artifact.bytes);
+      } else {
+        files[path] = await fetchBlobBytes(artifact.blobUrl);
       }
     }
 
     for (const asset of paper.assets) {
       if (asset.kind === "FIGURE") {
         const path = `figures/${asset.fileName}`;
-        if (asset.bytes) {
-          files[path] = new Uint8Array(asset.bytes);
-        } else if (asset.textContent) {
+        if (asset.textContent) {
           files[path] = encoder.encode(asset.textContent);
+        } else {
+          files[path] = await fetchBlobBytes(asset.blobUrl);
         }
       }
     }

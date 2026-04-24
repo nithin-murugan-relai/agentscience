@@ -29,14 +29,5 @@ export async function GET(_: Request, { params }: RouteProps) {
     });
   }
 
-  if (!artifact.bytes) {
-    return NextResponse.json({ error: "Artifact contents unavailable." }, { status: 404 });
-  }
-
-  return new NextResponse(artifact.bytes, {
-    headers: {
-      "Content-Type": artifact.contentType,
-      "Content-Disposition": `attachment; filename="${artifact.fileName}"`,
-    },
-  });
+  return NextResponse.redirect(artifact.downloadUrl ?? artifact.blobUrl, { status: 307 });
 }

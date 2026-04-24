@@ -7,6 +7,7 @@ type PaperBundleArtifactRecord = {
   sha256: string;
   sizeBytes: number;
   textContent: string | null;
+  blobUrl: string;
 };
 
 type PaperBundleFigureRecord = {
@@ -15,14 +16,15 @@ type PaperBundleFigureRecord = {
   fileName: string;
   caption: string | null;
   mimeType: string;
+  blobUrl: string;
 };
 
 type PaperBundleRecord = {
   slug: string;
   artifacts: PaperBundleArtifactRecord[];
   assets: PaperBundleFigureRecord[];
-  pdfData: Uint8Array<ArrayBufferLike> | null;
   pdfUrl: string | null;
+  pdfStorageUrl: string | null;
 };
 
 export type PaperBundleTab = "code" | "figures" | "pdf";
@@ -104,7 +106,7 @@ export function buildPaperBundleView(
   const artifacts = paper.artifacts.map((artifact) =>
     serializePaperArtifact(paper.slug, artifact, includeTextContent)
   );
-  const pdfUrl = getPaperPdfDownloadUrl(paper.slug, Boolean(paper.pdfData || paper.pdfUrl));
+  const pdfUrl = getPaperPdfDownloadUrl(paper.slug, Boolean(paper.pdfStorageUrl || paper.pdfUrl));
 
   return {
     artifacts,

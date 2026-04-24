@@ -8,12 +8,7 @@ import {
   serializePaperDetail,
   serializePaperSummary,
 } from "@/lib/platform";
-import {
-  optionalStringField,
-  parseArrayField,
-  parseArtifactUploads,
-  toUploadDescriptor,
-} from "@/lib/paper-upload";
+import { paperBlobPayloadSchema } from "@/lib/paper-blob-payload";
 import { paperFormSchema } from "@/lib/validation";
 
 export async function GET(request: Request) {
@@ -39,20 +34,30 @@ export async function POST(request: Request) {
     return unauthorizedJson();
   }
 
-  const formData = await request.formData();
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return NextResponse.json(
+      { error: "Paper publishing now expects JSON metadata with pre-uploaded blob files." },
+      { status: 415 }
+    );
+  }
+
+  const body = await request.json();
   const payload = paperFormSchema.safeParse({
-    title: optionalStringField(formData.get("title")),
-    abstract: optionalStringField(formData.get("abstract")),
-    markdown: optionalStringField(formData.get("markdown")),
-    latexSource: optionalStringField(formData.get("latexSource")),
-    bibSource: optionalStringField(formData.get("bibSource")),
-    pdfUrl: optionalStringField(formData.get("pdfUrl")),
-    canonicalUrl: optionalStringField(formData.get("canonicalUrl")),
-    githubUrl: optionalStringField(formData.get("githubUrl")),
-    doi: optionalStringField(formData.get("doi")),
-    keywords: (parseArrayField(formData.get("keywords")) ?? []).join(", "),
-    references: (parseArrayField(formData.get("references")) ?? []).join("\n"),
-    ideaNote: optionalStringField(formData.get("ideaNote")),
+    title: body.title,
+    abstract: body.abstract,
+    markdown: body.markdown,
+    latexSource: body.latexSource,
+    bibSource: body.bibSource,
+    pdfUrl: body.pdfUrl,
+    canonicalUrl: body.canonicalUrl,
+    githubUrl: body.githubUrl,
+    doi: body.doi,
+    keywords: Array.isArray(body.keywords) ? body.keywords.join(", ") : (body.keywords ?? ""),
+    references: Array.isArray(body.references)
+      ? body.references.join("\n")
+      : (body.references ?? ""),
+    ideaNote: body.ideaNote,
   });
 
   if (!payload.success) {
@@ -62,33 +67,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const pdfFile = formData.get("pdf");
-  let artifacts;
-
-  try {
-    artifacts = await parseArtifactUploads(formData);
-  } catch (error) {
+  const blobPayload = paperBlobPayloadSchema.safeParse(body);
+  if (!blobPayload.success) {
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Invalid artifact bundle.",
-      },
+      { error: blobPayload.error.issues[0]?.message ?? "Invalid uploaded file metadata." },
       { status: 400 }
     );
   }
-
-  const figures = await Promise.all(
-    formData
-      .getAll("figures")
-      .filter((entry): entry is File => entry instanceof File && entry.size > 0)
-      .map((figure, index) =>
-        toUploadDescriptor(
-          figure,
-          typeof formData.getAll("figureCaptions")[index] === "string"
-            ? String(formData.getAll("figureCaptions")[index])
-            : undefined
-        )
-      )
-  );
 
   let paper;
 
@@ -96,12 +81,9 @@ export async function POST(request: Request) {
     paper = await createBundledPaper(user.id, {
       ...payload.data,
       references: payload.data.references,
-      pdf:
-        pdfFile instanceof File && pdfFile.size > 0
-          ? await toUploadDescriptor(pdfFile)
-          : null,
-      figures,
-      artifacts,
+      pdf: blobPayload.data.pdf ?? null,
+      figures: blobPayload.data.figures,
+      artifacts: blobPayload.data.artifacts,
     });
   } catch (error) {
     if (isUserFacingError(error)) {

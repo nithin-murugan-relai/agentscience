@@ -4,10 +4,6 @@ import {
   guessArtifactContentType,
   normalizeArtifactPath,
 } from "@/lib/paper-artifacts";
-import type {
-  ArtifactUploadDescriptor,
-  UploadDescriptor,
-} from "@/lib/platform";
 import { parseList } from "@/lib/utils";
 
 type ArtifactManifestEntry = {
@@ -42,7 +38,7 @@ export function optionalStringField(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value : undefined;
 }
 
-export function toUploadDescriptor(file: File, caption?: string): Promise<UploadDescriptor> {
+export function toUploadDescriptor(file: File, caption?: string) {
   return file.arrayBuffer().then((buffer) => ({
     fileName: file.name,
     mimeType: file.type || "application/octet-stream",
@@ -113,7 +109,7 @@ export async function parseArtifactUploads(formData: FormData) {
         contentType: entry.contentType || file.type || guessArtifactContentType(entry.path),
         bytes: Buffer.from(await file.arrayBuffer()),
         kind: entry.kind,
-      } satisfies ArtifactUploadDescriptor;
+      };
     })
   );
 }

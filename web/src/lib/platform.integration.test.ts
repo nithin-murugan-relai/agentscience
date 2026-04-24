@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test, { after, before, beforeEach } from "node:test";
 
 import { createTestDatabase, truncatePublicTables } from "@/lib/test-database";
@@ -54,6 +55,19 @@ async function createUser() {
   });
 }
 
+function sha256(value: Buffer | string) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function blobRef(pathname: string, sizeBytes: number) {
+  return {
+    url: `https://blob.example.test/${pathname}`,
+    pathname,
+    downloadUrl: `https://blob.example.test/${pathname}?download=1`,
+    sizeBytes,
+  };
+}
+
 test("createBundledPaper keeps uploaded bundle data intact and exposes it to the UI", async () => {
   const user = await createUser();
   const pdfBytes = Buffer.from("%PDF-1.7\nbundle test\n", "utf8");
@@ -72,7 +86,7 @@ test("createBundledPaper keeps uploaded bundle data intact and exposes it to the
     pdf: {
       fileName: "bundle-paper.pdf",
       mimeType: "application/pdf",
-      bytes: pdfBytes,
+      ...blobRef("papers/test/bundle-paper.pdf", pdfBytes.length),
     },
     keywords: ["outbreak", "bundle"],
     references: ["10.1000/example"],
@@ -81,7 +95,7 @@ test("createBundledPaper keeps uploaded bundle data intact and exposes it to the
       {
         fileName: "figure-1.png",
         mimeType: "image/png",
-        bytes: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+        ...blobRef("papers/test/figure-1.png", 4),
         caption: "Verification figure",
       },
     ],
@@ -89,17 +103,51 @@ test("createBundledPaper keeps uploaded bundle data intact and exposes it to the
       {
         path: "scripts/analyze.py",
         contentType: "text/plain",
-        bytes: Buffer.from(scriptContents, "utf8"),
+        ...blobRef("papers/test/scripts/analyze.py", Buffer.byteLength(scriptContents)),
+        sha256: sha256(scriptContents),
+        textContent: scriptContents,
       },
       {
         path: "data/results.csv",
         contentType: "text/csv",
-        bytes: Buffer.from(csvContents, "utf8"),
+        ...blobRef("papers/test/data/results.csv", Buffer.byteLength(csvContents)),
+        sha256: sha256(csvContents),
+        textContent: csvContents,
       },
       {
         path: "README.md",
         contentType: "text/markdown",
-        bytes: Buffer.from("# Integration Notes\n", "utf8"),
+        ...blobRef("papers/test/README.md", Buffer.byteLength("# Integration Notes\n")),
+        sha256: sha256("# Integration Notes\n"),
+        textContent: "# Integration Notes\n",
+      },
+      {
+        path: "paper.md",
+        contentType: "text/markdown",
+        ...blobRef("papers/test/paper.md", Buffer.byteLength("# Overview\n")),
+        sha256: sha256("# Overview\n"),
+        textContent: "# Overview\n",
+      },
+      {
+        path: "paper.tex",
+        contentType: "application/x-latex",
+        ...blobRef("papers/test/paper.tex", Buffer.byteLength("\\documentclass{article}\n")),
+        sha256: sha256("\\documentclass{article}\n"),
+        textContent: "\\documentclass{article}\n",
+      },
+      {
+        path: "references.bib",
+        contentType: "application/x-bibtex",
+        ...blobRef("papers/test/references.bib", Buffer.byteLength("@article{bundle-test}\n")),
+        sha256: sha256("@article{bundle-test}\n"),
+        textContent: "@article{bundle-test}\n",
+      },
+      {
+        path: "bundle-paper.pdf",
+        contentType: "application/pdf",
+        ...blobRef("papers/test/bundle-paper-artifact.pdf", pdfBytes.length),
+        sha256: sha256(pdfBytes),
+        kind: "PDF",
       },
     ],
   });
@@ -123,7 +171,7 @@ test("createBundledPaper keeps uploaded bundle data intact and exposes it to the
     },
   });
 
-  assert.equal(Buffer.from(storedPaper.pdfData ?? []).toString("utf8"), pdfBytes.toString("utf8"));
+  assert.equal(storedPaper.pdfStorageUrl, "https://blob.example.test/papers/test/bundle-paper.pdf");
   assert.equal(storedPaper.metric?.reviewCount, 0);
   assert.equal(storedPaper.referencesOut.length, 1);
   assert.equal(storedPaper.ideas[0]?.summary, "Keep the uploaded research bundle visible and intact.");
@@ -141,10 +189,6 @@ test("createBundledPaper keeps uploaded bundle data intact and exposes it to the
   assert.equal(scriptArtifact?.textContent, scriptContents);
   assert.equal(csvArtifact?.textContent, csvContents);
   assert.equal(pdfArtifact?.sizeBytes, pdfBytes.length);
-  assert.equal(
-    Buffer.from(pdfArtifact?.bytes ?? []).toString("utf8"),
-    pdfBytes.toString("utf8")
-  );
   assert.deepEqual(
     [...storedPaper.artifacts.map((artifact) => artifact.path)].sort(),
     [
@@ -186,12 +230,27 @@ test("createBundledPaper accepts markdown-only source and persists a paper.md ar
     pdf: {
       fileName: "paper.pdf",
       mimeType: "application/pdf",
-      bytes: pdfBytes,
+      ...blobRef("papers/test/markdown-paper.pdf", pdfBytes.length),
     },
     keywords: ["markdown", "bundle"],
     references: [],
     figures: [],
-    artifacts: [],
+    artifacts: [
+      {
+        path: "paper.md",
+        contentType: "text/markdown",
+        ...blobRef("papers/test/paper.md", Buffer.byteLength("# Introduction\n\nA markdown-only paper.\n")),
+        sha256: sha256("# Introduction\n\nA markdown-only paper.\n"),
+        textContent: "# Introduction\n\nA markdown-only paper.\n",
+      },
+      {
+        path: "paper.pdf",
+        contentType: "application/pdf",
+        ...blobRef("papers/test/paper-artifact.pdf", pdfBytes.length),
+        sha256: sha256(pdfBytes),
+        kind: "PDF",
+      },
+    ],
   });
 
   const storedPaper = await prisma.paper.findUniqueOrThrow({
@@ -225,18 +284,35 @@ test("updatePaper persists markdown changes for an existing paper", async () => 
     pdf: {
       fileName: "paper.pdf",
       mimeType: "application/pdf",
-      bytes: Buffer.from("%PDF-1.7\ninitial\n", "utf8"),
+      ...blobRef("papers/test/patchable-paper.pdf", Buffer.byteLength("%PDF-1.7\ninitial\n")),
     },
     keywords: ["markdown", "patch"],
     references: [],
     figures: [],
-    artifacts: [],
+    artifacts: [
+      {
+        path: "paper.md",
+        contentType: "text/markdown",
+        ...blobRef("papers/test/patchable-paper.md", Buffer.byteLength("Initial markdown.")),
+        sha256: sha256("Initial markdown."),
+        textContent: "Initial markdown.",
+      },
+    ],
   });
 
   const updated = await updatePaper(created.slug, user.id, {
     title: "Patchable markdown paper for desktop republish revised",
     markdown:
       "# Introduction\n\nUpdated markdown.\n\n# Results\n\nUpdated result.\n",
+    artifacts: [
+      {
+        path: "paper.md",
+        contentType: "text/markdown",
+        ...blobRef("papers/test/patchable-paper-updated.md", Buffer.byteLength("Updated result.")),
+        sha256: sha256("Updated result."),
+        textContent: "Updated result.",
+      },
+    ],
   });
 
   const storedPaper = await prisma.paper.findUniqueOrThrow({

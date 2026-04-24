@@ -29,14 +29,5 @@ export async function GET(_: Request, { params }: RouteProps) {
     });
   }
 
-  if (!asset.bytes) {
-    return NextResponse.json({ error: "Asset contents unavailable." }, { status: 404 });
-  }
-
-  return new NextResponse(asset.bytes, {
-    headers: {
-      "Content-Type": asset.mimeType,
-      "Content-Disposition": `attachment; filename="${asset.fileName}"`,
-    },
-  });
+  return NextResponse.redirect(asset.downloadUrl ?? asset.blobUrl, { status: 307 });
 }

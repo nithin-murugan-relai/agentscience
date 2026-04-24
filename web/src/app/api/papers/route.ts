@@ -1,19 +1,10 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
-import { getUniqueConstraintTargets, isUserFacingError } from "@/lib/errors";
 import { getRankedPapers } from "@/lib/papers";
-import { createBundledPaper } from "@/lib/platform";
-import {
-  optionalStringField,
-  parseArtifactUploads,
-  toUploadDescriptor,
-} from "@/lib/paper-upload";
 import { buildPathWithNext, validateBrowserOrigin } from "@/lib/request";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { parseList, toSearchParams } from "@/lib/utils";
-import { paperFormSchema } from "@/lib/validation";
+import { toSearchParams } from "@/lib/utils";
 
 export async function GET() {
   const papers = await getRankedPapers();
@@ -61,104 +52,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const formData = await request.formData();
-  const payload = paperFormSchema.safeParse({
-    title: optionalStringField(formData.get("title")),
-    abstract: optionalStringField(formData.get("abstract")),
-    markdown: optionalStringField(formData.get("markdown")),
-    latexSource: optionalStringField(formData.get("latexSource")),
-    bibSource: optionalStringField(formData.get("bibSource")),
-    pdfUrl: optionalStringField(formData.get("pdfUrl")),
-    canonicalUrl: optionalStringField(formData.get("canonicalUrl")),
-    githubUrl: optionalStringField(formData.get("githubUrl")),
-    doi: optionalStringField(formData.get("doi")),
-    keywords: optionalStringField(formData.get("keywords")),
-    references: optionalStringField(formData.get("references")),
-    ideaNote: optionalStringField(formData.get("ideaNote")),
-  });
-
-  if (!payload.success) {
-    return NextResponse.redirect(
-      new URL(
-        `/publish${toSearchParams({
-          error: payload.error.issues[0]?.message ?? "Invalid paper payload.",
-        })}`,
-        request.url
-      ),
-      { status: 303 }
-    );
-  }
-
-  const pdfFile = formData.get("pdf");
-  let artifacts;
-
-  try {
-    artifacts = await parseArtifactUploads(formData);
-  } catch (error) {
-    return NextResponse.redirect(
-      new URL(
-        `/publish${toSearchParams({
-          error: error instanceof Error ? error.message : "Invalid artifact bundle.",
-        })}`,
-        request.url
-      ),
-      { status: 303 }
-    );
-  }
-
-  const figures = await Promise.all(
-    formData
-      .getAll("figures")
-      .filter((entry): entry is File => entry instanceof File && entry.size > 0)
-      .map((entry) => toUploadDescriptor(entry))
+  return NextResponse.redirect(
+    new URL(
+      `/publish${toSearchParams({
+        error:
+          "Browser publishing now uses direct object-storage uploads. Publish from the CLI or desktop app while the browser form is being updated.",
+      })}`,
+      request.url
+    ),
+    { status: 303 }
   );
-
-  let paper;
-
-  try {
-    paper = await createBundledPaper(user.id, {
-      ...payload.data,
-      references: payload.data.references,
-      pdf:
-        pdfFile instanceof File && pdfFile.size > 0
-          ? await toUploadDescriptor(pdfFile)
-          : null,
-      figures,
-      artifacts,
-      keywords:
-        payload.data.keywords.length > 0
-          ? payload.data.keywords
-          : parseList(String(formData.get("keywords") ?? "")),
-    });
-  } catch (error) {
-    if (isUserFacingError(error)) {
-      return NextResponse.redirect(
-        new URL(`/publish${toSearchParams({ error: error.message })}`, request.url),
-        { status: 303 }
-      );
-    }
-
-    const uniqueTargets = getUniqueConstraintTargets(error);
-    if (uniqueTargets.includes("doi")) {
-      return NextResponse.redirect(
-        new URL(
-          `/publish${toSearchParams({
-            error: "A paper with that DOI already exists.",
-          })}`,
-          request.url
-        ),
-        { status: 303 }
-      );
-    }
-
-    throw error;
-  }
-
-  revalidatePath("/");
-  revalidatePath("/rankings");
-  revalidatePath("/publish");
-
-  return NextResponse.redirect(new URL(`/papers/${paper?.slug}`, request.url), {
-    status: 303,
-  });
 }
