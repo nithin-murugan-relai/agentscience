@@ -86,6 +86,22 @@ export function copyTemplate(outDir, outputFileName = "paper.tex") {
   return destPath;
 }
 
+const PYTHON_RESOURCES_DIR = join(__dirname, "..", "resources", "python");
+
+/**
+ * Copy the AgentScience plotting helper into a workspace code directory.
+ */
+export function copyFigureHelper(outDir, outputFileName = "agentscience_figures.py") {
+  const helperPath = join(PYTHON_RESOURCES_DIR, "agentscience_figures.py");
+  if (!existsSync(helperPath)) {
+    throw new Error(`Figure helper not found at ${helperPath}`);
+  }
+  mkdirSync(outDir, { recursive: true });
+  const destPath = join(outDir, outputFileName);
+  copyFileSync(helperPath, destPath);
+  return destPath;
+}
+
 // ---------------------------------------------------------------------------
 // LaTeX compilation
 // ---------------------------------------------------------------------------

@@ -29,6 +29,7 @@ import {
 } from "../lib/codex.mjs";
 import {
   compilePaper,
+  copyFigureHelper,
   copyTemplate,
   publishPaper,
   checkRegistryCandidatesInBatches,
@@ -70,6 +71,7 @@ import {
   listPaperWorkspaces,
 } from "../lib/workspace.mjs";
 import { collectWorkspaceBundle } from "../lib/paper-bundle.mjs";
+import { checkWorkspaceFigures } from "../lib/figure-check.mjs";
 
 const VERSION = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
@@ -130,6 +132,7 @@ Examples:
   agentscience digest get --human
   agentscience runtime status --json
   agentscience research init --idea "Does fine-tuning improve sepsis prediction?"
+  agentscience research check-figures --workspace ./research-runs/demo
   agentscience research run --idea "Adaptive sampling for outbreak triage" --workspace ./research-runs/outbreak --publish
   agentscience registry validate --url https://example.org/data.csv --name "Example Dataset" --description "Open CSV"
   agentscience registry import --manifest ./docs/dataset-registry-bootstrap.json
@@ -301,6 +304,7 @@ Optional options:
   --dataset-manifest <file>   Publish manifest with datasets used by the paper
   --yes-add-datasets          Auto-add new dataset candidates after publish
   --skip-registry-sync        Skip the publish-time dataset registry sync
+  --skip-figure-check         Publish without running the pre-upload figure QA gate
 
 Description:
   Uploads a real paper bundle to the live production API, including code artifacts
@@ -396,6 +400,7 @@ Subcommands:
   list         List paper workspaces under the configured workspace base.
   literature   Search OpenAlex and internal AgentScience papers for related work.
   compile      Compile a LaTeX paper in a workspace directory to PDF.
+  check-figures Validate saved figure images and AgentScience figure QA sidecars.
   template     Copy the standard AgentScience LaTeX template to a directory.
 `,
   researchInit: `Usage:
@@ -413,6 +418,15 @@ Description:
 `,
   researchLiterature: `Usage:
   agentscience research literature --query <text> [--keyword <term>] [--limit <n>]
+`,
+  researchCheckFigures: `Usage:
+  agentscience research check-figures --workspace <dir> [--figure <file> ...]
+
+Description:
+  Validates paper figures before presentation or publish. The checker reads
+  source-aware sidecars written by code/agentscience_figures.py and also runs
+  saved-image edge checks for raster figures when Python and Pillow are
+  available. It exits non-zero when any figure has a blocking layout issue.
 `,
   researchCompile: `Usage:
   agentscience research compile --workspace <dir> [--tex-file <filename>]
@@ -1230,6 +1244,33 @@ function render(result, mode) {
     if (result.venvPath) {
       console.log(`Python venv ready at ${result.venvPath}`);
     }
+    if (result.figureHelperPath) {
+      console.log(`Figure helper: ${result.figureHelperPath}`);
+    }
+    return;
+  }
+
+  if (result?.figureCheck && Array.isArray(result.figureCheck.figures)) {
+    const check = result.figureCheck;
+    console.log(
+      `Figure check: ${check.ok ? "PASS" : "FAIL"} (${check.figureCount} figure${
+        check.figureCount === 1 ? "" : "s"
+      })`,
+    );
+    for (const figure of check.figures) {
+      const issueCount = figure.issues?.length ?? 0;
+      const warningCount = figure.warnings?.length ?? 0;
+      console.log(`- ${figure.path}: ${figure.ok ? "ok" : "fail"}`);
+      for (const issue of figure.issues ?? []) {
+        console.log(`  error: ${issue.message}`);
+      }
+      for (const warning of figure.warnings ?? []) {
+        console.log(`  warning: ${warning.message}`);
+      }
+      if (issueCount === 0 && warningCount === 0) {
+        continue;
+      }
+    }
     return;
   }
 
@@ -1466,6 +1507,7 @@ async function handlePapers(args, globalOptions, config) {
     const datasetManifestPath = flagValue(rest, "--dataset-manifest");
     const autoAddDatasets = hasFlag(rest, "--yes-add-datasets");
     const skipRegistrySync = hasFlag(rest, "--skip-registry-sync");
+    const skipFigureCheck = hasFlag(rest, "--skip-figure-check");
     const keywordFlags = takeFlag(rest, "--keyword").values.filter(Boolean);
     const referenceFlags = takeFlag(rest, "--reference").values.filter(Boolean);
     const figureFlags = takeFlag(rest, "--figure").values.filter(Boolean);
@@ -1490,6 +1532,18 @@ async function handlePapers(args, globalOptions, config) {
       workspaceDir: resolvedWorkspace,
       figurePaths: figureFlags,
     });
+
+    if (!skipFigureCheck) {
+      const figureCheck = await checkWorkspaceFigures({
+        workspaceDir: resolvedWorkspace,
+        explicitFigures: figureFlags,
+      });
+      if (!figureCheck.ok) {
+        render({ figureCheck }, globalOptions.outputMode);
+        fail("Figure QA failed. Fix the reported figure layout issues or pass --skip-figure-check.");
+      }
+    }
+
     const user = await requestJson({
       path: "/api/v1/me",
       baseUrl: globalOptions.baseUrl,
@@ -2041,6 +2095,7 @@ async function handleResearch(args, globalOptions, config) {
         workspaceBase: getWorkspaceBase(config),
         paperDir,
         venvPath: join(paperDir, ".venv"),
+        figureHelperPath: join(paperDir, "code", "agentscience_figures.py"),
       },
       globalOptions.outputMode
     );
@@ -2095,6 +2150,27 @@ async function handleResearch(args, globalOptions, config) {
     return;
   }
 
+  if (subcommand === "check-figures") {
+    if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
+      console.log(HELP.researchCheckFigures);
+      return;
+    }
+    const workspace = flagValue(rest, "--workspace");
+    const figures = takeFlag(rest, "--figure").values.filter(Boolean);
+    if (!workspace) {
+      fail("research check-figures requires --workspace.");
+    }
+    const result = await checkWorkspaceFigures({
+      workspaceDir: resolve(workspace),
+      explicitFigures: figures,
+    });
+    render({ figureCheck: result }, globalOptions.outputMode);
+    if (!result.ok) {
+      process.exit(1);
+    }
+    return;
+  }
+
   if (subcommand === "template") {
     if (hasFlag(rest, "--help") || hasFlag(rest, "-h")) {
       console.log(HELP.researchTemplate);
@@ -2104,8 +2180,10 @@ async function handleResearch(args, globalOptions, config) {
     if (!outDir) {
       fail("research template requires --out-dir.");
     }
-    const templatePath = copyTemplate(resolve(outDir));
-    render({ ok: true, templatePath }, globalOptions.outputMode);
+    const resolvedOutDir = resolve(outDir);
+    const templatePath = copyTemplate(resolvedOutDir);
+    const figureHelperPath = copyFigureHelper(join(resolvedOutDir, "code"));
+    render({ ok: true, templatePath, figureHelperPath }, globalOptions.outputMode);
     return;
   }
 

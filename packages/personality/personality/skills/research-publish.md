@@ -103,5 +103,8 @@ agentscience registry import --dataset-manifest ./workspace/agentscience.publish
 ## Validation
 
 - Confirm auth with `agentscience auth whoami`
+- Before publishing a workspace with figures, run
+  `agentscience research check-figures --workspace <workspace>` and fix any
+  reported clipped text, edge contact, crowded title bands, or text overlap.
 - Confirm the result appears with `agentscience papers get <slug>`
 - If the user wants follow-up visibility checks, read `agentscience rankings list`

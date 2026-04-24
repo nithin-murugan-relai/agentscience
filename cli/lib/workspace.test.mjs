@@ -55,7 +55,12 @@ test("initPaperWorkspace creates the per-paper layout and listPaperWorkspaces di
     assert.ok(existsSync(join(paperDir, "experiment-log.md")));
     assert.ok(existsSync(join(paperDir, "figure-descriptions.md")));
     assert.ok(existsSync(join(paperDir, "abstract.txt")));
+    assert.ok(existsSync(join(paperDir, "code", "agentscience_figures.py")));
     assert.match(readFileSync(join(paperDir, "paper.tex"), "utf8"), /\\documentclass/);
+    assert.match(
+      readFileSync(join(paperDir, "code", "agentscience_figures.py"), "utf8"),
+      /def save_figure/,
+    );
 
     const listed = listPaperWorkspaces({ workspaceBase: tempRoot });
     assert.equal(listed.length, 1);

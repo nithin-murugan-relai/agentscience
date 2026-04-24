@@ -10,7 +10,7 @@ import {
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
-import { copyTemplate } from "./pipeline.mjs";
+import { copyFigureHelper, copyTemplate } from "./pipeline.mjs";
 
 const DEFAULT_WORKSPACE_DIRNAME = "agentscience-papers";
 const SLUG_MAX_LENGTH = 60;
@@ -84,6 +84,7 @@ export function initPaperWorkspace(idea, config = {}) {
     createEmptyFile(join(paperDir, "figure-descriptions.md"));
     createEmptyFile(join(paperDir, "abstract.txt"));
     copyTemplate(paperDir);
+    copyFigureHelper(join(paperDir, "code"));
 
     execFileSync("python3", ["-m", "venv", ".venv"], {
       cwd: paperDir,
