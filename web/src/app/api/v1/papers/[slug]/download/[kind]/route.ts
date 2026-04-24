@@ -15,7 +15,7 @@ async function fetchBlobBytes(url: string) {
   return new Uint8Array(await response.arrayBuffer());
 }
 
-export async function GET(_: Request, { params }: RouteProps) {
+export async function GET(request: Request, { params }: RouteProps) {
   const { slug, kind } = await params;
   const paper = await getPaperDetail(slug);
 
@@ -25,7 +25,11 @@ export async function GET(_: Request, { params }: RouteProps) {
 
   if (kind === "pdf") {
     if (paper.pdfStorageUrl) {
-      return NextResponse.redirect(paper.pdfDownloadUrl ?? paper.pdfStorageUrl, { status: 307 });
+      const forceDownload = new URL(request.url).searchParams.get("download") === "1";
+      return NextResponse.redirect(
+        forceDownload ? paper.pdfDownloadUrl ?? paper.pdfStorageUrl : paper.pdfStorageUrl,
+        { status: 307 }
+      );
     }
 
     if (paper.pdfUrl) {

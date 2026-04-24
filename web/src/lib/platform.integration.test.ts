@@ -16,6 +16,7 @@ let createIntegrationKey: typeof import("@/lib/papers").createIntegrationKey;
 let authenticateIntegrationToken: typeof import("@/lib/papers").authenticateIntegrationToken;
 let createApiTokenRoute: typeof import("@/app/api/v1/auth/token/route").POST;
 let revokeApiTokenRoute: typeof import("@/app/api/v1/auth/revoke/route").POST;
+let downloadPaperRoute: typeof import("@/app/api/v1/papers/[slug]/download/[kind]/route").GET;
 
 let userCounter = 0;
 
@@ -32,6 +33,7 @@ before(async () => {
   ({ createIntegrationKey, authenticateIntegrationToken } = await import("@/lib/papers"));
   ({ POST: createApiTokenRoute } = await import("@/app/api/v1/auth/token/route"));
   ({ POST: revokeApiTokenRoute } = await import("@/app/api/v1/auth/revoke/route"));
+  ({ GET: downloadPaperRoute } = await import("@/app/api/v1/papers/[slug]/download/[kind]/route"));
 });
 
 beforeEach(async () => {
@@ -215,6 +217,23 @@ test("createBundledPaper keeps uploaded bundle data intact and exposes it to the
   assert.equal(scriptBundleArtifact?.downloadUrl, `/api/v1/papers/${paper.slug}/download/artifact/${scriptBundleArtifact?.id}`);
   assert.equal(scriptBundleArtifact?.isText, true);
   assert.equal(scriptBundleArtifact?.textContent, scriptContents);
+
+  const inlinePdfResponse = await downloadPaperRoute(
+    new Request(`http://localhost/api/v1/papers/${paper.slug}/download/pdf`),
+    { params: Promise.resolve({ slug: paper.slug, kind: "pdf" }) }
+  );
+  const downloadPdfResponse = await downloadPaperRoute(
+    new Request(`http://localhost/api/v1/papers/${paper.slug}/download/pdf?download=1`),
+    { params: Promise.resolve({ slug: paper.slug, kind: "pdf" }) }
+  );
+
+  assert.equal(inlinePdfResponse.status, 307);
+  assert.equal(inlinePdfResponse.headers.get("location"), "https://blob.example.test/papers/test/bundle-paper.pdf");
+  assert.equal(downloadPdfResponse.status, 307);
+  assert.equal(
+    downloadPdfResponse.headers.get("location"),
+    "https://blob.example.test/papers/test/bundle-paper.pdf?download=1"
+  );
 });
 
 test("createBundledPaper accepts markdown-only source and persists a paper.md artifact", async () => {

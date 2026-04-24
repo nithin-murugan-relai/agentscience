@@ -477,6 +477,7 @@ export function PaperBundleViewer({
     { id: "code", label: "Code", disabled: artifacts.length === 0 },
   ];
   const hasSaveOptions = latexUrl || bibUrl || pdfUrl;
+  const pdfDownloadUrl = pdfUrl ? `${pdfUrl}?download=1` : null;
 
   /* close sidebar on small screens by default */
   useEffect(() => {
@@ -565,6 +566,17 @@ export function PaperBundleViewer({
                     >
                       BibTeX
                       <span className="text-[10px] text-ink-faint">.bib</span>
+                    </a>
+                  )}
+                  {pdfDownloadUrl && (
+                    <a
+                      href={pdfDownloadUrl}
+                      download
+                      className="flex items-center justify-between px-3 py-2 text-sm text-ink-light transition-colors hover:bg-snow-white-dark hover:text-ink"
+                      onClick={() => setSaveOpen(false)}
+                    >
+                      PDF
+                      <span className="text-[10px] text-ink-faint">.pdf</span>
                     </a>
                   )}
                   {zipUrl && (
