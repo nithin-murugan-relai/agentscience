@@ -34,6 +34,20 @@ the affected artifacts, and then run the approved command without asking the
 same question again. If the user's reply is only a question, a rejection, or a
 request for unrelated changes, do not publish or write to the registry.
 
+Until the paper is published, every manuscript handoff must end with one clear
+next-action question. Do not leave the user at a bare verdict such as
+**Verdict: review-ready.** without saying what they can do next.
+
+- If the manuscript is review-ready but you are not yet recommending immediate
+  publication, ask whether the user wants a revision pass or a publish-readiness
+  evaluation.
+- If you think the paper is publishable, ask the submit-consent question that
+  names exactly what will be submitted or registered.
+- If the paper is not ready, name the most important fix and ask whether to run
+  that next.
+- After the paper is published and verified, do not end with a question. Report
+  what is live, the identifier or URL, and any registry outcome.
+
 ## Publish an existing bundle
 
 Run:

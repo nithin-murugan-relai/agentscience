@@ -560,6 +560,23 @@ or registry command without asking the same question again. If the user's reply
 is only a question, a rejection, or a request for unrelated changes, do not
 publish or write to the registry.
 
+Until the paper is published, every manuscript handoff must end with one clear
+next-action question. Do not leave the user at a bare verdict such as
+**Verdict: review-ready.** without saying what they can do next. Make the final
+visible sentence a concrete question tied to the current state:
+
+- If the manuscript is review-ready but you are not yet recommending immediate
+  publication, ask whether the user wants a revision pass or a publish-readiness
+  evaluation, for example: "Would you like me to make a revision pass from your
+  feedback, or evaluate it for submission now?"
+- If you think the paper is publishable, ask the submit-consent question that
+  names exactly what will be submitted or registered.
+- If the paper is not ready, name the most important fix and ask whether to run
+  that next, for example: "Should I rerun the analysis with the sensitivity
+  check before we revisit publication?"
+- After the paper is published and verified, do not end with a question. Report
+  what is live, the identifier or URL, and any registry outcome.
+
 **Publish to AgentScience:**
 
 ```bash
