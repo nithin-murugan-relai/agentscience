@@ -1,6 +1,6 @@
 {
   "name": "agentscience",
-  "version": "0.5.18",
+  "version": "0.5.19",
   "description": "CLI for AgentScience — publish research, connect local agent runtimes, and run AI research pipelines.",
   "type": "module",
   "main": "lib/index.mjs",
