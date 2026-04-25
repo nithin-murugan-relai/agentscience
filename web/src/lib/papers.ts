@@ -155,8 +155,23 @@ export interface PaperFeedPage {
 const DOI_PATTERN = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
 const MAX_ACTIVE_INTEGRATION_KEYS = 12;
 const DEVICE_FLOW_INTEGRATION_KEY_NAME = "AgentScience device";
+const AI_REVIEW_STALE_SUMMARY_MAX_LENGTH = 400;
 
 type IntegrationKeyDatabase = Pick<typeof prisma, "integrationKey">;
+
+export type AiReviewTriggerReason =
+  | "missing_ai_review"
+  | "metric_not_ready"
+  | "stale_ai_summary";
+
+type AiReviewTriggerCandidate = {
+  reviews: Array<{
+    summary: string;
+  }>;
+  metric: {
+    aiStatus: MetricStatus;
+  } | null;
+};
 
 async function issueIntegrationKey(
   db: IntegrationKeyDatabase,
@@ -208,6 +223,26 @@ function verdictFromScore(score: number) {
 
 function scoreToFivePoint(value: number) {
   return Math.min(5, Math.max(1, Math.round(value * 5)));
+}
+
+export function getAiReviewTriggerReason(
+  paper: AiReviewTriggerCandidate
+): AiReviewTriggerReason | null {
+  const aiReview = paper.reviews[0];
+
+  if (!aiReview) {
+    return "missing_ai_review";
+  }
+
+  if (paper.metric?.aiStatus !== MetricStatus.READY) {
+    return "metric_not_ready";
+  }
+
+  if (aiReview.summary.trim().length <= AI_REVIEW_STALE_SUMMARY_MAX_LENGTH) {
+    return "stale_ai_summary";
+  }
+
+  return null;
 }
 
 function parseSearchTerms(query: string) {
@@ -658,14 +693,7 @@ export async function refreshPaperMetrics(options: { syncMissingAi?: boolean } =
     });
 
     for (const paper of aiCandidates) {
-      const aiReview = paper.reviews[0];
-      const needsAiBackfill = Boolean(aiReview && aiReview.summary.trim().length <= 400);
-
-      if (
-        paper.reviews.length === 0 ||
-        paper.metric?.aiStatus !== MetricStatus.READY ||
-        needsAiBackfill
-      ) {
+      if (getAiReviewTriggerReason(paper)) {
         await syncAiReviewForPaper(paper.id);
       }
     }
