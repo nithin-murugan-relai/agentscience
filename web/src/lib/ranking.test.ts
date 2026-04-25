@@ -136,3 +136,67 @@ test("heuristic-only drafts do not outrank genuinely reviewed papers", () => {
   assert.equal(rankings[0]?.paperId, "reviewed-paper");
   assert.ok(rankings[0].finalScore > rankings[1].finalScore);
 });
+
+test("integrity floor suppresses high-overall assessments with unsupported claims", () => {
+  const rankings = buildPaperRankings([
+    {
+      paperId: "unsupported-paper",
+      title: "Unsupported Breakthrough",
+      abstract: "An exciting but weakly supported claim with poor citation grounding.",
+      markdown:
+        "# Introduction\n\n# Methods\n\n# Results\n\n# Discussion\n\nThe paper makes a large claim but the integrity review found thin support.",
+      keywords: ["breakthrough", "unsupported"],
+      authorIds: ["agent"],
+      referenceTargets: [],
+      reviewScores: [],
+      saveCount: 25,
+      ideaCount: 4,
+      aiAssessment: {
+        summary: "The writing is clear and ambitious, but the core result is not adequately grounded.",
+        overall: 0.98,
+        novelty: 0.98,
+        rigor: 0.9,
+        clarity: 0.94,
+        reproducibility: 0.88,
+        integrityScore: 0.05,
+        integritySummary:
+          "Claim support is poor, reference integrity is weak, methodological coherence is fragile, and hallucination resistance is low.",
+        claimVerification: 0.05,
+        referenceIntegrity: 0.04,
+        methodologicalCoherence: 0.08,
+        hallucinationResistance: 0.03,
+      },
+    },
+    {
+      paperId: "supported-paper",
+      title: "Supported Incremental Result",
+      abstract: "A more modest result that is backed by methods, references, and reproducible evidence.",
+      markdown:
+        "# Introduction\n\n# Methods\n\n# Results\n\n# Discussion\n\nReferences and reproducible methods support a narrower claim.",
+      keywords: ["supported", "methods"],
+      authorIds: ["researcher"],
+      referenceTargets: [],
+      reviewScores: [],
+      saveCount: 0,
+      ideaCount: 0,
+      aiAssessment: {
+        summary: "The paper is narrower, but the claims are grounded and the evidence chain is coherent.",
+        overall: 0.72,
+        novelty: 0.65,
+        rigor: 0.75,
+        clarity: 0.74,
+        reproducibility: 0.74,
+        integrityScore: 0.72,
+        integritySummary:
+          "Claim support, reference integrity, methodological coherence, and hallucination resistance are all adequate for ranking.",
+        claimVerification: 0.73,
+        referenceIntegrity: 0.7,
+        methodologicalCoherence: 0.75,
+        hallucinationResistance: 0.7,
+      },
+    },
+  ]);
+
+  assert.equal(rankings[0]?.paperId, "supported-paper");
+  assert.ok(rankings[0].finalScore > rankings[1].finalScore);
+});

@@ -44,6 +44,11 @@ function normalizeLog(value: number, maxValue: number) {
   return clamp(Math.log1p(Math.max(0, value)) / Math.log1p(maxValue));
 }
 
+function applyIntegrityFloor(score: number, integrityScore: number) {
+  const integrityCap = clamp(0.25 + 0.75 * integrityScore, 0.25, 1);
+  return Math.min(score, integrityCap);
+}
+
 function wordDiversity(words: string[]) {
   return clamp(new Set(words).size / 10);
 }
@@ -201,11 +206,12 @@ export function buildPaperRankings(papers: RankingInputPaper[]): RankingResult[]
     );
     const aiScore = clamp(0.75 * aiAssessment.overall + 0.25 * aiAssessment.integrityScore);
     const integrityScore = aiAssessment.integrityScore;
-    const qualityScore = reviewCount
+    const rawQualityScore = reviewCount
       ? clamp(0.8 * humanScore + 0.15 * aiAssessment.overall + 0.05 * integrityScore)
       : paper.aiAssessment
         ? clamp(0.8 * aiAssessment.overall + 0.2 * integrityScore)
         : clamp(Math.min(0.45 * aiAssessment.overall + 0.1 * integrityScore, 0.45));
+    const qualityScore = applyIntegrityFloor(rawQualityScore, integrityScore);
     const finalScore = clamp(0.78 * qualityScore + 0.22 * networkScore);
 
     return {
