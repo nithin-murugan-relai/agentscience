@@ -7,7 +7,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -75,7 +75,30 @@ const TEMPLATE_DIR = join(__dirname, "..", "resources", "latex-template");
 /**
  * Copy the standard AgentScience LaTeX template into a workspace directory.
  */
-export function copyTemplate(outDir, outputFileName = "paper.tex") {
+function escapeLatexText(value) {
+  return String(value ?? "")
+    .replace(/\\/g, "\\textbackslash{}")
+    .replace(/([#$%&_{}])/g, "\\$1");
+}
+
+function fillTemplateAuthor(source, options = {}) {
+  const authorName = options.authorName?.trim();
+  if (!authorName) {
+    return source;
+  }
+
+  const affiliation = options.authorAffiliation?.trim();
+  const authorLine = affiliation
+    ? `${escapeLatexText(authorName)}\\thanks{${escapeLatexText(affiliation)}}`
+    : escapeLatexText(authorName);
+
+  return source.replace(
+    /\\author\{%\n(?:  %.*\n)+\}/,
+    `\\author{%\n  ${authorLine}\n}`,
+  );
+}
+
+export function copyTemplate(outDir, outputFileName = "paper.tex", options = {}) {
   const templatePath = join(TEMPLATE_DIR, "agentscience.tex");
   if (!existsSync(templatePath)) {
     throw new Error(`LaTeX template not found at ${templatePath}`);
@@ -83,6 +106,10 @@ export function copyTemplate(outDir, outputFileName = "paper.tex") {
   mkdirSync(outDir, { recursive: true });
   const destPath = join(outDir, outputFileName);
   copyFileSync(templatePath, destPath);
+  if (options.authorName?.trim()) {
+    const source = readFileSync(destPath, "utf8");
+    writeFileSync(destPath, fillTemplateAuthor(source, options));
+  }
   return destPath;
 }
 

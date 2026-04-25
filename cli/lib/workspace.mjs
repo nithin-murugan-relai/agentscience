@@ -83,7 +83,10 @@ export function initPaperWorkspace(idea, config = {}) {
     createEmptyFile(join(paperDir, "experiment-log.md"));
     createEmptyFile(join(paperDir, "figure-descriptions.md"));
     createEmptyFile(join(paperDir, "abstract.txt"));
-    copyTemplate(paperDir);
+    copyTemplate(paperDir, "paper.tex", {
+      authorName: config.authorName,
+      authorAffiliation: config.authorAffiliation,
+    });
     copyFigureHelper(join(paperDir, "code"));
 
     execFileSync("python3", ["-m", "venv", ".venv"], {

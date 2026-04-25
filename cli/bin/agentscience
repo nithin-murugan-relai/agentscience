@@ -1347,6 +1347,7 @@ async function handleAuth(args, globalOptions, config) {
       baseUrl: globalOptions.baseUrl,
       token,
     });
+    saveConfigWithPublicationProfile(config, globalOptions, token, user);
 
     render(
       {
@@ -1377,6 +1378,7 @@ async function handleAuth(args, globalOptions, config) {
       baseUrl: globalOptions.baseUrl,
       token,
     });
+    saveConfigWithPublicationProfile(config, globalOptions, token, user);
 
     render(
       {
@@ -1399,15 +1401,16 @@ async function handleAuth(args, globalOptions, config) {
     if (!token) {
       fail("auth use-token requires --token.");
     }
-    saveConfig({
-      ...config,
-      baseUrl: globalOptions.baseUrl,
+    const user = await syncLocalConfigWithAccountProfile({
+      config,
+      globalOptions,
       token,
     });
     render(
       {
         ok: true,
         tokenPrefix: token.slice(0, 12),
+        user,
         configPath: CONFIG_PATH,
       },
       globalOptions.outputMode
@@ -1436,6 +1439,54 @@ function requireToken(config) {
     );
   }
   return token;
+}
+
+function saveConfigWithPublicationProfile(config, globalOptions, token, user) {
+  const nextConfig = {
+    ...config,
+    baseUrl: globalOptions.baseUrl,
+    token,
+    authorName: user.name,
+  };
+
+  if (typeof user.institution === "string" && user.institution.trim().length > 0) {
+    nextConfig.authorAffiliation = user.institution.trim();
+  } else {
+    delete nextConfig.authorAffiliation;
+  }
+
+  saveConfig(nextConfig);
+}
+
+async function syncLocalConfigWithAccountProfile({
+  config,
+  globalOptions,
+  token,
+  authorName,
+  affiliation,
+}) {
+  let user = await requestJson({
+    path: "/api/v1/me",
+    baseUrl: globalOptions.baseUrl,
+    token,
+  });
+
+  if (authorName !== undefined || affiliation !== undefined) {
+    user = await requestJson({
+      path: "/api/v1/me",
+      method: "PATCH",
+      baseUrl: globalOptions.baseUrl,
+      token,
+      body: {
+        ...(authorName !== undefined ? { name: authorName } : {}),
+        ...(affiliation !== undefined ? { institution: affiliation } : {}),
+        publicationProfileCompleted: true,
+      },
+    });
+  }
+
+  saveConfigWithPublicationProfile(config, globalOptions, token, user);
+  return user;
 }
 
 async function handlePapers(args, globalOptions, config) {
@@ -1549,6 +1600,7 @@ async function handlePapers(args, globalOptions, config) {
       baseUrl: globalOptions.baseUrl,
       token,
     });
+    saveConfigWithPublicationProfile(config, globalOptions, token, user);
     const blobPayload = await buildBlobBackedPaperPayload({
       baseUrl: globalOptions.baseUrl,
       token,
@@ -2181,7 +2233,10 @@ async function handleResearch(args, globalOptions, config) {
       fail("research template requires --out-dir.");
     }
     const resolvedOutDir = resolve(outDir);
-    const templatePath = copyTemplate(resolvedOutDir);
+    const templatePath = copyTemplate(resolvedOutDir, "paper.tex", {
+      authorName: config.authorName,
+      authorAffiliation: config.authorAffiliation,
+    });
     const figureHelperPath = copyFigureHelper(join(resolvedOutDir, "code"));
     render({ ok: true, templatePath, figureHelperPath }, globalOptions.outputMode);
     return;
@@ -2954,7 +3009,15 @@ async function handleSetup(args, globalOptions, config) {
     }
 
     const token = await authenticateForAgent(rest, globalOptions, config, "Codex setup");
-    const { authorName, authorAffiliation } = resolveKnownResearcherIdentity(rest);
+    const authorNameFlag = flagValue(rest, "--author-name");
+    const affiliationFlag = flagValue(rest, "--affiliation");
+    const accountProfile = await syncLocalConfigWithAccountProfile({
+      config: loadConfig(),
+      globalOptions,
+      token,
+      ...(authorNameFlag !== undefined ? { authorName: authorNameFlag } : {}),
+      ...(affiliationFlag !== undefined ? { affiliation: affiliationFlag } : {}),
+    });
     const installedPlugin = installCodexPlugin({
       isProject,
       paths: CODEX_RUNTIME,
@@ -2964,8 +3027,8 @@ async function handleSetup(args, globalOptions, config) {
       ...loadConfig(),
       baseUrl: globalOptions.baseUrl,
       token,
-      ...(authorName ? { authorName } : {}),
-      ...(authorAffiliation ? { authorAffiliation } : {}),
+      authorName: accountProfile.name,
+      ...(accountProfile.institution ? { authorAffiliation: accountProfile.institution } : {}),
     });
 
     const verification = [];
@@ -3042,15 +3105,23 @@ async function handleSetup(args, globalOptions, config) {
   }
 
   const token = await authenticateForAgent(rest, globalOptions, config, "Claude Code setup");
-  const { authorName, authorAffiliation } = await resolveResearcherIdentity(rest);
+  const authorNameFlag = flagValue(rest, "--author-name");
+  const affiliationFlag = flagValue(rest, "--affiliation");
+  const accountProfile = await syncLocalConfigWithAccountProfile({
+    config: loadConfig(),
+    globalOptions,
+    token,
+    ...(authorNameFlag !== undefined ? { authorName: authorNameFlag } : {}),
+    ...(affiliationFlag !== undefined ? { affiliation: affiliationFlag } : {}),
+  });
   const slashCommand = await resolveClaudeCodeSlashCommand(globalOptions.baseUrl);
   const resolvedCommandPath = join(commandDir, `${slashCommand.commandName}.md`);
   saveConfig({
     ...loadConfig(),
     baseUrl: globalOptions.baseUrl,
     token,
-    authorName,
-    ...(authorAffiliation ? { authorAffiliation } : {}),
+    authorName: accountProfile.name,
+    ...(accountProfile.institution ? { authorAffiliation: accountProfile.institution } : {}),
   });
 
   mkdirSync(commandDir, { recursive: true });

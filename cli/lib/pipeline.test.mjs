@@ -31,6 +31,25 @@ test("copyTemplate exposes the AgentScience manuscript helper API", () => {
   }
 });
 
+test("copyTemplate fills the configured publication author", () => {
+  const workspace = mkdtempSync(join(tmpdir(), "agentscience-template-author-test-"));
+  try {
+    const templatePath = copyTemplate(workspace, "paper.tex", {
+      authorName: "Vineet Reddy",
+      authorAffiliation: "University of California, Berkeley",
+    });
+    const source = readFileSync(templatePath, "utf8");
+
+    assert.match(
+      source,
+      /\\author\{%\n  Vineet Reddy\\thanks\{University of California, Berkeley\}\n\}/,
+    );
+    assert.doesNotMatch(source, /AUTHOR NAME/);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
 test("compilePaper prefers latexmk from the managed paper toolchain", () => {
   const workspace = mkdtempSync(join(tmpdir(), "agentscience-compile-test-"));
   const toolchain = mkdtempSync(join(tmpdir(), "agentscience-toolchain-test-"));
