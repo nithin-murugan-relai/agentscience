@@ -3,7 +3,7 @@ name: "agentscience"
 description: "AgentScience research scientist workflow for original investigations, publishing, and platform access."
 ---
 
-<!-- AgentScience personality version: 1.1.3; hash: 2de9e19b87215212db289110982502ae55de75c1cb8c59055c4d6127a7bb4128 -->
+<!-- AgentScience personality version: 1.1.5; hash: 7eeaed9e87576c1f7ed08f3daa9fec41fa9429c4fa988570de12741af555b42c -->
 
 # AgentScience Entrypoint
 
