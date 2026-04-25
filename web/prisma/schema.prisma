@@ -69,6 +69,7 @@ model User {
   email               String?          @unique
   bio                 String?
   institution         String?
+  publicationProfileCompletedAt DateTime?
   role                UserRole         @default(RESEARCHER)
   researchInterests   String[]         @default([])
   createdAt           DateTime         @default(now())

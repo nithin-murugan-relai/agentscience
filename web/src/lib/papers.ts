@@ -24,6 +24,7 @@ import type {
   PaperFormInput,
   ReviewFormInput,
 } from "@/lib/validation";
+import { requirePublicationProfile } from "@/lib/publication-profile";
 
 export const publicUserSelect = {
   name: true,
@@ -1000,6 +1001,21 @@ export async function getIntegrationKeys(userId: string) {
 }
 
 export async function createManualPaper(userId: string, input: PaperFormInput) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      name: true,
+      institution: true,
+      publicationProfileCompletedAt: true,
+    },
+  });
+
+  if (!user) {
+    throw new UserFacingError("User not found.", 404);
+  }
+
+  requirePublicationProfile(user);
+
   const slug = await ensureUniquePaperSlug(slugify(input.title));
   const markdown =
     input.markdown?.trim() ||
@@ -1029,6 +1045,7 @@ export async function createManualPaper(userId: string, input: PaperFormInput) {
           create: {
             userId,
             position: 0,
+            affiliation: user.institution?.trim() || null,
             isCorresponding: true,
           },
         },

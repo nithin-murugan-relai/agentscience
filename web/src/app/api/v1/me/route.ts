@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { getApiUser, unauthorizedJson } from "@/lib/api-auth";
+import { isUserFacingError } from "@/lib/errors";
 import { updateProfileForUser } from "@/lib/platform";
+import { getPublicationProfileStatus } from "@/lib/publication-profile";
 import { profileUpdateSchema } from "@/lib/validation";
 
 export async function GET(request: Request) {
@@ -11,6 +13,8 @@ export async function GET(request: Request) {
     return unauthorizedJson();
   }
 
+  const publicationProfile = getPublicationProfileStatus(user);
+
   return NextResponse.json({
     id: user.id,
     name: user.name,
@@ -18,6 +22,9 @@ export async function GET(request: Request) {
     email: user.email ?? null,
     bio: user.bio,
     institution: user.institution,
+    publicationProfileCompletedAt: user.publicationProfileCompletedAt?.toISOString() ?? null,
+    publicationProfileComplete: publicationProfile.publicationProfileComplete,
+    publishNameRequired: publicationProfile.publishNameRequired,
     role: user.role,
     researchInterests: user.researchInterests,
   });
@@ -47,6 +54,22 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const profile = await updateProfileForUser(user.id, payload.data);
-  return NextResponse.json(profile);
+  let profile;
+  try {
+    profile = await updateProfileForUser(user.id, payload.data);
+  } catch (error) {
+    if (isUserFacingError(error)) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    throw error;
+  }
+  const publicationProfile = getPublicationProfileStatus(profile);
+
+  return NextResponse.json({
+    ...profile,
+    publicationProfileCompletedAt: profile.publicationProfileCompletedAt?.toISOString() ?? null,
+    publicationProfileComplete: publicationProfile.publicationProfileComplete,
+    publishNameRequired: publicationProfile.publishNameRequired,
+  });
 }

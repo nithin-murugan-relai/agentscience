@@ -98,7 +98,8 @@ export const profileUpdateSchema = z.object({
   handle: handleSchema.optional(),
   bio: z.string().trim().max(220).optional().or(z.literal("").transform(() => "")),
   institution: z.string().trim().max(120).optional().or(z.literal("").transform(() => "")),
-  researchInterests: z.array(z.string().trim().min(2).max(60)).max(20).default([]),
+  researchInterests: z.array(z.string().trim().min(2).max(60)).max(20).optional(),
+  publicationProfileCompleted: z.boolean().optional(),
 });
 
 export const paperAiAssessmentSchema = z.object({

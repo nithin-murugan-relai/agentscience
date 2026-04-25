@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { isUserFacingError, UserFacingError } from "@/lib/errors";
+import { getPublicationProfileStatus } from "@/lib/publication-profile";
 import { createDeviceFlowIntegrationKey } from "@/lib/papers";
 import { prisma } from "@/lib/prisma";
 import { getClientIp, validateBrowserOrigin } from "@/lib/request";
@@ -72,6 +73,13 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json(
       { error: "Authentication required." },
       { status: 401 }
+    );
+  }
+
+  if (!getPublicationProfileStatus(user).publicationProfileComplete) {
+    return NextResponse.json(
+      { error: "Confirm your publishing name before authorizing this device." },
+      { status: 409 }
     );
   }
 

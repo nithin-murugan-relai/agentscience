@@ -149,7 +149,10 @@ async function syncClerkIdentity(identity: NormalizedClerkIdentity) {
   });
 
   if (existingByClerkId) {
-    if (existingByClerkId.name !== identity.name) {
+    if (
+      !existingByClerkId.publicationProfileCompletedAt &&
+      existingByClerkId.name !== identity.name
+    ) {
       return prisma.user.update({
         where: { id: existingByClerkId.id },
         data: { name: identity.name },
@@ -169,7 +172,7 @@ async function syncClerkIdentity(identity: NormalizedClerkIdentity) {
         where: { id: existingByEmail.id },
         data: {
           clerkId: identity.clerkId,
-          name: identity.name,
+          ...(!existingByEmail.publicationProfileCompletedAt ? { name: identity.name } : {}),
         },
       });
     }

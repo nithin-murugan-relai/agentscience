@@ -22,6 +22,10 @@ import {
   syncAiReviewForPaper,
 } from "@/lib/papers";
 import { prisma } from "@/lib/prisma";
+import {
+  getPublicationProfileStatus,
+  requirePublicationProfile,
+} from "@/lib/publication-profile";
 import type {
   PaperFormInput,
   ProfileUpdateInput,
@@ -267,7 +271,7 @@ export function serializePaperSummary(paper: PaperSummary) {
     authors: paper.authors.map((author) => ({
       name: author.user.name,
       handle: author.user.handle,
-      institution: author.user.institution,
+      institution: author.affiliation ?? author.user.institution,
       role: author.user.role,
     })),
     score: paper.metric?.finalScore ?? 0,
@@ -304,6 +308,21 @@ export function serializePaperDetail(paper: PaperDetail) {
 }
 
 export async function createBundledPaper(userId: string, input: BundledPaperInput) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      name: true,
+      institution: true,
+      publicationProfileCompletedAt: true,
+    },
+  });
+
+  if (!user) {
+    throw new UserFacingError("User not found.", 404);
+  }
+
+  requirePublicationProfile(user);
+
   if (!input.latexSource?.trim() && !input.markdown?.trim()) {
     throw new UserFacingError("LaTeX or Markdown source is required.", 400);
   }
@@ -346,6 +365,7 @@ export async function createBundledPaper(userId: string, input: BundledPaperInpu
           create: {
             userId,
             position: 0,
+            affiliation: user.institution?.trim() || null,
             isCorresponding: true,
           },
         },
@@ -433,6 +453,36 @@ export async function getProfileByHandle(handle: string) {
 }
 
 export async function updateProfileForUser(userId: string, input: ProfileUpdateInput) {
+  let publicationProfileCompletedAt: Date | undefined;
+
+  if (input.publicationProfileCompleted) {
+    const existing = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, institution: true, publicationProfileCompletedAt: true },
+    });
+
+    if (!existing) {
+      throw new UserFacingError("User not found.", 404);
+    }
+
+    const nextProfile = {
+      ...existing,
+      ...(typeof input.name === "string" ? { name: input.name } : {}),
+      ...(typeof input.institution === "string"
+        ? { institution: input.institution || null }
+        : {}),
+    };
+
+    if (!getPublicationProfileStatus(nextProfile).hasPublishName) {
+      throw new UserFacingError(
+        "Add the name you want to publish with before connecting AgentScience.",
+        400
+      );
+    }
+
+    publicationProfileCompletedAt = new Date();
+  }
+
   return prisma.user.update({
     where: { id: userId },
     data: {
@@ -442,9 +492,15 @@ export async function updateProfileForUser(userId: string, input: ProfileUpdateI
       ...(typeof input.institution === "string"
         ? { institution: input.institution || null }
         : {}),
-      researchInterests: input.researchInterests,
+      ...(publicationProfileCompletedAt ? { publicationProfileCompletedAt } : {}),
+      ...(input.researchInterests !== undefined
+        ? { researchInterests: input.researchInterests }
+        : {}),
     },
-    select: publicUserSelect,
+    select: {
+      ...publicUserSelect,
+      publicationProfileCompletedAt: true,
+    },
   });
 }
 

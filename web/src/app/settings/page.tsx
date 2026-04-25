@@ -39,6 +39,7 @@ export default async function SettingsPage() {
       <h1 className="text-3xl text-ink">Settings</h1>
 
       <form action="/api/settings/profile" method="post" className="mt-8 space-y-4">
+        <input type="hidden" name="publicationProfileCompleted" value="true" />
         <label className="block space-y-1">
           <span className="text-sm text-ink">Name</span>
           <input name="name" defaultValue={user.name} className="field-input" />

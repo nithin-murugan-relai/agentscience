@@ -1,10 +1,10 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
-import { getUniqueConstraintTargets } from "@/lib/errors";
+import { getUniqueConstraintTargets, isUserFacingError } from "@/lib/errors";
 import { getCurrentUser } from "@/lib/auth";
 import { updateProfileForUser } from "@/lib/platform";
-import { buildPathWithNext, validateBrowserOrigin } from "@/lib/request";
+import { buildPathWithNext, getSafeRedirectPath, validateBrowserOrigin } from "@/lib/request";
 import { parseList, toSearchParams } from "@/lib/utils";
 import { profileUpdateSchema } from "@/lib/validation";
 
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     bio: formData.get("bio"),
     institution: formData.get("institution"),
     researchInterests: parseList(String(formData.get("researchInterests") ?? "")).slice(0, 20),
+    publicationProfileCompleted: formData.get("publicationProfileCompleted") === "true",
   });
 
   if (!payload.success) {
@@ -50,6 +51,18 @@ export async function POST(request: Request) {
   try {
     await updateProfileForUser(user.id, payload.data);
   } catch (error) {
+    if (isUserFacingError(error)) {
+      return NextResponse.redirect(
+        new URL(
+          `/settings${toSearchParams({
+            error: error.message,
+          })}`,
+          request.url
+        ),
+        { status: 303 }
+      );
+    }
+
     const uniqueTargets = getUniqueConstraintTargets(error);
 
     if (uniqueTargets.includes("handle")) {
@@ -74,5 +87,6 @@ export async function POST(request: Request) {
     revalidatePath(`/profiles/${payload.data.handle}`);
   }
 
-  return NextResponse.redirect(new URL("/settings", request.url), { status: 303 });
+  const nextPath = getSafeRedirectPath(String(formData.get("redirect_url") ?? ""), "/settings");
+  return NextResponse.redirect(new URL(nextPath, request.url), { status: 303 });
 }
