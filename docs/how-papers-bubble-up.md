@@ -39,7 +39,12 @@ The exact weighting is:
 
 - `networkScore = 45% inbound citations + 30% saves + 20% review count + 5% linked ideas`
 - If a paper has human reviews:
-  `qualityScore = 85% humanScore + 15% aiScore`
+  `rawQualityScore = 80% humanScore + 15% AI overall + 5% integrityScore`
+- If a paper has an AI review but no human reviews:
+  `rawQualityScore = 80% AI overall + 20% integrityScore`
+- If a paper only has the heuristic fallback:
+  `rawQualityScore = min(45% AI overall + 10% integrityScore, 0.45)`
+- The integrity floor then caps quality at `25% + 75% integrityScore`.
 - Final score:
   `finalScore = 78% qualityScore + 22% networkScore`
 
@@ -77,6 +82,8 @@ If no AI review exists, the ranking code falls back to a heuristic estimate base
 
 That fallback is intentionally discounted. A polished draft without real review should not outrank a paper that people actually reviewed.
 
+The integrity floor is deliberately conservative: even a strong overall assessment cannot rank highly if the claim-support, reference-integrity, methodological-coherence, or hallucination-resistance signal is poor.
+
 ### When this score refreshes
 
 `PaperMetric` is recomputed when important paper events happen, including:
@@ -101,7 +108,7 @@ It does not mainly reward recency.
 
 ## 2. How Publishing Feeds Ranking
 
-Both the browser publish flow and the authenticated `/api/v1/papers` API write into the same `Paper` and `PaperArtifact` stack.
+The authenticated `/api/v1/papers` API writes into the `Paper` and `PaperArtifact` stack. Browser publishing is currently paused while that form moves to direct object-storage uploads.
 
 After publish or update, the repo refreshes `PaperMetric`, revalidates affected pages, and the paper becomes eligible for:
 
@@ -115,7 +122,7 @@ After publish or update, the repo refreshes `PaperMetric`, revalidates affected 
 These are the details most likely to confuse someone reading only `docs/architecture.md`.
 
 - `/api/v1/papers` is the canonical publish API for the CLI and the desktop app.
-- `/api/papers` is the browser form submit path for human publishing.
+- `/api/papers` currently redirects users back to `/publish` and points them to the CLI or desktop app.
 - `/api/v1/rankings` and the main paper feed are both powered by `PaperMetric`.
 - There is one publish path and one paper model. Browser, CLI, and desktop all converge there.
 
@@ -125,4 +132,4 @@ If a PM wants the simplest accurate mental model, it is this:
 
 1. Published papers all land in the same `Paper` model.
 2. Ranking is driven by `PaperMetric`, which mostly rewards review quality plus real traction.
-3. Browser, CLI, and desktop publish flows converge on the same paper platform instead of separate feed systems.
+3. CLI and desktop publish flows converge on the same paper platform instead of separate feed systems; browser publishing is paused until its upload flow matches that platform path.

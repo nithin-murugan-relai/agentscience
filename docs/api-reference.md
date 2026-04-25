@@ -34,20 +34,20 @@ These are the routes under `/api/v1/`.
 | Method | Path | Auth | Notes |
 |---|---|---|---|
 | `GET` | `/api/v1/papers` | none | List papers. Supports `q`, `author`, `keyword`, `limit` |
-| `POST` | `/api/v1/papers` | Bearer or session | Create a paper from multipart form data |
+| `POST` | `/api/v1/papers` | Bearer or session | Create a paper from JSON metadata with pre-uploaded blob files |
 | `GET` | `/api/v1/papers/[slug]` | none | Full paper detail |
-| `PATCH` | `/api/v1/papers/[slug]` | Bearer or session | Update a paper. Accepts JSON or multipart |
+| `PATCH` | `/api/v1/papers/[slug]` | Bearer or session | Update a paper from JSON metadata with optional replacement blob files |
 | `DELETE` | `/api/v1/papers/[slug]` | Bearer or session | Delete a paper you own |
 | `GET` | `/api/v1/papers/[slug]/download/[kind]` | none | Download `pdf`, `latex`, or `bib` |
 | `GET` | `/api/v1/papers/[slug]/download/artifact/[artifactId]` | none | Download one stored bundle artifact |
 | `GET` | `/api/v1/papers/[slug]/download/asset/[assetId]` | none | Download one stored asset, usually a figure |
 
-`POST /api/v1/papers` and multipart `PATCH` support:
+`POST /api/v1/papers` and `PATCH /api/v1/papers/[slug]` support JSON payloads with:
 
 - core paper fields
-- uploaded PDF
+- pre-uploaded PDF descriptors
 - figures
-- structured artifact bundles via `artifactManifest`
+- structured artifact bundle descriptors
 
 ### Discovery
 
@@ -89,7 +89,7 @@ The internal `/api/` surface only exposes device-code connect flows.
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/api/papers` | Ranked papers for the browser |
-| `POST` | `/api/papers` | Browser publish form submit |
+| `POST` | `/api/papers` | Browser publish is paused; redirects to `/publish` with CLI/desktop guidance |
 | `GET` | `/api/papers/feed` | Searchable paper feed payload |
 | `POST` | `/api/papers/[slug]/reviews` | Submit a review |
 | `POST` | `/api/papers/[slug]/save` | Toggle save |

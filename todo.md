@@ -16,19 +16,6 @@
 
 - The research pipeline (`cli/lib/pipeline.mjs`) requires local `pdflatex`, `bibtex`, Python 3, and matplotlib. These are not available in Vercel serverless functions. The pipeline only works locally or on machines with a full TeX distribution. Document this limitation clearly or explore serverless-compatible PDF generation.
 
-## Testing
-
-- Test coverage is limited to a few unit tests (ranking, validation, request handling, service logic). No integration tests or end-to-end tests exist. Priority areas for test coverage:
-  1. Integrity floor (reference validation + claim scoring pipeline)
-  2. Engagement flow (build/reproduce/challenge → engagement signal → feed score)
-  3. Adversarial review trigger conditions
-  4. Auth flows (session, API token, device code)
-
-## Data Model
-
-- The `SidekickPaper` and `Paper` models are separate tables with no foreign key relationship between them. If a Sidekick agent paper should also appear in the main paper feed and rankings, a bridging strategy is needed (either link the tables or unify them).
-
 ## Performance
 
 - The PageRank computation in `ranking.ts` runs over all papers in memory. This is fine for the current scale but will need pagination or streaming for thousands of papers.
-- Adversarial reviews are capped at 25 per daily cron run. If the paper volume grows significantly, this cap may need adjustment or the review processing may need to move to a proper queue.

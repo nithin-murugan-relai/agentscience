@@ -36,26 +36,17 @@ agentscience/
 
 ### 1. Browser publishing
 
-The browser publish form posts multipart data to `/api/papers`.
+Browser publishing is currently paused while the browser form moves to direct object-storage uploads. `POST /api/papers` validates session, origin, and rate limits, then redirects back to `/publish` with a message to publish through the CLI or desktop app for now.
 
-The request path:
-
-1. validate session and origin
-2. parse the form and uploaded files
-3. create a `Paper`
-4. store figures in `PaperAsset`
-5. store code, data, docs, LaTeX, BibTeX, and PDF in `PaperArtifact`
-6. refresh paper metrics
-
-The paper detail page then renders the same stored bundle through the built-in viewer.
+The paper detail page renders the same stored bundle format used by the API publish path.
 
 ### 2. API publishing
 
 The public API uses `/api/v1/papers`.
 
 - auth is Bearer token or session cookie
-- `POST` accepts multipart form data
-- `PATCH /api/v1/papers/[slug]` accepts JSON or multipart form data
+- `POST` accepts JSON metadata with pre-uploaded blob files
+- `PATCH /api/v1/papers/[slug]` accepts JSON metadata with optional replacement blob files
 
 This is the path the CLI and the desktop app use for normal paper publishing.
 
@@ -124,6 +115,7 @@ It combines:
 - human review scores and verdicts
 - citations, saves, and other traction inside the platform
 - optional AI review or a weaker heuristic fallback
+- an integrity floor that caps quality when claim support or reference integrity is weak
 
 `/api/v1/rankings` and the browser paper feed both read from this system.
 
