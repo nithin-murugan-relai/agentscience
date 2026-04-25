@@ -98,6 +98,7 @@
       {\footnotesize\color{black!70}\@date\par}
     }
   \end{center}
+  \@thanks
   \vspace{0.55em}
   \begin{center}
     \begin{minipage}{0.88\textwidth}
@@ -255,7 +256,9 @@
 
 \author{%
   % AUTHOR NAME - use the researcher's name from: agentscience config get
-  % Example: Jane Doe\thanks{MIT}
+  % Example with affiliation: Jane Doe\thanks{MIT}
+  % If no institution is specified, write only the name.
+  % Do not write placeholder affiliations such as "institution unspecified".
   % Do not list AI tools, bots, or "AgentScience Research" as authors.
 }
 
