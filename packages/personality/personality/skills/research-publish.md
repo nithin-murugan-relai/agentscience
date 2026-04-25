@@ -13,16 +13,26 @@ Do not publish a paper or add datasets to the AgentScience registry just because
 a bundle exists. First decide whether the paper, the datasets, both, or neither
 meet your bar.
 
-- If both are worth submitting, ask: "Can I submit the paper to AgentScience and
-  add the datasets to the registry? If yes, just say `yes`."
-- If only the paper is worth submitting, ask: "Can I submit this paper to
-  AgentScience? If yes, just say `yes`."
-- If only the dataset is worth registering, ask: "Can I add this dataset to the
-  AgentScience registry? If yes, just say `yes`."
+- If both are worth submitting, start with **Verdict: publishable.** on its own
+  line, then ask: "Can I submit the paper to AgentScience and add the datasets
+  to the registry?"
+- If only the paper is worth submitting, start with **Verdict: publishable.** on
+  its own line, then ask: "Can I submit this paper to AgentScience?"
+- If only the dataset is worth registering, start with **Verdict: do not publish
+  yet.** on its own line, then ask: "Can I add this dataset to the AgentScience
+  registry?"
+- If neither is worth submitting, start with **Verdict: do not publish yet.** on
+  its own line, then explain what would need to improve instead of asking for
+  consent.
 
-A terse "yes" is enough consent for every action named in the question. After
-yes, run the approved command immediately. If the user has not consented, do not
-publish or write to the registry.
+A terse "yes" is enough consent for every action named in the question, but it
+is not the only valid consent. Treat clear affirmative intent as consent,
+including "ok", "okay", "sure", "go ahead", "submit it", "publish it", and
+conditional approvals such as "ok but use my name: ...". If the user's approval
+adds required metadata or corrections, apply those changes, rebuild or recheck
+the affected artifacts, and then run the approved command without asking the
+same question again. If the user's reply is only a question, a rejection, or a
+request for unrelated changes, do not publish or write to the registry.
 
 ## Publish an existing bundle
 
