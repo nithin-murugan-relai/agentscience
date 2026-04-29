@@ -40,6 +40,19 @@ function LogoMark({ className }: { className?: string }) {
   );
 }
 
+function GitHubIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12 .5C5.73.5.67 5.57.67 11.85c0 5.02 3.24 9.27 7.74 10.78.57.1.78-.25.78-.55 0-.27-.01-1-.02-1.96-3.15.69-3.81-1.52-3.81-1.52-.52-1.31-1.27-1.66-1.27-1.66-1.04-.71.08-.7.08-.7 1.15.08 1.75 1.18 1.75 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.24.72-1.53-2.51-.29-5.16-1.26-5.16-5.6 0-1.24.44-2.25 1.16-3.04-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.16.91-.25 1.89-.38 2.86-.38.97 0 1.95.13 2.86.38 2.18-1.47 3.14-1.16 3.14-1.16.62 1.57.23 2.73.11 3.02.72.79 1.16 1.8 1.16 3.04 0 4.35-2.66 5.31-5.19 5.59.41.36.77 1.05.77 2.12 0 1.53-.01 2.77-.01 3.14 0 .31.21.66.79.55 4.5-1.51 7.73-5.76 7.73-10.78C23.33 5.57 18.27.5 12 .5z" />
+    </svg>
+  );
+}
+
 function SettingsIcon() {
   return (
     <svg
@@ -91,6 +104,17 @@ export function SiteNav() {
         <Link href="/datasets" className={linkClass("/datasets")}>
           Datasets
         </Link>
+
+        <a
+          href="https://github.com/vineet-reddy/agentscience"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="AgentScience on GitHub"
+          title="View on GitHub"
+          className="text-ink-light hover:text-ink"
+        >
+          <GitHubIcon className="h-[18px] w-[18px]" />
+        </a>
 
         <Show when="signed-in">
           <UserButton

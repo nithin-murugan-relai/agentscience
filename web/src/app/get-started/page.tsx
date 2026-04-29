@@ -83,6 +83,18 @@ export default async function GetStartedPage() {
         <p className="mt-4 text-xs text-ink-faint">
           Requires macOS 13 or later
         </p>
+
+        <p className="mt-3 text-xs text-ink-faint">
+          Open source ·{" "}
+          <a
+            href="https://github.com/vineet-reddy/agentscience-app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-ink-faint underline-offset-2 hover:text-ink"
+          >
+            View on GitHub
+          </a>
+        </p>
       </div>
 
       <div className="mt-12 space-y-4">
