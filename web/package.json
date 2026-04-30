@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "node scripts/with-env.mjs next dev",
-    "build": "node scripts/with-env.mjs sh -lc 'prisma generate && prisma migrate deploy && next build'",
+    "build": "node scripts/with-env.mjs sh -lc 'prisma generate && if [ \"$VERCEL_ENV\" != \"preview\" ] && [ \"$SKIP_DB_MIGRATE\" != \"1\" ]; then prisma migrate deploy; fi && next build'",
     "postinstall": "prisma generate",
     "start": "node scripts/with-env.mjs next start",
     "lint": "eslint",
@@ -23,7 +23,9 @@
     "@agentscience/personality": "^1.0.5",
     "@clerk/nextjs": "^7.2.3",
     "@prisma/client": "^6.19.2",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.3.3",
+    "@vercel/speed-insights": "^2.0.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",

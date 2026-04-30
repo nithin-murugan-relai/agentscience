@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { EB_Garamond, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "@/app/globals.css";
 import { SiteShell } from "@/components/site-shell";
@@ -68,6 +70,8 @@ export default function RootLayout({
         >
           <SiteShell>{children}</SiteShell>
         </ClerkProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
