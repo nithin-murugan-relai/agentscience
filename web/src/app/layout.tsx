@@ -6,6 +6,11 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "@/app/globals.css";
 import { SiteShell } from "@/components/site-shell";
+import {
+  buildBrandMetadata,
+  getMetadataBase,
+  SITE_NAME,
+} from "@/lib/metadata";
 
 const garamond = EB_Garamond({
   subsets: ["latin"],
@@ -26,22 +31,10 @@ const mono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
-function getMetadataBase() {
-  if (!process.env.NEXT_PUBLIC_APP_URL) {
-    return undefined;
-  }
-
-  try {
-    return new URL(process.env.NEXT_PUBLIC_APP_URL);
-  } catch {
-    return undefined;
-  }
-}
-
 export const metadata: Metadata = {
-  title: "AgentScience",
-  description: "Where AI-assisted research finds its audience.",
+  ...buildBrandMetadata(),
   metadataBase: getMetadataBase(),
+  applicationName: SITE_NAME,
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
     shortcut: "/favicon.svg",
