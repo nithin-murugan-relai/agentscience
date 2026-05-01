@@ -4,13 +4,24 @@ import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/metadata";
 
 export const runtime = "edge";
 
+const WIDTH = 1200;
+const HEIGHT = 630;
+const CACHE_CONTROL = "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800";
+
 const SURFACE = "#FAFAFA";
 const INK = "#1A1A1A";
 const INK_LIGHT = "#6E6E6E";
+const INK_FAINT = "#ABABAB";
 const RULE = "#E5E5E5";
 const ACCENT = "#3b5bdb";
 
 const HERO_HEADLINE = "Science, amplified.";
+
+/** Extra glyphs so font subsets cover common punctuation and quotes. */
+const FONT_FALLBACK_CHARS =
+  `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789` +
+  `.,;:!?'"()[]{}/\\-–—•·…@%&+#=<>°` +
+  "\u201C\u201D\u2018\u2019";
 
 async function loadGoogleFont(
   family: string,
@@ -29,6 +40,26 @@ async function loadGoogleFont(
   }
 
   return fetch(fontUrl).then((res) => res.arrayBuffer());
+}
+
+function uniqueCharsForFont(...parts: string[]) {
+  const seen = new Set<string>();
+  let out = "";
+  for (const part of parts) {
+    for (const ch of part) {
+      if (!seen.has(ch)) {
+        seen.add(ch);
+        out += ch;
+      }
+    }
+  }
+  for (const ch of FONT_FALLBACK_CHARS) {
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      out += ch;
+    }
+  }
+  return out;
 }
 
 function FlaskLogo({ size }: { size: number }) {
@@ -78,14 +109,182 @@ function FlaskLogo({ size }: { size: number }) {
   );
 }
 
-export async function GET() {
-  const garamondText = `${SITE_NAME}${HERO_HEADLINE}`;
-  const plexText = SITE_DESCRIPTION;
+function HeaderBar() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        padding: "56px 80px 32px",
+      }}
+    >
+      <FlaskLogo size={40} />
+      <span
+        style={{
+          fontFamily: "EB Garamond",
+          fontSize: 36,
+          fontWeight: 400,
+          letterSpacing: "-0.005em",
+          lineHeight: 1,
+          color: INK,
+        }}
+      >
+        {SITE_NAME}
+      </span>
+    </div>
+  );
+}
+
+function HeaderRule() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        height: 1,
+        background: RULE,
+        margin: "0 80px",
+      }}
+    />
+  );
+}
+
+function paperTitleSize(title: string) {
+  if (title.length > 115) {
+    return 40;
+  }
+  if (title.length > 82) {
+    return 46;
+  }
+  return 52;
+}
+
+function paperAbstractSize(abstract: string) {
+  return abstract.length > 220 ? 24 : 26;
+}
+
+export async function GET(request: Request) {
+  const requestUrl = new URL(request.url);
+  const isPaper = requestUrl.searchParams.get("kind") === "paper";
+
+  const title = isPaper
+    ? getPreviewParam(requestUrl, "title", "Untitled paper", 150)
+    : "";
+  const abstract = isPaper ? getPreviewParam(requestUrl, "abstract", "", 280) : "";
+  const authors = isPaper ? getPreviewParam(requestUrl, "authors", "", 120) : "";
+  const publishedAt = isPaper ? getPreviewParam(requestUrl, "publishedAt", "", 40) : "";
+
+  const garamondSubset = isPaper
+    ? uniqueCharsForFont(SITE_NAME, title)
+    : uniqueCharsForFont(SITE_NAME, HERO_HEADLINE);
+
+  const plexSubset = isPaper
+    ? uniqueCharsForFont(SITE_DESCRIPTION, abstract, authors, publishedAt, SITE_NAME)
+    : uniqueCharsForFont(SITE_DESCRIPTION);
 
   const [garamond, plexSans] = await Promise.all([
-    loadGoogleFont("EB Garamond", 400, garamondText),
-    loadGoogleFont("IBM Plex Sans", 400, plexText),
+    loadGoogleFont("EB Garamond", 400, garamondSubset),
+    loadGoogleFont("IBM Plex Sans", 400, plexSubset),
   ]);
+
+  const metadataLine = [authors, publishedAt].filter(Boolean).join(" · ") || SITE_NAME;
+
+  const body = isPaper ? (
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        padding: "40px 80px 48px",
+        minHeight: 0,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "EB Garamond",
+          fontSize: paperTitleSize(title),
+          fontWeight: 400,
+          lineHeight: 1.14,
+          color: INK,
+          maxHeight: 200,
+          overflow: "hidden",
+        }}
+      >
+        {title}
+      </div>
+
+      <div style={{ marginTop: 28, height: 1, background: RULE, flexShrink: 0 }} />
+
+      <div
+        style={{
+          marginTop: 28,
+          flex: 1,
+          minHeight: 0,
+          fontSize: paperAbstractSize(abstract),
+          fontWeight: 400,
+          lineHeight: 1.5,
+          color: INK_LIGHT,
+          overflow: "hidden",
+        }}
+      >
+        {abstract}
+      </div>
+
+      <div style={{ marginTop: 28, height: 1, background: RULE, flexShrink: 0 }} />
+
+      <div
+        style={{
+          marginTop: 22,
+          fontSize: 21,
+          fontWeight: 400,
+          lineHeight: 1.4,
+          color: INK_FAINT,
+        }}
+      >
+        {metadataLine}
+      </div>
+    </div>
+  ) : (
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 80px",
+        textAlign: "center",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "EB Garamond",
+          fontSize: 112,
+          fontWeight: 400,
+          lineHeight: 1.04,
+          letterSpacing: "-0.018em",
+          color: INK,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {HERO_HEADLINE}
+      </div>
+      <div
+        style={{
+          marginTop: 28,
+          fontSize: 30,
+          fontWeight: 400,
+          lineHeight: 1.4,
+          color: INK_LIGHT,
+          maxWidth: 880,
+        }}
+      >
+        {SITE_DESCRIPTION}
+      </div>
+    </div>
+  );
 
   return new ImageResponse(
     (
@@ -100,76 +299,17 @@ export async function GET() {
           fontFamily: "IBM Plex Sans",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            padding: "56px 80px 32px",
-          }}
-        >
-          <FlaskLogo size={48} />
-          <span
-            style={{
-              fontFamily: "EB Garamond",
-              fontSize: 36,
-              letterSpacing: "-0.005em",
-              lineHeight: 1,
-            }}
-          >
-            {SITE_NAME}
-          </span>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            height: 1,
-            background: RULE,
-            margin: "0 80px",
-          }}
-        />
-
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "0 80px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "EB Garamond",
-              fontSize: 112,
-              lineHeight: 1.04,
-              letterSpacing: "-0.018em",
-              color: INK,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {HERO_HEADLINE}
-          </div>
-          <div
-            style={{
-              marginTop: 28,
-              fontSize: 30,
-              lineHeight: 1.4,
-              color: INK_LIGHT,
-              maxWidth: 880,
-            }}
-          >
-            {SITE_DESCRIPTION}
-          </div>
-        </div>
+        <HeaderBar />
+        <HeaderRule />
+        {body}
       </div>
     ),
     {
-      width: 1200,
-      height: 630,
+      width: WIDTH,
+      height: HEIGHT,
+      headers: {
+        "cache-control": CACHE_CONTROL,
+      },
       fonts: [
         {
           name: "EB Garamond",
@@ -186,4 +326,27 @@ export async function GET() {
       ],
     },
   );
+}
+
+function getPreviewParam(url: URL, key: string, fallback: string, maxLength: number) {
+  const value = normalizeWhitespace(url.searchParams.get(key) ?? "");
+
+  if (!value) {
+    return fallback;
+  }
+
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  const clipped = value.slice(0, Math.max(0, maxLength - 3)).trimEnd();
+  const lastSpace = clipped.lastIndexOf(" ");
+  const trimmed =
+    lastSpace > Math.floor(maxLength * 0.65) ? clipped.slice(0, lastSpace) : clipped;
+
+  return `${trimmed}...`;
+}
+
+function normalizeWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
 }

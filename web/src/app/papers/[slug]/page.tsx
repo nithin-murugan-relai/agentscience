@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -9,6 +10,7 @@ import {
   buildPaperBundleView,
   resolveInitialPaperBundleTab,
 } from "@/lib/paper-bundle";
+import { buildPaperPreviewMetadata } from "@/lib/metadata";
 import { getPaperBySlug } from "@/lib/papers";
 import { formatDate } from "@/lib/utils";
 
@@ -18,6 +20,24 @@ type PageProps = {
 };
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: Pick<PageProps, "params">): Promise<Metadata> {
+  const { slug } = await params;
+  const paper = await getPaperBySlug(slug);
+
+  if (!paper) {
+    return {};
+  }
+
+  return buildPaperPreviewMetadata({
+    title: paper.title,
+    abstract: paper.abstract,
+    authors: paper.authors.map((author) => author.user.name),
+    publishedAt: paper.publishedAt,
+  });
+}
 
 export default async function PaperDetailPage({
   params,
