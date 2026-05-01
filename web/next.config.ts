@@ -42,6 +42,17 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // OG image is fetched in crawlers' and preview tools' pages as a cross-origin <img>.
+      // CORP same-origin would make browsers show a broken image there while direct hits still work.
+      {
+        source: "/api/og",
+        headers: [
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
+          },
+        ],
+      },
     ];
   },
 };
