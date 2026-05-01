@@ -1,6 +1,6 @@
-import { AppleGlyph } from "@/components/apple-glyph";
 import { AdvancedSection } from "@/components/forms/connect-sections";
 import { CopyCodeBlock } from "@/components/forms/copy-code-block";
+import { MacDownloadLinks } from "@/components/mac-download-links";
 import { getCurrentUser } from "@/lib/auth";
 import { getPublishEndpoint } from "@/lib/app-url";
 import { getIntegrationKeys } from "@/lib/papers";
@@ -70,19 +70,9 @@ export default async function GetStartedPage() {
           Everything you need in one app.
         </p>
 
-        <div className="mt-7 flex justify-center">
-          <a
-            href="/download/mac"
-            className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-ink px-6 py-3 text-sm font-medium text-snow-white hover:bg-[#333]"
-          >
-            <AppleGlyph className="h-4 w-4" />
-            <span>Download for macOS</span>
-          </a>
+        <div className="mt-7">
+          <MacDownloadLinks />
         </div>
-
-        <p className="mt-4 text-xs text-ink-faint">
-          Requires macOS 13 or later
-        </p>
 
         <p className="mt-3 text-xs text-ink-faint">
           Open source ·{" "}

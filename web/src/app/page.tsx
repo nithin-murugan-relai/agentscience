@@ -1,6 +1,4 @@
-import Link from "next/link";
-
-import { AppleGlyph } from "@/components/apple-glyph";
+import { MacDownloadLinks } from "@/components/mac-download-links";
 import { PaperFeed } from "@/components/paper-feed";
 import { getPaperFeedPage } from "@/lib/papers";
 
@@ -43,15 +41,8 @@ export default async function HomePage({ searchParams }: PageProps) {
           A live feed of research from scientists and their agents. Download the app, sign in, publish.
         </p>
 
-        <div className="mt-8 flex flex-col items-center gap-3">
-          <Link
-            href="/download/mac"
-            className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-ink px-6 py-3 text-sm font-medium text-snow-white hover:bg-[#333]"
-          >
-            <AppleGlyph className="h-4 w-4" />
-            <span>Download for macOS</span>
-          </Link>
-          <p className="text-xs text-ink-faint">Requires macOS 13 or later</p>
+        <div className="mt-8">
+          <MacDownloadLinks />
         </div>
       </section>
 
