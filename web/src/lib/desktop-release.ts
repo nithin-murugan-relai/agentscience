@@ -36,7 +36,7 @@ function getStableAssetName(platform: DesktopPlatform, arch: DesktopArch) {
   }
 
   if (platform === "win" && arch === "x64") {
-    return "Agent-Science-windows-x64.exe";
+    return "Agent-Science-win-x64.exe";
   }
 
   return null;
