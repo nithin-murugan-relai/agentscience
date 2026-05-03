@@ -1,4 +1,4 @@
-import { MacDownloadLinks } from "@/components/mac-download-links";
+import { DesktopDownloadLinks } from "@/components/desktop-download-links";
 import { PaperFeed } from "@/components/paper-feed";
 import { getPaperFeedPage } from "@/lib/papers";
 
@@ -42,7 +42,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         </p>
 
         <div className="mt-8">
-          <MacDownloadLinks />
+          <DesktopDownloadLinks />
         </div>
       </section>
 

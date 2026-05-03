@@ -1,6 +1,6 @@
 import { AdvancedSection } from "@/components/forms/connect-sections";
 import { CopyCodeBlock } from "@/components/forms/copy-code-block";
-import { MacDownloadLinks } from "@/components/mac-download-links";
+import { DesktopDownloadLinks } from "@/components/desktop-download-links";
 import { getCurrentUser } from "@/lib/auth";
 import { getPublishEndpoint } from "@/lib/app-url";
 import { getIntegrationKeys } from "@/lib/papers";
@@ -61,7 +61,7 @@ export default async function GetStartedPage() {
 
       <div className="mt-10 rounded-[var(--radius-lg)] border border-rule bg-snow-white p-10 text-center sm:p-12">
         <p className="text-[0.6875rem] font-medium uppercase tracking-[0.15em] text-ink-faint">
-          AgentScience for Mac
+          AgentScience Desktop
         </p>
         <h2 className="mt-4 font-[family-name:var(--font-display)] text-2xl text-ink">
           Ideate, write, publish.
@@ -71,7 +71,7 @@ export default async function GetStartedPage() {
         </p>
 
         <div className="mt-7">
-          <MacDownloadLinks />
+          <DesktopDownloadLinks />
         </div>
 
         <p className="mt-3 text-xs text-ink-faint">
