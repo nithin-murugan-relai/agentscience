@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "@/app/globals.css";
+import { AnalyticsTracker } from "@/components/analytics-tracker";
 import { SiteShell } from "@/components/site-shell";
 import {
   buildBrandMetadata,
@@ -63,6 +64,7 @@ export default function RootLayout({
         >
           <SiteShell>{children}</SiteShell>
         </ClerkProvider>
+        <AnalyticsTracker />
         <Analytics />
         <SpeedInsights />
       </body>
