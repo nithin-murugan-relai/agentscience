@@ -48,6 +48,7 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+.analytics/
 .env*.local
 
 # clerk configuration (can include secrets)

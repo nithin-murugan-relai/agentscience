@@ -17,6 +17,9 @@
     "db:reclassify-dataset-topics": "node scripts/with-env.mjs npx tsx scripts/reclassify-dataset-topics.mts",
     "db:status": "node scripts/with-env.mjs prisma migrate status",
     "db:ping": "node scripts/with-env.mjs prisma db execute --stdin --schema prisma/schema.prisma",
+    "analytics:sync": "node scripts/sync-analytics.mjs",
+    "analytics:publish": "./scripts/publish-analytics-snapshot.sh",
+    "analytics:cron": "./scripts/run-analytics-cron.sh",
     "test": "node scripts/with-env.mjs sh -lc 'node --test --import tsx $(find src -name \"*.test.ts\" -print)'"
   },
   "dependencies": {
