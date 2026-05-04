@@ -1,0 +1,51 @@
+{
+  "summary": {
+    "visitors": 52,
+    "pageViews": 140,
+    "bounceRate": 54
+  },
+  "timeseries": [
+    { "date": "2026-04-24", "visitors": 0, "pageViews": 0 },
+    { "date": "2026-04-25", "visitors": 0, "pageViews": 0 },
+    { "date": "2026-04-26", "visitors": 0, "pageViews": 0 },
+    { "date": "2026-04-27", "visitors": 0, "pageViews": 0 },
+    { "date": "2026-04-28", "visitors": 0, "pageViews": 0 },
+    { "date": "2026-04-29", "visitors": 7, "pageViews": 18 },
+    { "date": "2026-04-30", "visitors": 32, "pageViews": 82 },
+    { "date": "2026-05-01", "visitors": 13, "pageViews": 40 }
+  ],
+  "pages": [
+    { "label": "/", "value": 46 },
+    { "label": "/datasets", "value": 10 },
+    { "label": "/papers/the-first-labor-market-signal-from-ai-data-centers-skilled-trade-p...", "value": 10 },
+    { "label": "/papers/trade-only-reinforcement-learning-for-asymmetric-information-cat...", "value": 5 },
+    { "label": "/get-started", "value": 4 },
+    { "label": "/papers/gliosarcoma-separates-from-conventional-glioblastoma-by-a-tp5...", "value": 4 },
+    { "label": "/connect", "value": 2 }
+  ],
+  "referrers": [
+    { "label": "t.co", "value": 11 },
+    { "label": "google.com", "value": 2 },
+    { "label": "reddit.com", "value": 2 },
+    { "label": "old.reddit.com", "value": 1 },
+    { "label": "vercel.com", "value": 1 }
+  ],
+  "countries": [
+    { "label": "United States", "value": 85, "share": 85 },
+    { "label": "Spain", "value": 4, "share": 4 },
+    { "label": "Canada", "value": 2, "share": 2 },
+    { "label": "Cyprus", "value": 2, "share": 2 },
+    { "label": "Finland", "value": 2, "share": 2 }
+  ],
+  "devices": [
+    { "label": "Desktop", "value": 63, "share": 63 },
+    { "label": "Mobile", "value": 37, "share": 37 }
+  ],
+  "operatingSystems": [
+    { "label": "Mac", "value": 42, "share": 42 },
+    { "label": "iOS", "value": 33, "share": 33 },
+    { "label": "Windows", "value": 12, "share": 12 },
+    { "label": "GNU/Linux", "value": 10, "share": 10 },
+    { "label": "Android", "value": 4, "share": 4 }
+  ]
+}
