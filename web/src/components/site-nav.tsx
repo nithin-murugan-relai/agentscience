@@ -82,6 +82,7 @@ export function SiteNav() {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
+
   const linkClass = (href: string) =>
     isActive(href)
       ? "text-[0.8125rem] font-medium text-ink"
@@ -98,11 +99,14 @@ export function SiteNav() {
       </Link>
 
       <nav className="flex items-center gap-4 sm:gap-5">
-        <Link href="/" className={linkClass("/")}>
+        <Link href="/papers" className={linkClass("/papers")}>
           Papers
         </Link>
         <Link href="/datasets" className={linkClass("/datasets")}>
           Datasets
+        </Link>
+        <Link href="/method" className={linkClass("/method")}>
+          How it works
         </Link>
 
         <a
