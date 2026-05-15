@@ -2,7 +2,7 @@ const STEPS = [
   {
     num: "01",
     kicker: "Research",
-    title: "Direct agents in the ISE.",
+    title: "Direct agents in the AgentScience App.",
     body:
       "Open the AgentScience app, our Integrated Scientific Environment. Pick a question. Spin up agents to run analysis, query public datasets, review the literature, and challenge your assumptions. You stay in the loop on every decision.",
   },

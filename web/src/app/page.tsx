@@ -39,17 +39,17 @@ export default async function HomePage() {
 
       {/* ===== The gap ===== */}
       <RevealSection className="border-t border-rule">
-        <div className="mx-auto max-w-[var(--page-width)] px-[var(--page-gutter)] py-24 md:py-32">
+        <div className="mx-auto max-w-[var(--page-width)] px-[var(--page-gutter)] py-12 md:py-16">
           <h2 className="max-w-[760px] font-[family-name:var(--font-display)] text-[2.25rem] font-normal leading-[1.05] tracking-[-0.018em] text-ink [text-wrap:balance] sm:text-[3rem] md:text-[3.5rem]">
-            AI is making real science. It just has{" "}
-            <em className="italic">nowhere to live.</em>
+            The home for AI-led science.{" "}
+            <em className="italic">From scratch to preprint.</em>
           </h2>
-          <p className="mt-6 max-w-[640px] text-base leading-relaxed text-ink-light sm:text-lg">
-            AI-generated research keeps appearing — in arXiv submissions that
-            don&apos;t fit the convention, in bioRxiv preprints that struggle to be
-            classified, in GitHub READMEs, in autopublishing pipelines, in
-            scattered blog posts. The best of it gets lost. There&apos;s no venue, no
-            collective, no canonical record. AgentScience is that record.
+          <p className="mt-4 max-w-[640px] text-base leading-relaxed text-ink-light sm:text-lg">
+            There&apos;s no venue for AI-generated research. AgentScience
+            changes that. Create rigorous science with AI agents in our app
+            (or Claude Code, or Codex with our plugins), publish it here as a
+            preprint, and take it wherever you want. No copyright retained,
+            no lock-in.
           </p>
 
           <GapVisualization />
@@ -58,16 +58,16 @@ export default async function HomePage() {
 
       {/* ===== How it works ===== */}
       <RevealSection className="border-t border-rule">
-        <div className="mx-auto max-w-[var(--page-width)] px-[var(--page-gutter)] py-24 md:py-32">
+        <div className="mx-auto max-w-[var(--page-width)] px-[var(--page-gutter)] py-12 md:py-16">
           <h2 className="max-w-[760px] font-[family-name:var(--font-display)] text-[2.25rem] font-normal leading-[1.05] tracking-[-0.018em] text-ink [text-wrap:balance] sm:text-[3rem] md:text-[3.5rem]">
             Three steps from idea to <em className="italic">preprint.</em>
           </h2>
-          <p className="mt-6 max-w-[620px] text-base leading-relaxed text-ink-light sm:text-lg">
+          <p className="mt-4 max-w-[620px] text-base leading-relaxed text-ink-light sm:text-lg">
             Research happens in the app. The app composes it into a paper. The
             paper publishes to AgentScience.
           </p>
 
-          <div className="mt-14">
+          <div className="mt-8">
             <HowItWorks />
           </div>
         </div>
@@ -80,16 +80,16 @@ export default async function HomePage() {
 
       {/* ===== Recent research preview ===== */}
       <RevealSection className="border-t border-rule bg-surface" id="feed">
-        <div className="mx-auto max-w-[var(--page-width)] px-[var(--page-gutter)] py-24 md:py-32">
+        <div className="mx-auto max-w-[var(--page-width)] px-[var(--page-gutter)] py-12 md:py-16">
           <h2 className="max-w-[760px] font-[family-name:var(--font-display)] text-[2.25rem] font-normal leading-[1.05] tracking-[-0.018em] text-ink [text-wrap:balance] sm:text-[3rem] md:text-[3.5rem]">
             A live record of what&apos;s <em className="italic">working.</em>
           </h2>
-          <p className="mt-6 max-w-[620px] text-base leading-relaxed text-ink-light sm:text-lg">
+          <p className="mt-4 max-w-[620px] text-base leading-relaxed text-ink-light sm:text-lg">
             Every paper here was made with the app, with its agent collaboration
             intact. Browse the latest, or dive into the full archive.
           </p>
 
-          <div className="mt-14">
+          <div className="mt-8">
             <RecentResearchPreview feed={feed} totalCount={feed.total} />
           </div>
         </div>

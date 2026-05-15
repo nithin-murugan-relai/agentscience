@@ -421,85 +421,226 @@ details[open] summary::before {
   border-color: var(--ink-faint);
 }
 
-/* ── Gap visualization ─────────────────────────────────────── */
+/* ── Creation visualization ────────────────────────────────── */
 
-.gap-vis {
+.cvis {
   border-radius: var(--radius-md);
-  padding: 36px 24px 28px;
+  border: 1px solid var(--rule);
+  background: var(--snow-white);
+  padding: 16px 12px 6px;
   overflow: hidden;
 }
-.gap-vis svg {
+.cvis-svg {
   width: 100%;
-  height: clamp(360px, 52vw, 520px);
+  height: clamp(180px, 30vw, 280px);
   display: block;
 }
-.gap-source-node circle {
-  fill: var(--surface);
+
+/* ── Idea pills (left) ── */
+.cvis-idea { opacity: 0; }
+.cvis.in-view .cvis-idea {
+  animation: cvis-idea-in 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes cvis-idea-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.cvis-pill {
+  fill: white;
+  stroke: var(--rule);
+  stroke-width: 1.2;
+}
+.cvis-pill-line {
+  stroke: var(--ink-faint);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.45;
+}
+.cvis-pill-line-short { opacity: 0.3; }
+.cvis-accent-dot {
+  fill: var(--accent);
+  opacity: 0;
+}
+.cvis.in-view .cvis-accent-dot {
+  animation: cvis-dot-pulse 2.8s ease-in-out infinite;
+}
+@keyframes cvis-dot-pulse {
+  0%, 100% { opacity: 0.15; }
+  50%      { opacity: 0.4; }
+}
+
+/* ── Arrows ── */
+.cvis-arrow { opacity: 0; }
+.cvis-arrow line {
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+}
+.cvis-arrow polyline {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cvis.in-view .cvis-arrow-1 { animation: cvis-fade 400ms ease 600ms forwards; }
+.cvis.in-view .cvis-arrow-2 { animation: cvis-fade 400ms ease 1600ms forwards; }
+@keyframes cvis-fade { to { opacity: 0.35; } }
+
+/* ── Flow dots ── */
+.cvis-flow-dot { fill: var(--accent); opacity: 0; }
+.cvis.in-view .cvis-flow-dot { opacity: 0.5; }
+.cvis-compose-dot { fill: var(--accent); opacity: 0; }
+.cvis.in-view .cvis-compose-dot { opacity: 0.6; }
+
+/* ── ISE app frame ── */
+.cvis-ise { opacity: 0; }
+.cvis.in-view .cvis-ise {
+  animation: cvis-ise-in 700ms cubic-bezier(0.16, 1, 0.3, 1) 300ms forwards;
+}
+@keyframes cvis-ise-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.cvis-frame {
+  fill: white;
   stroke: var(--rule);
   stroke-width: 1.5;
 }
-.gap-source-node text {
-  font-family: var(--font-body), 'IBM Plex Sans', sans-serif;
-  font-size: 11px;
-  fill: var(--ink-light);
-  font-weight: 400;
-  letter-spacing: 0;
+.cvis-titlebar { fill: #f5f5f5; }
+.cvis-win-title {
+  font-family: var(--font-mono), monospace;
+  font-size: 8.5px;
+  fill: var(--ink-faint);
+  letter-spacing: 0.05em;
 }
-.gap-line {
-  fill: none;
-  stroke: var(--rule);
+
+/* ── Agent links ── */
+.cvis-links line {
+  stroke: var(--accent);
   stroke-width: 1;
-  stroke-dasharray: 4 4;
-  stroke-dashoffset: 600;
+  stroke-dasharray: 3 3;
   opacity: 0;
 }
-.gap-vis.in-view .gap-line {
-  animation: gap-line-draw 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+.cvis.in-view .cvis-links line {
+  animation: cvis-fade-light 600ms ease forwards;
 }
-@keyframes gap-line-draw {
-  0%   { stroke-dashoffset: 600; opacity: 0; }
-  15%  { opacity: 0.55; }
-  100% { stroke-dashoffset: 0;   opacity: 0.42; }
+.cvis.in-view .cvis-links line:nth-child(1) { animation-delay: 900ms; }
+.cvis.in-view .cvis-links line:nth-child(2) { animation-delay: 1050ms; }
+.cvis.in-view .cvis-links line:nth-child(3) { animation-delay: 1200ms; }
+@keyframes cvis-fade-light { to { opacity: 0.15; } }
+
+/* ── Agent nodes ── */
+.cvis-agent { opacity: 0; }
+.cvis.in-view .cvis-agent-1 { animation: cvis-pop 500ms cubic-bezier(0.16, 1, 0.3, 1) 500ms forwards; }
+.cvis.in-view .cvis-agent-2 { animation: cvis-pop 500ms cubic-bezier(0.16, 1, 0.3, 1) 650ms forwards; }
+.cvis.in-view .cvis-agent-3 { animation: cvis-pop 500ms cubic-bezier(0.16, 1, 0.3, 1) 800ms forwards; }
+@keyframes cvis-pop {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: scale(1); }
 }
-.gap-dot {
+.cvis-agent-bg {
+  fill: white;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.cvis-agent-glow {
   fill: var(--accent);
   opacity: 0;
-  r: 3;
 }
-.gap-vis.in-view .gap-dot {
-  opacity: 1;
+.cvis.in-view .cvis-agent-glow {
+  animation: cvis-breathe 3s ease-in-out 1200ms infinite;
 }
-.gap-home-bg {
-  fill: var(--ink);
-  opacity: 0;
+@keyframes cvis-breathe {
+  0%, 100% { opacity: 0.04; transform-origin: center; transform: scale(1); }
+  50%      { opacity: 0.12; transform-origin: center; transform: scale(1.1); }
 }
-.gap-vis.in-view .gap-home-bg {
-  animation: gap-home-appear 800ms ease 1100ms forwards;
-}
-.gap-home-glow {
+.cvis-agent-name {
+  font-family: var(--font-mono), monospace;
+  font-size: 7.5px;
   fill: var(--accent);
-  opacity: 0;
-  filter: blur(28px);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
-.gap-vis.in-view .gap-home-glow {
-  animation: gap-home-glow 4s ease 1700ms infinite;
+
+/* ── Activity indicator ── */
+.cvis-activity { opacity: 0; }
+.cvis.in-view .cvis-activity {
+  animation: cvis-fade 400ms ease 1000ms forwards;
 }
-@keyframes gap-home-glow {
-  0%, 100% { opacity: 0.10; transform-origin: center; transform: scale(1); }
-  50%      { opacity: 0.22; transform-origin: center; transform: scale(1.06); }
+.cvis-activity-dot {
+  fill: #28c840;
 }
-.gap-home-label {
-  font-family: var(--font-display), 'EB Garamond', serif;
-  font-size: 22px;
+.cvis.in-view .cvis-activity-dot {
+  animation: cvis-live 2s ease-out infinite;
+}
+@keyframes cvis-live {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+.cvis-activity-label {
+  font-family: var(--font-mono), monospace;
+  font-size: 7px;
+  fill: var(--ink-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Paper ── */
+.cvis-paper { opacity: 0; }
+.cvis.in-view .cvis-paper {
+  animation: cvis-paper-in 600ms cubic-bezier(0.16, 1, 0.3, 1) 1800ms forwards;
+}
+@keyframes cvis-paper-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cvis-paper-bg { fill: white; stroke: var(--rule); stroke-width: 1.5; }
+.cvis-paper-shadow { fill: rgba(0,0,0,0.03); stroke: none; }
+
+/* Text lines */
+.cvis-tline { fill: var(--rule); opacity: 0; }
+.cvis.in-view .cvis-tline {
+  animation: cvis-line-write 280ms ease forwards;
+}
+.cvis-tline-title { fill: var(--ink-light); }
+.cvis-tline-heading { fill: var(--ink-light); }
+@keyframes cvis-line-write {
+  from { opacity: 0; transform: scaleX(0); transform-origin: left; }
+  to   { opacity: 0.4; transform: scaleX(1); transform-origin: left; }
+}
+
+/* Badge */
+.cvis-badge { opacity: 0; }
+.cvis.in-view .cvis-badge {
+  animation: cvis-badge-in 500ms ease 3.8s forwards;
+}
+@keyframes cvis-badge-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cvis-badge-bg { fill: var(--ink); }
+.cvis-badge-text {
+  font-family: var(--font-mono), monospace;
+  font-size: 8.5px;
   fill: var(--snow-white);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Labels ── */
+.cvis-label {
+  font-family: var(--font-body), sans-serif;
+  font-size: 10px;
+  fill: var(--ink-faint);
   font-weight: 400;
-  opacity: 0;
 }
-.gap-vis.in-view .gap-home-label {
-  animation: gap-home-appear 800ms ease 1300ms forwards;
-}
-@keyframes gap-home-appear {
-  to { opacity: 1; }
+.cvis-label-bold {
+  fill: var(--ink-light);
+  font-weight: 500;
 }
 
 /* ── Dark app showcase section ─────────────────────────────── */
@@ -742,11 +883,20 @@ details[open] summary::before {
   .home-live-dot::after,
   .home-agent-dot,
   .home-typing span,
-  .gap-line,
-  .gap-dot,
-  .gap-home-glow,
-  .gap-home-bg,
-  .gap-home-label {
+  .cvis-idea,
+  .cvis-accent-dot,
+  .cvis-flow-dot,
+  .cvis-compose-dot,
+  .cvis-ise,
+  .cvis-agent,
+  .cvis-agent-glow,
+  .cvis-links line,
+  .cvis-arrow,
+  .cvis-activity,
+  .cvis-activity-dot,
+  .cvis-paper,
+  .cvis-tline,
+  .cvis-badge {
     transition: none !important;
     animation: none !important;
   }
@@ -758,8 +908,16 @@ details[open] summary::before {
   .home-hero-underline {
     transform: scaleX(1) !important;
   }
-  .gap-line { opacity: 0.42 !important; stroke-dashoffset: 0 !important; }
-  .gap-home-bg,
-  .gap-home-label { opacity: 1 !important; }
-  .gap-home-glow { opacity: 0.18 !important; }
+  .cvis-idea { opacity: 1 !important; transform: none !important; }
+  .cvis-accent-dot { opacity: 0.3 !important; }
+  .cvis-flow-dot, .cvis-compose-dot { opacity: 0.5 !important; }
+  .cvis-ise { opacity: 1 !important; transform: none !important; }
+  .cvis-agent { opacity: 1 !important; transform: none !important; }
+  .cvis-agent-glow { opacity: 0.08 !important; }
+  .cvis-links line { opacity: 0.15 !important; }
+  .cvis-arrow { opacity: 0.35 !important; }
+  .cvis-activity { opacity: 0.35 !important; }
+  .cvis-paper { opacity: 1 !important; transform: none !important; }
+  .cvis-tline { opacity: 0.4 !important; transform: none !important; }
+  .cvis-badge { opacity: 1 !important; }
 }

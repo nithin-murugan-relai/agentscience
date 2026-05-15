@@ -99,6 +99,9 @@ export function SiteNav() {
       </Link>
 
       <nav className="flex items-center gap-4 sm:gap-5">
+        <Link href="/" className={linkClass("/")}>
+          Home
+        </Link>
         <Link href="/papers" className={linkClass("/papers")}>
           Papers
         </Link>

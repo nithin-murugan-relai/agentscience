@@ -10,7 +10,7 @@ const BRAND_PREVIEW_IMAGE = {
   url: "/api/og",
   width: 1200,
   height: 630,
-  alt: `${SITE_NAME} — ${SITE_DESCRIPTION}`,
+  alt: `${SITE_NAME} | ${SITE_DESCRIPTION}`,
 };
 
 const OG_IMAGE_WIDTH = BRAND_PREVIEW_IMAGE.width;

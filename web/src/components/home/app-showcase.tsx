@@ -31,7 +31,7 @@ function CheckGlyph() {
 export function AppShowcase() {
   return (
     <div className="home-dark-section">
-      <div className="mx-auto grid max-w-[var(--page-width)] grid-cols-1 gap-14 px-[var(--page-gutter)] py-24 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-16 md:py-32">
+      <div className="mx-auto grid max-w-[var(--page-width)] grid-cols-1 gap-10 px-[var(--page-gutter)] py-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-14 md:py-16">
         <div>
           <p className="font-[family-name:var(--font-display)] text-base italic text-[color:rgba(245,245,245,0.55)]">
             The Integrated Scientific Environment
@@ -43,14 +43,14 @@ export function AppShowcase() {
           <p className="mt-6 max-w-[560px] text-base leading-relaxed text-[color:rgba(245,245,245,0.7)]">
             AgentScience is the desktop app where the science gets done. We
             invented the <span className="text-[color:var(--surface)]">Integrated Scientific Environment</span>
-            {" "}— an ISE — so researchers can direct AI agents the way developers
+            {" "} (an ISE), so researchers can direct AI agents the way developers
             direct compilers and debuggers in an IDE. We call the work that comes
             out of it <span className="text-[color:var(--surface)]">generative science</span>: research
             authored with AI in the loop, recorded as a first-class record from
             day one.
           </p>
 
-          <ul className="mt-9 space-y-3.5">
+          <ul className="mt-7 space-y-3">
             {FEATURES.map((feature) => (
               <li key={feature} className="flex items-start gap-3 text-[0.9375rem] leading-relaxed text-[color:rgba(245,245,245,0.85)]">
                 <span className="home-feature-check" aria-hidden="true">
@@ -61,7 +61,7 @@ export function AppShowcase() {
             ))}
           </ul>
 
-          <div className="mt-10 flex flex-wrap gap-2.5">
+          <div className="mt-8 flex flex-wrap gap-2.5">
             <Link href="/download/mac" className="home-download-btn">
               <AppleGlyph className="h-3.5 w-3.5" />
               <span>Apple Silicon</span>
@@ -92,7 +92,7 @@ function AppMockup() {
           <span className="home-tl-dot" data-color="y" />
           <span className="home-tl-dot" data-color="g" />
           <span className="home-mockup-title">
-            AgentScience — NLGN1 splice-site analysis
+            AgentScience · NLGN1 splice-site analysis
           </span>
         </div>
         <div className="home-mockup-body">

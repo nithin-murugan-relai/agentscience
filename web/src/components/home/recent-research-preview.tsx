@@ -56,7 +56,7 @@ export function RecentResearchPreview({
         </p>
       )}
 
-      <div className="mt-10 flex justify-center">
+      <div className="mt-6 flex justify-center">
         <Link
           href="/papers"
           className="btn-secondary inline-flex items-center gap-2 px-4 py-2 text-sm"

@@ -125,7 +125,7 @@ export function IntegrationKeyPanel({
       {token && (
         <div className="rounded-[var(--radius-md)] border border-rule bg-snow-white-dark p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-sm text-ink-light">Copy now — shown only once.</span>
+            <span className="text-sm text-ink-light">Copy now. Shown only once.</span>
             <button
               type="button"
               onClick={handleCopyToken}

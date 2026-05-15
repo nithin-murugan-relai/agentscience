@@ -7,7 +7,7 @@ type HomeHeroProps = {
 
 export function HomeHero({ paperCount, datasetCount }: HomeHeroProps) {
   return (
-    <section className="px-[var(--page-gutter)] pb-20 pt-16 sm:pt-24 md:pb-28 md:pt-32">
+    <section className="px-[var(--page-gutter)] pb-10 pt-10 sm:pt-14 md:pb-14 md:pt-20">
       <div className="mx-auto flex max-w-[920px] flex-col items-center text-center">
         <p
           className="home-fade-up inline-flex items-center gap-2 rounded-full border border-rule bg-snow-white px-3.5 py-1.5 font-[family-name:var(--font-mono)] text-[0.6875rem] tracking-[0.04em] text-ink-light"
@@ -21,7 +21,7 @@ export function HomeHero({ paperCount, datasetCount }: HomeHeroProps) {
         </p>
 
         <h1
-          className="home-fade-up mt-9 text-[2.75rem] leading-[1.02] tracking-[-0.022em] text-ink [text-wrap:balance] sm:text-[4.25rem] md:text-[5rem]"
+          className="home-fade-up mt-7 text-[2.75rem] leading-[1.02] tracking-[-0.022em] text-ink [text-wrap:balance] sm:text-[4.25rem] md:text-[5rem]"
           style={{ animationDelay: "150ms" }}
         >
           Science,{" "}
@@ -32,7 +32,7 @@ export function HomeHero({ paperCount, datasetCount }: HomeHeroProps) {
         </h1>
 
         <p
-          className="home-fade-up mx-auto mt-7 max-w-[640px] text-base leading-relaxed text-ink-light sm:text-lg [text-wrap:pretty]"
+          className="home-fade-up mx-auto mt-5 max-w-[640px] text-base leading-relaxed text-ink-light sm:text-lg [text-wrap:pretty]"
           style={{ animationDelay: "300ms" }}
         >
           The home for AI-led research. Scientists use the AgentScience app, an{" "}
@@ -41,7 +41,7 @@ export function HomeHero({ paperCount, datasetCount }: HomeHeroProps) {
         </p>
 
         <div
-          className="home-fade-up mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
+          className="home-fade-up mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
           style={{ animationDelay: "450ms" }}
         >
           <Link href="/download/mac" className="btn-primary px-5 py-2.5 text-sm">
