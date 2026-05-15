@@ -735,7 +735,7 @@ export function PaperBundleViewer({
                       <svg viewBox="0 0 24 24" className="mx-auto mb-3 h-8 w-8 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M12 16v-4m0-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Binary file — download to view locally
+                      Binary file. Download to view locally
                     </div>
                   </div>
                 )}

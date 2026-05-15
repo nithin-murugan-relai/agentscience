@@ -32,3 +32,6 @@ web/.codex
 workspace/
 research-workspace/
 research-runs/
+
+# Build artifacts
+.next/

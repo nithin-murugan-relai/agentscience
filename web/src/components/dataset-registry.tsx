@@ -594,7 +594,7 @@ function AreaTile({
     <button
       type="button"
       onClick={onClick}
-      aria-label={`Browse ${area.name} — ${countLabel}`}
+      aria-label={`Browse ${area.name}: ${countLabel}`}
       className={
         "flex h-full min-h-[78px] items-center justify-between gap-4 bg-snow-white px-5 py-4 text-left transition-colors hover:bg-snow-white-dark " +
         (empty ? "opacity-55" : "")
