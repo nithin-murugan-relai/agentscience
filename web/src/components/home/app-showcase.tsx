@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 import { AppleGlyph } from "@/components/apple-glyph";
 import { WindowsGlyph } from "@/components/windows-glyph";
@@ -31,16 +34,16 @@ function CheckGlyph() {
 export function AppShowcase() {
   return (
     <div className="home-dark-section">
-      <div className="mx-auto grid max-w-[var(--page-width)] grid-cols-1 gap-10 px-[var(--page-gutter)] py-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-14 md:py-16">
+      <div className="mx-auto grid max-w-[var(--page-width)] grid-cols-1 gap-8 px-[var(--page-gutter)] py-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-12 md:py-14">
         <div>
           <p className="font-[family-name:var(--font-display)] text-base italic text-[color:rgba(245,245,245,0.55)]">
             The Integrated Scientific Environment
           </p>
-          <h2 className="mt-4 font-[family-name:var(--font-display)] text-[2.25rem] font-normal leading-[1.05] tracking-[-0.018em] text-[color:var(--surface)] [text-wrap:balance] sm:text-[3rem] md:text-[3.5rem]">
+          <h2 className="mt-3 font-[family-name:var(--font-display)] text-[1.75rem] font-normal leading-[1.1] tracking-[-0.018em] text-[color:var(--surface)] [text-wrap:balance] sm:text-[2.25rem] md:text-[2.5rem]">
             A new kind of workbench for a new kind of{" "}
             <em className="italic">science.</em>
           </h2>
-          <p className="mt-6 max-w-[560px] text-base leading-relaxed text-[color:rgba(245,245,245,0.7)]">
+          <p className="mt-4 max-w-[560px] text-[0.9375rem] leading-relaxed text-[color:rgba(245,245,245,0.7)]">
             AgentScience is the desktop app where the science gets done. We
             invented the <span className="text-[color:var(--surface)]">Integrated Scientific Environment</span>
             {" "} (an ISE), so researchers can direct AI agents the way developers
@@ -50,7 +53,7 @@ export function AppShowcase() {
             day one.
           </p>
 
-          <ul className="mt-7 space-y-3">
+          <ul className="mt-5 space-y-2.5">
             {FEATURES.map((feature) => (
               <li key={feature} className="flex items-start gap-3 text-[0.9375rem] leading-relaxed text-[color:rgba(245,245,245,0.85)]">
                 <span className="home-feature-check" aria-hidden="true">
@@ -61,7 +64,7 @@ export function AppShowcase() {
             ))}
           </ul>
 
-          <div className="mt-8 flex flex-wrap gap-2.5">
+          <div className="mt-6 flex flex-wrap gap-2.5">
             <Link href="/download/mac" className="home-download-btn">
               <AppleGlyph className="h-3.5 w-3.5" />
               <span>Apple Silicon</span>
@@ -84,9 +87,23 @@ export function AppShowcase() {
 }
 
 function AppMockup() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); obs.disconnect(); } },
+      { threshold: 0.2 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   return (
-    <div className="home-mockup-wrap">
-      <div className="home-mockup" aria-hidden="true">
+    <div className="home-mockup-wrap" ref={ref}>
+      <div className={`home-mockup ${isVisible ? "home-mockup-in" : ""}`} aria-hidden="true">
         <div className="home-mockup-titlebar">
           <span className="home-tl-dot" data-color="r" />
           <span className="home-tl-dot" data-color="y" />
@@ -117,10 +134,10 @@ function AppMockup() {
             </div>
 
             <div className="home-mockup-chat">
-              <div className="home-msg home-msg-user">
+              <div className={`home-msg home-msg-user ${isVisible ? "home-msg-in" : ""}`} style={{ animationDelay: "200ms" }}>
                 Pull all ClinVar NLGN1 submissions and bin by exon proximity.
               </div>
-              <div className="home-msg home-msg-agent">
+              <div className={`home-msg home-msg-agent ${isVisible ? "home-msg-in" : ""}`} style={{ animationDelay: "600ms" }}>
                 <div className="home-agent-tag">
                   <span className="home-agent-dot" />
                   Data analyst
@@ -128,12 +145,12 @@ function AppMockup() {
                 Fetched 247 submissions. 18% within 50bp of splice sites, no
                 clear hotspot enrichment vs. background.
               </div>
-              <div className="home-msg home-msg-agent">
+              <div className={`home-msg home-msg-agent ${isVisible ? "home-msg-in" : ""}`} style={{ animationDelay: "1100ms" }}>
                 <div className="home-agent-tag">Critic</div>
                 Worth checking pathogenic-only subset before drafting. The full
                 set may be diluted by VUS calls.
               </div>
-              <div className="home-typing" aria-hidden="true">
+              <div className={`home-typing ${isVisible ? "home-typing-in" : ""}`} aria-hidden="true">
                 <span />
                 <span />
                 <span />
@@ -165,7 +182,7 @@ function SidebarItem({ label, active = false }: { label: string; active?: boolea
   return (
     <div className={`home-sb-item ${active ? "is-active" : ""}`}>
       <span className="home-sb-dot" />
-      <span>{label}</span>
+      <span className="home-sb-text">{label}</span>
     </div>
   );
 }

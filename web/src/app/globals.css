@@ -691,6 +691,17 @@ details[open] summary::before {
   overflow: hidden;
   transform: rotateY(-4deg) rotateX(2deg);
   transform-origin: center center;
+  opacity: 0;
+  transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 700ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 400ms ease;
+}
+.home-mockup.home-mockup-in {
+  opacity: 1;
+}
+.home-mockup:hover {
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35),
+              0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 @media (max-width: 768px) {
   .home-mockup { transform: none; }
@@ -721,7 +732,7 @@ details[open] summary::before {
 .home-mockup-body {
   display: grid;
   grid-template-columns: 180px 1fr;
-  min-height: 400px;
+  min-height: 320px;
   background: #1d1c1a;
 }
 @media (max-width: 520px) {
@@ -753,6 +764,12 @@ details[open] summary::before {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: default;
+  transition: background 180ms ease, color 180ms ease;
+}
+.home-sb-item:hover {
+  background: rgba(245, 245, 245, 0.04);
+  color: rgba(245, 245, 245, 0.85);
 }
 .home-sb-item.is-active {
   background: rgba(245, 245, 245, 0.07);
@@ -774,7 +791,7 @@ details[open] summary::before {
   margin: 14px 4px;
 }
 .home-mockup-main {
-  padding: 20px 22px 64px;
+  padding: 18px 20px 56px;
   position: relative;
   overflow: hidden;
 }
@@ -804,6 +821,16 @@ details[open] summary::before {
   padding: 10px 12px;
   border-radius: 10px;
   max-width: 88%;
+  opacity: 0;
+  transform: translateY(8px);
+}
+.home-msg.home-msg-in {
+  animation: home-msg-enter 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: inherit;
+}
+@keyframes home-msg-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .home-msg-user {
   background: rgba(245, 245, 245, 0.06);
@@ -840,6 +867,7 @@ details[open] summary::before {
   display: flex;
   gap: 4px;
   padding: 6px 2px;
+  opacity: 0;
 }
 .home-typing span {
   width: 5px;
@@ -856,8 +884,8 @@ details[open] summary::before {
 }
 .home-mockup-compose {
   position: absolute;
-  bottom: 16px;
-  right: 18px;
+  bottom: 14px;
+  right: 16px;
   background: var(--accent);
   color: var(--surface);
   padding: 7px 12px;
@@ -867,6 +895,16 @@ details[open] summary::before {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.home-mockup-compose:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 12px rgba(59, 91, 219, 0.4);
+}
+
+.home-typing.home-typing-in {
+  animation: home-msg-enter 400ms cubic-bezier(0.16, 1, 0.3, 1) 1500ms forwards;
 }
 
 /* ── Reduced motion ────────────────────────────────────────── */
@@ -907,6 +945,17 @@ details[open] summary::before {
   }
   .home-hero-underline {
     transform: scaleX(1) !important;
+  }
+  .home-mockup {
+    opacity: 1 !important;
+    transform: rotateY(-4deg) rotateX(2deg) !important;
+  }
+  .home-msg {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .home-typing {
+    opacity: 1 !important;
   }
   .cvis-idea { opacity: 1 !important; transform: none !important; }
   .cvis-accent-dot { opacity: 0.3 !important; }
