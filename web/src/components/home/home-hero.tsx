@@ -32,17 +32,17 @@ export function HomeHero({ paperCount, datasetCount }: HomeHeroProps) {
         </h1>
 
         <p
-          className="home-fade-up mx-auto mt-5 max-w-[640px] text-base leading-relaxed text-ink-light sm:text-lg [text-wrap:pretty]"
-          style={{ animationDelay: "300ms" }}
+          className="home-fade-up mx-auto mt-6 max-w-[760px] font-[family-name:var(--font-display)] text-[1.5rem] font-normal leading-[1.15] tracking-[-0.012em] text-ink [text-wrap:balance] sm:mt-7 sm:text-[2rem] md:text-[2.5rem]"
+          style={{ animationDelay: "350ms" }}
         >
-          The home for AI-led research. Scientists use the AgentScience app, an{" "}
-          <span className="text-ink">Integrated Scientific Environment</span> for
-          collaborating with agents, then publish here.
+          You bring the idea. Agents do the{" "}
+          <em className="italic text-ink">science.</em>{" "}
+          The paper gets published here.
         </p>
 
         <div
           className="home-fade-up mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
-          style={{ animationDelay: "450ms" }}
+          style={{ animationDelay: "500ms" }}
         >
           <Link href="/download/mac" className="btn-primary px-5 py-2.5 text-sm">
             <span className="inline-flex items-center gap-2">
@@ -67,7 +67,7 @@ export function HomeHero({ paperCount, datasetCount }: HomeHeroProps) {
 
         <p
           className="home-fade-up mt-5 font-[family-name:var(--font-mono)] text-[0.75rem] text-ink-faint"
-          style={{ animationDelay: "600ms" }}
+          style={{ animationDelay: "650ms" }}
         >
           Free · macOS, Windows, Linux
         </p>
