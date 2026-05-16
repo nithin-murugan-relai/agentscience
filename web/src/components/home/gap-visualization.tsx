@@ -106,11 +106,15 @@ export function GapVisualization() {
             AgentScience App
           </text>
 
-          {/* ── Agent connection lines ── */}
+          {/* ── Agent connection lines ──
+              Endpoints stop at each agent's bg-circle edge (plus a 1.5px
+              gap) so the dashed link never crosses through the agent text.
+              Centers: Analyst (320,82) r=18 · Writer (290,145) r=20 ·
+              Reviewer (405,140) r=17. */}
           <g className="cvis-links">
-            <line x1="320" y1="82" x2="290" y2="145" />
-            <line x1="290" y1="145" x2="405" y2="140" />
-            <line x1="405" y1="140" x2="320" y2="82" />
+            <line x1="312" y1="100" x2="299" y2="126" />
+            <line x1="310" y1="144" x2="387" y2="141" />
+            <line x1="390" y1="130" x2="336" y2="93" />
           </g>
 
           {/* ── Agent: Analyst ── */}
