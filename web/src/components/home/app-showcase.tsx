@@ -7,17 +7,15 @@ import { AppleGlyph } from "@/components/apple-glyph";
 import { WindowsGlyph } from "@/components/windows-glyph";
 
 const FEATURES = [
-  "Long-running agents that run analyses, fetch data, and reason over results",
-  "Full provenance: every claim links back to code, data, and agent transcripts",
-  "One-click publish to the AgentScience preprint server",
-  "Local-first. Your work stays on your machine until you ship it.",
+  "Long-running, reasoning agents.",
+  "Every claim, fully traceable.",
+  "One-click publish to the preprint server.",
+  "Local-first by default.",
 ] as const;
 
 function CheckGlyph() {
   return (
     <svg
-      width="10"
-      height="10"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -25,37 +23,63 @@ function CheckGlyph() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
+      className="home-feature-check-svg"
     >
-      <path d="M5 12l5 5 9-11" />
+      <path d="M5 12l5 5 9-11" pathLength={100} />
     </svg>
   );
 }
 
 export function AppShowcase() {
+  const colRef = useRef<HTMLDivElement>(null);
+  const [colInView, setColInView] = useState(false);
+
+  useEffect(() => {
+    const node = colRef.current;
+    if (!node) return;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduceMotion) {
+      setColInView(true);
+      return;
+    }
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setColInView(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.2 },
+    );
+    obs.observe(node);
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <div className="home-dark-section">
       <div className="mx-auto grid max-w-[var(--page-width)] grid-cols-1 gap-8 px-[var(--page-gutter)] py-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-12 md:py-14">
-        <div>
-          <p className="font-[family-name:var(--font-display)] text-base italic text-[color:rgba(245,245,245,0.55)]">
+        <div ref={colRef} className={`home-show-col md:self-center ${colInView ? "is-in" : ""}`}>
+          <p className="home-show-kicker font-[family-name:var(--font-display)] text-base italic text-[color:rgba(245,245,245,0.55)]">
             The Integrated Scientific Environment
           </p>
-          <h2 className="mt-3 font-[family-name:var(--font-display)] text-[1.75rem] font-normal leading-[1.1] tracking-[-0.018em] text-[color:var(--surface)] [text-wrap:balance] sm:text-[2.25rem] md:text-[2.5rem]">
-            A new kind of workbench for a new kind of{" "}
-            <em className="italic">science.</em>
-          </h2>
-          <p className="mt-4 max-w-[560px] text-[0.9375rem] leading-relaxed text-[color:rgba(245,245,245,0.7)]">
-            AgentScience is the desktop app where the science gets done. We
-            invented the <span className="text-[color:var(--surface)]">Integrated Scientific Environment</span>
-            {" "} (an ISE), so researchers can direct AI agents the way developers
-            direct compilers and debuggers in an IDE. We call the work that comes
-            out of it <span className="text-[color:var(--surface)]">generative science</span>: research
-            authored with AI in the loop, recorded as a first-class record from
-            day one.
-          </p>
 
-          <ul className="mt-5 space-y-2.5">
-            {FEATURES.map((feature) => (
-              <li key={feature} className="flex items-start gap-3 text-[0.9375rem] leading-relaxed text-[color:rgba(245,245,245,0.85)]">
+          <h2 className="home-show-h2 mt-3 font-[family-name:var(--font-display)] text-[1.75rem] font-normal leading-[1.1] tracking-[-0.018em] [text-wrap:balance] sm:text-[2.25rem] md:text-[2.5rem]">
+            A new kind of workbench for a new kind of{" "}
+            <em className="home-show-em">
+              <span className="home-show-em-underline" aria-hidden="true" />
+              science.
+            </em>
+          </h2>
+
+          <ul className="home-show-list mt-7 space-y-2">
+            {FEATURES.map((feature, i) => (
+              <li
+                key={feature}
+                className="home-show-bullet flex items-center gap-3 text-[0.9375rem] leading-relaxed text-[color:rgba(245,245,245,0.88)]"
+                style={{ ["--i" as string]: i }}
+              >
                 <span className="home-feature-check" aria-hidden="true">
                   <CheckGlyph />
                 </span>
@@ -64,7 +88,11 @@ export function AppShowcase() {
             ))}
           </ul>
 
-          <div className="mt-6 flex flex-wrap gap-2.5">
+          <p className="home-show-dl-label mt-8 font-[family-name:var(--font-display)] text-base italic text-[color:rgba(245,245,245,0.55)]">
+            Get the app · free for all platforms.
+          </p>
+
+          <div className="home-show-ctas mt-3 flex flex-wrap gap-2.5">
             <Link href="/download/mac" className="home-download-btn">
               <AppleGlyph className="h-3.5 w-3.5" />
               <span>Apple Silicon</span>
