@@ -1,5 +1,11 @@
 {
   "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/blob-storage-maintenance",
+      "schedule": "0 7 * * *"
+    }
+  ],
   "redirects": [
     {
       "source": "/",

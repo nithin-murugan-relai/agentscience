@@ -3,8 +3,12 @@ import { del } from "@vercel/blob";
 import { NextResponse } from "next/server";
 
 import { getApiUser, unauthorizedJson } from "@/lib/api-auth";
+import {
+  assertBlobStoreHasRoomFor,
+  getPaperUploadRole,
+  getPaperUploadRoleLimitBytes,
+} from "@/lib/paper-storage-policy";
 
-const MAX_BLOB_BYTES = 50 * 1024 * 1024;
 const ALLOWED_CONTENT_TYPES = [
   "application/pdf",
   "application/x-bibtex",
@@ -27,6 +31,23 @@ const ALLOWED_CONTENT_TYPES = [
   "text/tsx",
   "text/x-rsrc",
 ];
+
+function parseClientPayloadSizeBytes(clientPayload: string | null) {
+  if (!clientPayload) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(clientPayload) as { sizeBytes?: unknown };
+    return typeof payload.sizeBytes === "number" &&
+      Number.isSafeInteger(payload.sizeBytes) &&
+      payload.sizeBytes > 0
+      ? payload.sizeBytes
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 function isSafeUploadPath(pathname: string, userId: string) {
   return (
@@ -76,9 +97,22 @@ export async function POST(request: Request) {
           throw new Error("Invalid upload path.");
         }
 
+        const role = getPaperUploadRole(pathname);
+        if (!role) {
+          throw new Error("Invalid paper upload role.");
+        }
+
+        const maximumSizeInBytes = getPaperUploadRoleLimitBytes(role);
+        const declaredSizeBytes = parseClientPayloadSizeBytes(clientPayload);
+        await assertBlobStoreHasRoomFor(
+          declaredSizeBytes && declaredSizeBytes <= maximumSizeInBytes
+            ? declaredSizeBytes
+            : maximumSizeInBytes
+        );
+
         return {
           allowedContentTypes: ALLOWED_CONTENT_TYPES,
-          maximumSizeInBytes: MAX_BLOB_BYTES,
+          maximumSizeInBytes,
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({
             userId: user.id,

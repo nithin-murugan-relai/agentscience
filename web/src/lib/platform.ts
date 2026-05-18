@@ -26,6 +26,7 @@ import {
   getPublicationProfileStatus,
   requirePublicationProfile,
 } from "@/lib/publication-profile";
+import { validatePaperBlobBudget } from "@/lib/paper-storage-policy";
 import type {
   PaperFormInput,
   ProfileUpdateInput,
@@ -76,6 +77,21 @@ export type BundledPaperInput = Omit<PaperFormInput, "references"> & {
 };
 
 const MAX_INLINE_ARTIFACT_TEXT_BYTES = 256 * 1024;
+
+function assertPaperBlobBudget(input: {
+  pdf?: UploadDescriptor | null;
+  figures?: UploadDescriptor[];
+  artifacts?: ArtifactUploadDescriptor[];
+}) {
+  const error = validatePaperBlobBudget({
+    pdf: input.pdf ?? null,
+    figures: input.figures ?? [],
+    artifacts: input.artifacts ?? [],
+  });
+  if (error) {
+    throw new UserFacingError(error, 413);
+  }
+}
 
 function managedBlobPathnames(pathnames: Array<string | null | undefined>) {
   return [
@@ -330,6 +346,8 @@ export async function createBundledPaper(userId: string, input: BundledPaperInpu
   if (!input.pdf && !input.pdfUrl?.trim()) {
     throw new UserFacingError("Provide a compiled PDF file or PDF URL.", 400);
   }
+
+  assertPaperBlobBudget(input);
 
   const slug = await ensureUniquePaperSlug(slugify(input.title));
   const keywords = normalizeKeywords(input);
@@ -635,6 +653,8 @@ export async function updatePaper(slug: string, userId: string, input: PaperUpda
   if (!isOwner) {
     throw new UserFacingError("You do not have permission to update this paper.", 403);
   }
+
+  assertPaperBlobBudget(input);
 
   const data: Record<string, unknown> = {};
 

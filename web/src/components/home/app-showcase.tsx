@@ -32,16 +32,15 @@ function CheckGlyph() {
 
 export function AppShowcase() {
   const colRef = useRef<HTMLDivElement>(null);
-  const [colInView, setColInView] = useState(false);
+  const [colInView, setColInView] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
 
   useEffect(() => {
     const node = colRef.current;
-    if (!node) return;
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    if (reduceMotion) {
-      setColInView(true);
+    if (!node || colInView) {
       return;
     }
     const obs = new IntersectionObserver(
@@ -55,7 +54,7 @@ export function AppShowcase() {
     );
     obs.observe(node);
     return () => obs.disconnect();
-  }, []);
+  }, [colInView]);
 
   return (
     <div className="home-dark-section">

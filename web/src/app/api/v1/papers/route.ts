@@ -9,6 +9,10 @@ import {
   serializePaperSummary,
 } from "@/lib/platform";
 import { paperBlobPayloadSchema } from "@/lib/paper-blob-payload";
+import {
+  collectManagedPaperBlobPathnamesFromUnknown,
+  deleteManagedPaperBlobPathnames,
+} from "@/lib/paper-storage-policy";
 import { paperFormSchema } from "@/lib/validation";
 
 export async function GET(request: Request) {
@@ -61,6 +65,7 @@ export async function POST(request: Request) {
   });
 
   if (!payload.success) {
+    await deleteManagedPaperBlobPathnames(collectManagedPaperBlobPathnamesFromUnknown(body, user.id));
     return NextResponse.json(
       { error: payload.error.issues[0]?.message ?? "Invalid paper payload." },
       { status: 400 }
@@ -69,6 +74,7 @@ export async function POST(request: Request) {
 
   const blobPayload = paperBlobPayloadSchema.safeParse(body);
   if (!blobPayload.success) {
+    await deleteManagedPaperBlobPathnames(collectManagedPaperBlobPathnamesFromUnknown(body, user.id));
     return NextResponse.json(
       { error: blobPayload.error.issues[0]?.message ?? "Invalid uploaded file metadata." },
       { status: 400 }
@@ -86,6 +92,7 @@ export async function POST(request: Request) {
       artifacts: blobPayload.data.artifacts,
     });
   } catch (error) {
+    await deleteManagedPaperBlobPathnames(collectManagedPaperBlobPathnamesFromUnknown(body, user.id));
     if (isUserFacingError(error)) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
