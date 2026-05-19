@@ -99,9 +99,9 @@ export function GapVisualization() {
           <rect x="225" y="22" width="300" height="26" rx="8" className="cvis-titlebar" />
           <rect x="225" y="40" width="300" height="8" className="cvis-titlebar" />
           {/* Traffic lights */}
-          <circle cx="241" cy="35" r="4" fill="#ff5f57" opacity="0.8" />
-          <circle cx="254" cy="35" r="4" fill="#febc2e" opacity="0.8" />
-          <circle cx="267" cy="35" r="4" fill="#28c840" opacity="0.8" />
+          <circle cx="241" cy="35" r="4" fill="#ABABAB" opacity="0.45" />
+          <circle cx="254" cy="35" r="4" fill="#ABABAB" opacity="0.35" />
+          <circle cx="267" cy="35" r="4" fill="#ABABAB" opacity="0.45" />
           <text x="375" y="39" textAnchor="middle" className="cvis-win-title">
             AgentScience App
           </text>
@@ -109,18 +109,18 @@ export function GapVisualization() {
           {/* ── Agent connection lines ──
               Endpoints stop at each agent's bg-circle edge (plus a 1.5px
               gap) so the dashed link never crosses through the agent text.
-              Centers: Analyst (320,82) r=18 · Writer (290,145) r=20 ·
-              Reviewer (405,140) r=17. */}
+              Centers: Analyst (320,82) r=22 · Writer (290,145) r=22 ·
+              Reviewer (405,140) r=22. */}
           <g className="cvis-links">
-            <line x1="312" y1="100" x2="299" y2="126" />
-            <line x1="310" y1="144" x2="387" y2="141" />
-            <line x1="390" y1="130" x2="336" y2="93" />
+            <line x1="310" y1="103" x2="300" y2="124" />
+            <line x1="314" y1="144" x2="382" y2="141" />
+            <line x1="386" y1="127" x2="339" y2="95" />
           </g>
 
           {/* ── Agent: Analyst ── */}
           <g className="cvis-agent cvis-agent-1">
-            <circle cx="320" cy="82" r="26" className="cvis-agent-glow" />
-            <circle cx="320" cy="82" r="18" className="cvis-agent-bg" />
+            <circle cx="320" cy="82" r="30" className="cvis-agent-glow" />
+            <circle cx="320" cy="82" r="22" className="cvis-agent-bg" />
             <text x="320" y="85" textAnchor="middle" className="cvis-agent-name">
               Analyst
             </text>
@@ -128,8 +128,8 @@ export function GapVisualization() {
 
           {/* ── Agent: Writer ── */}
           <g className="cvis-agent cvis-agent-2">
-            <circle cx="290" cy="145" r="28" className="cvis-agent-glow" />
-            <circle cx="290" cy="145" r="20" className="cvis-agent-bg" />
+            <circle cx="290" cy="145" r="30" className="cvis-agent-glow" />
+            <circle cx="290" cy="145" r="22" className="cvis-agent-bg" />
             <text x="290" y="148" textAnchor="middle" className="cvis-agent-name">
               Writer
             </text>
@@ -137,8 +137,8 @@ export function GapVisualization() {
 
           {/* ── Agent: Reviewer ── */}
           <g className="cvis-agent cvis-agent-3">
-            <circle cx="405" cy="140" r="24" className="cvis-agent-glow" />
-            <circle cx="405" cy="140" r="17" className="cvis-agent-bg" />
+            <circle cx="405" cy="140" r="30" className="cvis-agent-glow" />
+            <circle cx="405" cy="140" r="22" className="cvis-agent-bg" />
             <text x="405" y="143" textAnchor="middle" className="cvis-agent-name">
               Reviewer
             </text>
