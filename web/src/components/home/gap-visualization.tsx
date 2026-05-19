@@ -99,9 +99,9 @@ export function GapVisualization() {
           <rect x="225" y="22" width="300" height="26" rx="8" className="cvis-titlebar" />
           <rect x="225" y="40" width="300" height="8" className="cvis-titlebar" />
           {/* Traffic lights */}
-          <circle cx="241" cy="35" r="4" fill="#ff5f57" opacity="0.8" />
-          <circle cx="254" cy="35" r="4" fill="#febc2e" opacity="0.8" />
-          <circle cx="267" cy="35" r="4" fill="#28c840" opacity="0.8" />
+          <circle cx="241" cy="35" r="4" fill="#ABABAB" opacity="0.45" />
+          <circle cx="254" cy="35" r="4" fill="#ABABAB" opacity="0.35" />
+          <circle cx="267" cy="35" r="4" fill="#ABABAB" opacity="0.45" />
           <text x="375" y="39" textAnchor="middle" className="cvis-win-title">
             AgentScience App
           </text>
