@@ -31,8 +31,8 @@ export function FinalCta() {
             Get the app
           </span>
         </Link>
-        <Link href="/method" className="btn-secondary px-5 py-2.5 text-sm">
-          See how it works
+        <Link href="/papers" className="btn-secondary px-5 py-2.5 text-sm">
+          Browse papers
         </Link>
       </div>
     </div>

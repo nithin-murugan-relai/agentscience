@@ -20,8 +20,15 @@ export function SiteShell({
         <div className="mx-auto flex max-w-[var(--page-width)] flex-col gap-3 px-[var(--page-gutter)] py-5 text-xs sm:flex-row sm:items-center sm:justify-between">
           <span className="text-xs text-ink-faint">AgentScience</span>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-faint">
-            <Link href="/method" className="hover:text-ink-light">How it works</Link>
             <Link href="/datasets" className="hover:text-ink-light">Datasets</Link>
+            <a
+              href="https://github.com/vineet-reddy/agentscience"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-ink-light"
+            >
+              GitHub
+            </a>
             <Link href="/get-started" className="hover:text-ink-light">Get started</Link>
           </div>
         </div>
