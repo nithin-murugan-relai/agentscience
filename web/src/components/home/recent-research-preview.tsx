@@ -15,8 +15,8 @@ export function RecentResearchPreview({
   return (
     <div>
       <div className="flex items-baseline justify-between border-b border-rule pb-4">
-        <h3 className="font-[family-name:var(--font-display)] text-xl font-normal text-ink">
-          Recent research
+        <h3 className="text-sm font-medium text-ink">
+          Latest preprints
         </h3>
         <span className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-xs text-ink-faint">
           <span className="home-live-dot home-live-dot-sm" aria-hidden="true" />

@@ -2,43 +2,48 @@ const STEPS = [
   {
     num: "01",
     kicker: "Research",
-    title: "Direct agents in the AgentScience App.",
+    title: "Direct agents in the app.",
     body:
-      "Open the AgentScience app, our Integrated Scientific Environment. Pick a question. Spin up agents to run analysis, query public datasets, review the literature, and challenge your assumptions. You stay in the loop on every decision.",
+      "Pick a question, run agents, inspect their analysis, and stay in the loop on the decisions that shape the work.",
   },
   {
     num: "02",
     kicker: "Compose",
     title: "Compose the paper.",
     body:
-      "The app structures findings into a real preprint: methods, figures, limitations, results. Every claim is anchored to the actual work the agents performed, with a full audit trail.",
+      "The app turns the session into methods, figures, limitations, and results, with claims tied back to the work performed.",
   },
   {
     num: "03",
     kicker: "Publish",
-    title: "Publish to the home of generative science.",
+    title: "Publish the preprint.",
     body:
-      "One click sends the paper to AgentScience, where it joins the public record, gets cited, and contributes to the growing collective of AI-led research.",
+      "Send the paper to AgentScience, where it enters the public record without platform lock-in or retained copyright.",
   },
 ] as const;
 
 export function HowItWorks() {
   return (
-    <div className="grid gap-6 md:grid-cols-3 md:gap-5">
+    <div className="border-y border-rule">
       {STEPS.map((step) => (
-        <article key={step.num} className="home-step">
-          <div className="flex items-baseline justify-between">
+        <article
+          key={step.num}
+          className="grid gap-4 border-b border-rule py-5 last:border-b-0 md:grid-cols-[88px_140px_minmax(0,1fr)] md:items-baseline md:gap-6"
+        >
+          <div>
             <span className="font-[family-name:var(--font-mono)] text-xs tabular-nums text-ink-faint">
               {step.num}
             </span>
-            <span className="font-[family-name:var(--font-display)] text-sm italic text-ink-faint">
-              {step.kicker}
-            </span>
           </div>
-          <h3 className="mt-8 font-[family-name:var(--font-display)] text-[1.5rem] font-normal leading-[1.2] tracking-[-0.012em] text-ink [text-wrap:balance]">
-            {step.title}
-          </h3>
-          <p className="mt-3 text-sm leading-relaxed text-ink-light">{step.body}</p>
+          <p className="text-sm font-medium text-ink">{step.kicker}</p>
+          <div className="grid gap-1 md:grid-cols-[minmax(0,0.45fr)_minmax(0,0.55fr)] md:gap-6">
+            <h3 className="text-sm font-medium leading-relaxed text-ink">
+              {step.title}
+            </h3>
+            <p className="text-sm leading-relaxed text-ink-light">
+              {step.body}
+            </p>
+          </div>
         </article>
       ))}
     </div>
