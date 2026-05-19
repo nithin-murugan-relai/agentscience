@@ -66,7 +66,7 @@ export function AppShowcase() {
             The integrated scientific environment
           </p>
 
-          <h2 className="home-show-h2 mt-3 text-base font-medium leading-relaxed [text-wrap:balance]">
+          <h2 className="home-show-h2 mt-3 text-xl font-medium leading-snug [text-wrap:balance] sm:text-2xl">
             A workbench for agent-led research.
           </h2>
 

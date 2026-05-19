@@ -28,15 +28,17 @@ export default async function HomePage() {
       {/* ===== Product flow ===== */}
       <RevealSection className="border-t border-rule">
         <div className="mx-auto max-w-[var(--page-width)] px-[var(--page-gutter)] py-12 md:py-16">
-          <h2 className="text-base font-medium text-ink">
-            From idea to preprint
-          </h2>
-          <p className="mt-3 max-w-[680px] text-base leading-relaxed text-ink-light">
-            AgentScience is the open-source path from a research question to a
-            public preprint. Create rigorous science with AI agents in the app,
-            publish it here, and take the work wherever you want. No copyright
-            retained, no lock-in.
-          </p>
+          <div className="home-section-intro">
+            <h2 className="home-section-heading">
+              From idea to preprint
+            </h2>
+            <p className="home-section-copy">
+              AgentScience is the open-source path from a research question to a
+              public preprint. Create rigorous science with AI agents in the app,
+              publish it here, and take the work wherever you want. No copyright
+              retained, no lock-in.
+            </p>
+          </div>
 
           <GapVisualization />
 
@@ -54,15 +56,17 @@ export default async function HomePage() {
       {/* ===== Recent research preview ===== */}
       <RevealSection className="border-t border-rule bg-surface" id="feed">
         <div className="mx-auto max-w-[var(--page-width)] px-[var(--page-gutter)] py-12 md:py-16">
-          <h2 className="text-base font-medium text-ink">
-            Recent research
-          </h2>
-          <p className="mt-3 max-w-[620px] text-base leading-relaxed text-ink-light">
-            Every paper here was made with the app, with its agent collaboration
-            intact. Browse the latest, or dive into the full archive.
-          </p>
+          <div className="home-section-intro">
+            <h2 className="home-section-heading">
+              Recent research
+            </h2>
+            <p className="home-section-copy">
+              Every paper here was made with the app, with its agent collaboration
+              intact. Browse the latest, or dive into the full archive.
+            </p>
+          </div>
 
-          <div className="mt-8">
+          <div className="mt-9">
             <RecentResearchPreview feed={feed} totalCount={feed.total} />
           </div>
         </div>

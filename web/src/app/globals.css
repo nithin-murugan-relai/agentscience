@@ -368,6 +368,28 @@ details[open] summary::before {
   font-style: italic;
 }
 
+/* ── Home section structure ────────────────────────────────── */
+
+.home-section-intro {
+  max-width: 680px;
+}
+
+.home-section-heading {
+  font-size: clamp(1.2rem, 1.8vw, 1.45rem);
+  line-height: 1.25;
+  font-weight: 500;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.home-section-copy {
+  margin-top: 12px;
+  max-width: 680px;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--ink-light);
+}
+
 /* ── Creation visualization ────────────────────────────────── */
 
 .cvis {

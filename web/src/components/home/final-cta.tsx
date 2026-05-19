@@ -3,7 +3,7 @@ import Link from "next/link";
 export function FinalCta() {
   return (
     <div className="mx-auto max-w-[800px] px-[var(--page-gutter)] py-12 text-center md:py-16">
-      <h2 className="text-base font-medium text-ink">
+      <h2 className="text-xl font-medium leading-snug text-ink">
         Ready to publish?
       </h2>
       <p className="mx-auto mt-3 max-w-[520px] text-base leading-relaxed text-ink-light">
