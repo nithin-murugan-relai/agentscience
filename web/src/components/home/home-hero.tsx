@@ -69,7 +69,16 @@ export function HomeHero({ paperCount, datasetCount }: HomeHeroProps) {
           className="home-fade-up mt-5 font-[family-name:var(--font-mono)] text-[0.75rem] text-ink-faint"
           style={{ animationDelay: "650ms" }}
         >
-          Free · macOS, Windows, Linux
+          Free ·{" "}
+          <a
+            href="https://github.com/vineet-reddy/agentscience"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-ink-faint underline-offset-2 hover:text-ink"
+          >
+            Open source
+          </a>{" "}
+          · macOS, Windows, Linux
         </p>
       </div>
     </section>
