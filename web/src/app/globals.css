@@ -390,6 +390,126 @@ details[open] summary::before {
   color: var(--ink-light);
 }
 
+/* ── Process rail ──────────────────────────────────────────── */
+
+.home-process {
+  border-top: 1px solid var(--rule);
+  padding-top: 20px;
+}
+
+.home-process-list {
+  position: relative;
+  display: grid;
+  list-style: none;
+}
+
+.home-process-list::before {
+  content: "";
+  position: absolute;
+  top: 17px;
+  bottom: 24px;
+  left: 18px;
+  width: 1px;
+  background: var(--rule);
+}
+
+.home-process-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 16px;
+  padding: 0 0 24px;
+}
+
+.home-process-marker {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.home-process-marker span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  border: 1px solid var(--ink-light);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-process-content {
+  display: grid;
+  gap: 6px;
+}
+
+.home-process-kicker {
+  color: var(--ink-light);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.home-process-content h3 {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.home-process-content p {
+  max-width: 22rem;
+  color: var(--ink-light);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+@media (min-width: 768px) {
+  .home-process-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .home-process-list::before {
+    display: none;
+  }
+
+  .home-process-step {
+    display: block;
+    padding: 0 28px 0 0;
+  }
+
+  .home-process-step + .home-process-step {
+    padding-left: 28px;
+  }
+
+  .home-process-step:last-child {
+    padding-right: 0;
+  }
+
+  .home-process-marker {
+    justify-content: flex-start;
+    margin-bottom: 18px;
+  }
+
+  .home-process-step:not(:last-child) .home-process-marker::after {
+    content: "";
+    position: absolute;
+    top: 18px;
+    left: 36px;
+    right: -28px;
+    height: 1px;
+    background: var(--rule);
+  }
+}
+
 /* ── Creation visualization ────────────────────────────────── */
 
 .cvis {

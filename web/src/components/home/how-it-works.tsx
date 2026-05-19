@@ -24,28 +24,21 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <div className="border-y border-rule">
-      {STEPS.map((step) => (
-        <article
-          key={step.num}
-          className="grid gap-4 border-b border-rule py-5 last:border-b-0 md:grid-cols-[88px_140px_minmax(0,1fr)] md:items-baseline md:gap-6"
-        >
-          <div>
-            <span className="font-[family-name:var(--font-mono)] text-xs tabular-nums text-ink-faint">
-              {step.num}
-            </span>
-          </div>
-          <p className="text-sm font-medium text-ink">{step.kicker}</p>
-          <div className="grid gap-1 md:grid-cols-[minmax(0,0.45fr)_minmax(0,0.55fr)] md:gap-6">
-            <h3 className="text-sm font-medium leading-relaxed text-ink">
-              {step.title}
-            </h3>
-            <p className="text-sm leading-relaxed text-ink-light">
-              {step.body}
-            </p>
-          </div>
-        </article>
-      ))}
+    <div className="home-process" aria-label="Three-step publishing process">
+      <ol className="home-process-list">
+        {STEPS.map((step) => (
+          <li key={step.num} className="home-process-step">
+            <div className="home-process-marker" aria-hidden="true">
+              <span>{step.num}</span>
+            </div>
+            <div className="home-process-content">
+              <p className="home-process-kicker">{step.kicker}</p>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
