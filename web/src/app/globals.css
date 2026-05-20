@@ -560,15 +560,16 @@ details[open] summary::before {
 
 /* ── Arrows ── */
 .cvis-arrow { opacity: 0; }
-.cvis-arrow line {
+.cvis-arrow path {
+  fill: none;
   stroke: var(--ink-faint);
   stroke-width: 1;
   stroke-dasharray: 5 4;
 }
-.cvis-arrow polyline {
+.cvis-arrowhead {
   fill: none;
   stroke: var(--ink-faint);
-  stroke-width: 1.5;
+  stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

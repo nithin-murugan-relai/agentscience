@@ -44,12 +44,23 @@ export function GapVisualization() {
     <div ref={ref} className="cvis mt-10" aria-hidden="true">
       <svg viewBox="0 0 820 260" preserveAspectRatio="xMidYMid meet" className="cvis-svg">
         <defs>
-          {/* Flow paths: ideas → ISE */}
+          <marker
+            id="cvis-arrowhead"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 1 L 8 5 L 0 9" className="cvis-arrowhead" />
+          </marker>
+          {/* Flow paths: ideas -> app */}
           <path id="fp0" d="M 120,55 C 170,55 190,90 230,95" />
           <path id="fp1" d="M 120,100 C 170,100 190,105 230,108" />
           <path id="fp2" d="M 120,145 C 170,145 190,120 230,118" />
-          {/* Flow path: ISE → paper */}
-          <path id="fp3" d="M 530,108 C 560,108 580,95 610,90" />
+          {/* Flow path: app -> preprint */}
+          <path id="fp3" d="M 535,108 H 602" />
         </defs>
 
         {/* ════════ LEFT: Research ideas ════════ */}
@@ -82,13 +93,12 @@ export function GapVisualization() {
           Your ideas
         </text>
 
-        {/* ════════ Arrow: ideas → ISE ════════ */}
+        {/* ════════ Arrows: ideas → app ════════ */}
         <g className="cvis-arrow cvis-arrow-1">
-          <line x1="130" y1="100" x2="218" y2="100" />
-          <polyline points="208,93 220,100 208,107" />
+          <path d="M 128,55 C 168,55 190,89 219,95" markerEnd="url(#cvis-arrowhead)" />
+          <path d="M 128,100 C 168,100 190,105 219,108" markerEnd="url(#cvis-arrowhead)" />
+          <path d="M 128,145 C 168,145 190,121 219,118" markerEnd="url(#cvis-arrowhead)" />
         </g>
-
-
 
         {/* ════════ CENTER: AgentScience ISE ════════ */}
         <g className="cvis-ise">
@@ -172,10 +182,9 @@ export function GapVisualization() {
           Direct agents in the AgentScience App
         </text>
 
-        {/* ════════ Arrow: ISE → paper ════════ */}
+        {/* ════════ Arrow: app → preprint ════════ */}
         <g className="cvis-arrow cvis-arrow-2">
-          <line x1="535" y1="108" x2="600" y2="95" />
-          <polyline points="591,88 602,95 591,102" />
+          <path d="M 535,108 H 602" markerEnd="url(#cvis-arrowhead)" />
         </g>
 
         {/* Compose dots: ISE → paper */}

@@ -1,24 +1,24 @@
 const STEPS = [
   {
     num: "01",
-    kicker: "Research",
-    title: "Direct agents in the app.",
+    kicker: "Ideate",
+    title: "Explore research directions.",
     body:
-      "Pick a question, run agents, inspect their analysis, and stay in the loop on the decisions that shape the work.",
+      "Use the AgentScience app as a thinking partner to test your ideas and find promising research directions.",
   },
   {
     num: "02",
-    kicker: "Compose",
-    title: "Compose the paper.",
+    kicker: "Direct",
+    title: "Direct agents.",
     body:
-      "The app turns the session into methods, figures, limitations, and results, with claims tied back to the work performed.",
+      "Direct agents to find open datasets, write code, analyze data, and compose your research paper.",
   },
   {
     num: "03",
     kicker: "Publish",
-    title: "Publish the preprint.",
+    title: "Publish the paper.",
     body:
-      "Send the paper to AgentScience, where it enters the public record without platform lock-in or retained copyright.",
+      "Share the finished paper on AgentScience as a public preprint.",
   },
 ] as const;
 
