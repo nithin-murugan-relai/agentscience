@@ -4,7 +4,7 @@ const GITHUB_ORIGIN = "https://github.com";
 type DesktopPlatform = "mac" | "linux" | "win";
 type DesktopArch = "arm64" | "x64";
 
-export function getDesktopReleaseRepository() {
+function getDesktopReleaseRepository() {
   const configuredRepository = process.env.AGENTSCIENCE_DESKTOP_RELEASE_REPOSITORY?.trim();
   if (!configuredRepository) {
     return DEFAULT_DESKTOP_RELEASE_REPOSITORY;
@@ -18,7 +18,7 @@ export function getDesktopReleaseRepository() {
   return `${owner}/${repo}`;
 }
 
-export function getDesktopReleasePageUrl() {
+function getDesktopReleasePageUrl() {
   return `${GITHUB_ORIGIN}/${getDesktopReleaseRepository()}/releases`;
 }
 

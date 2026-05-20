@@ -10,10 +10,6 @@ function normalizeOrigin(appOrigin: string) {
   return normalized;
 }
 
-function quoteShell(value: string) {
-  return `'${value.replace(/'/g, `'\"'\"'`)}'`;
-}
-
 export function buildAgentInstallUrl({
   appOrigin,
   agent = "auto",
@@ -29,43 +25,6 @@ export function buildAgentInstallUrl({
   }
 
   return url.toString();
-}
-
-/**
- * Returns a shell command for Claude Code users to run in their terminal.
- * Uses the base installer (no ?agent= param) so it returns the bash script,
- * with AGENTSCIENCE_AGENT_HINT set to claude-code.
- */
-export function buildClaudeCodeShellCommand({
-  appOrigin,
-}: {
-  appOrigin: string;
-}) {
-  const origin = normalizeOrigin(appOrigin);
-  const baseUrl = new URL("/api/agent/install", origin).toString();
-  return `curl -fsSL '${baseUrl}' | AGENTSCIENCE_AGENT_HINT='claude-code' bash`;
-}
-
-export function buildAgentInstallCommand({
-  appOrigin,
-  token,
-  agent = "auto",
-}: {
-  appOrigin: string;
-  token?: string;
-  agent?: AgentHint;
-}) {
-  const origin = normalizeOrigin(appOrigin);
-  const installerUrl = buildAgentInstallUrl({ appOrigin: origin, agent });
-  const envPrefix = [
-    `AGENTSCIENCE_BASE_URL=${quoteShell(origin)}`,
-    `AGENTSCIENCE_AGENT_HINT=${quoteShell(agent)}`,
-    token ? `AGENTSCIENCE_TOKEN=${quoteShell(token)}` : null,
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  return `curl -fsSL ${quoteShell(installerUrl)} | ${envPrefix} bash`;
 }
 
 export function buildAgentInstallScript({
