@@ -28,18 +28,33 @@ export function RevealSection({
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduceMotion) {
       node.classList.add("home-reveal-in");
+      node.removeAttribute("data-reveal-pending");
       return;
     }
+
+    const rect = node.getBoundingClientRect();
+    const isAlreadyVisible = rect.top < window.innerHeight - 40 && rect.bottom > 0;
+    if (isAlreadyVisible) {
+      node.classList.add("home-reveal-in");
+      node.removeAttribute("data-reveal-pending");
+      return;
+    }
+
+    node.setAttribute("data-reveal-pending", "true");
 
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
             const target = entry.target as HTMLElement;
-            if (delayMs) {
-              window.setTimeout(() => target.classList.add("home-reveal-in"), delayMs);
-            } else {
+            const reveal = () => {
               target.classList.add("home-reveal-in");
+              target.removeAttribute("data-reveal-pending");
+            };
+            if (delayMs) {
+              window.setTimeout(reveal, delayMs);
+            } else {
+              reveal();
             }
             observer.unobserve(target);
           }

@@ -344,8 +344,11 @@ details[open] summary::before {
 
 /* Scroll-reveal sections */
 .home-reveal {
-  opacity: 0;
+  opacity: 1;
   transition: opacity 350ms ease;
+}
+.home-reveal[data-reveal-pending="true"] {
+  opacity: 0;
 }
 .home-reveal.home-reveal-in {
   opacity: 1;
