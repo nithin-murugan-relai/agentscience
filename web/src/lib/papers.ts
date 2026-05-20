@@ -2,7 +2,6 @@ import { randomBytes } from "node:crypto";
 
 import {
   MetricStatus,
-  PaperOrigin,
   Prisma,
   ReviewKind,
   ReviewVerdict,
@@ -12,19 +11,13 @@ import { hashToken } from "@/lib/auth";
 import { aiJudgeConfigured, judgePaperWithOpenAI } from "@/lib/openai-judge";
 import { prisma } from "@/lib/prisma";
 import { buildPaperRankings } from "@/lib/ranking";
-import {
-  extractKeywords,
-  slugify,
-} from "@/lib/utils";
 import { UserFacingError } from "@/lib/errors";
 import type {
   IdeaFormInput,
   IntegrationKeyInput,
   PaperAiAssessment,
-  PaperFormInput,
   ReviewFormInput,
 } from "@/lib/validation";
-import { requirePublicationProfile } from "@/lib/publication-profile";
 
 export const publicUserSelect = {
   name: true,
@@ -930,30 +923,6 @@ export async function getPaperFeedPage({
   };
 }
 
-export async function getHomeData() {
-  const [papers, ideas] = await Promise.all([
-    prisma.paper.findMany({
-      where: {
-        visibility: "PUBLIC",
-      },
-      include: paperListInclude,
-      orderBy: {
-        publishedAt: "desc",
-      },
-    }),
-    getRecentIdeas(),
-  ]);
-
-  const ranked = sortPapersByRank(papers);
-
-  return {
-    featured: ranked.slice(0, 3),
-    recent: papers.slice(0, 8),
-    ideas,
-    paperCount: papers.length,
-  };
-}
-
 export async function getRecentIdeas(limit = 6) {
   return prisma.idea.findMany({
     where: {
@@ -996,88 +965,6 @@ export async function getIntegrationKeys(userId: string) {
     where: { userId },
     orderBy: {
       createdAt: "desc",
-    },
-  });
-}
-
-export async function createManualPaper(userId: string, input: PaperFormInput) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      name: true,
-      institution: true,
-      publicationProfileCompletedAt: true,
-    },
-  });
-
-  if (!user) {
-    throw new UserFacingError("User not found.", 404);
-  }
-
-  requirePublicationProfile(user);
-
-  const slug = await ensureUniquePaperSlug(slugify(input.title));
-  const markdown =
-    input.markdown?.trim() ||
-    [input.abstract.trim(), input.latexSource?.trim()].filter(Boolean).join("\n\n");
-  const keywords =
-    input.keywords.length > 0
-      ? uniqueStrings(input.keywords.map((keyword) => keyword.toLowerCase()))
-      : extractKeywords(input.title, input.abstract, markdown, input.latexSource, input.bibSource);
-  const referenceRecords = await resolveTextReferenceRecords(input.references);
-
-  const paper = await prisma.$transaction(async (transaction) => {
-    const createdPaper = await transaction.paper.create({
-      data: {
-        slug,
-        title: input.title,
-        abstract: input.abstract,
-        markdown,
-        latexSource: input.latexSource,
-        bibSource: input.bibSource,
-        pdfUrl: input.pdfUrl,
-        canonicalUrl: input.canonicalUrl,
-        githubUrl: input.githubUrl,
-        doi: input.doi?.toLowerCase(),
-        keywords,
-        origin: PaperOrigin.MANUAL,
-        authors: {
-          create: {
-            userId,
-            position: 0,
-            affiliation: user.institution?.trim() || null,
-            isCorresponding: true,
-          },
-        },
-        referencesOut: {
-          create: referenceRecords,
-        },
-      },
-    });
-
-    if (input.ideaNote) {
-      await transaction.idea.create({
-        data: {
-          authorId: userId,
-          paperId: createdPaper.id,
-          content: input.ideaNote,
-          summary: summarizeIdea(input.ideaNote),
-        },
-      });
-    }
-
-    return createdPaper;
-  });
-
-  await syncAiReviewForPaper(paper.id);
-  await refreshPaperMetrics();
-
-  return prisma.paper.findUnique({
-    where: {
-      id: paper.id,
-    },
-    select: {
-      slug: true,
     },
   });
 }

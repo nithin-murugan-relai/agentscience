@@ -238,16 +238,6 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   return getSyncedUserForClerkId(userId);
 });
 
-export async function requireCurrentUser() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    throw new Error("Authentication required.");
-  }
-
-  return user;
-}
-
 export async function getCurrentUserEmailAddress() {
   const clerkUser = await currentClerkUser();
   return clerkUser ? getPrimaryEmailAddress(clerkUser) : null;
