@@ -49,48 +49,11 @@ export function slugify(value: string) {
     .slice(0, 72);
 }
 
-export function titleCase(handle: string) {
-  return handle
-    .replace(/[-_]+/g, " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-}
-
-export function initials(name: string) {
-  return name
-    .trim()
-    .split(/[\s._@-]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((chunk) => chunk[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
-export function firstInitials(...values: Array<string | null | undefined>) {
-  for (const value of values) {
-    const label = initials(value ?? "");
-
-    if (label) {
-      return label;
-    }
-  }
-
-  return "AS";
-}
-
 export function parseList(value: string | null | undefined) {
   return (value ?? "")
     .split(/[,\n]/)
     .map((entry) => entry.trim())
     .filter(Boolean);
-}
-
-export function normalizeOptionalText(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : undefined;
 }
 
 export function extractKeywords(...inputs: Array<string | string[] | undefined>) {
@@ -117,18 +80,6 @@ export function extractKeywords(...inputs: Array<string | string[] | undefined>)
     .map(([token]) => token);
 }
 
-export function createTemporaryEmail(base: string, suffix: string) {
-  return `${slugify(base) || "researcher"}+${suffix}@agent-science.local`;
-}
-
-export function formatScore(score: number | null | undefined) {
-  if (score == null || Number.isNaN(score)) {
-    return "0.00";
-  }
-
-  return score.toFixed(2);
-}
-
 export function excerpt(markdown: string, maxLength = 1800) {
   const compact = markdown.replace(/\s+/g, " ").trim();
   return compact.length > maxLength
@@ -142,16 +93,6 @@ export function average(values: number[]) {
   }
 
   return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-export function chunkArray<T>(values: T[], size: number) {
-  const chunks: T[][] = [];
-
-  for (let index = 0; index < values.length; index += size) {
-    chunks.push(values.slice(index, index + size));
-  }
-
-  return chunks;
 }
 
 export function toSearchParams(values: Record<string, string | undefined>) {
@@ -173,14 +114,4 @@ export function formatDate(value: Date | string) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
-}
-
-export function readingTime(markdown: string) {
-  const wordCount = markdown.trim().split(/\s+/).length;
-  return Math.max(1, Math.round(wordCount / 220));
-}
-
-export function pageCount(markdown: string) {
-  const wordCount = markdown.trim().split(/\s+/).length;
-  return Math.max(1, Math.round(wordCount / 300));
 }

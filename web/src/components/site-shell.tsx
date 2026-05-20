@@ -38,25 +38,6 @@ export function SiteShell({
   );
 }
 
-export function SectionHeading({
-  title,
-  subtitle,
-}: {
-  title: string;
-  subtitle?: string;
-  eyebrow?: string;
-  description?: string;
-}) {
-  return (
-    <div className="max-w-[var(--content-width)]">
-      <h2 className="text-xl font-medium text-ink">{title}</h2>
-      {subtitle ? (
-        <p className="mt-2 text-ink-light">{subtitle}</p>
-      ) : null}
-    </div>
-  );
-}
-
 export function AuthGateCard({
   title,
   description,

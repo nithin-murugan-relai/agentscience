@@ -23,19 +23,19 @@ const blobRefSchema = z.object({
   sizeBytes: z.number().int().positive().max(MAX_PAPER_PDF_BYTES),
 });
 
-export const pdfBlobSchema = blobRefSchema.extend({
+const pdfBlobSchema = blobRefSchema.extend({
   fileName: z.string().trim().min(1).max(240),
   mimeType: z.string().trim().min(1).max(120).default("application/pdf"),
 });
 
-export const figureBlobSchema = blobRefSchema.extend({
+const figureBlobSchema = blobRefSchema.extend({
   fileName: z.string().trim().min(1).max(240),
   mimeType: z.string().trim().min(1).max(120),
   caption: z.string().trim().max(1000).optional(),
   sizeBytes: z.number().int().positive().max(MAX_PAPER_FIGURE_BYTES),
 });
 
-export const artifactBlobSchema = blobRefSchema.extend({
+const artifactBlobSchema = blobRefSchema.extend({
   path: z
     .string()
     .trim()

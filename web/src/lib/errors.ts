@@ -27,10 +27,3 @@ export function getUniqueConstraintTargets(error: unknown) {
 
   return [];
 }
-
-export function isRecordNotFoundError(error: unknown) {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2025"
-  );
-}

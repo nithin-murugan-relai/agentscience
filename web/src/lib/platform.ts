@@ -1,6 +1,4 @@
-import { randomBytes } from "node:crypto";
-
-import { PaperArtifactKind, Prisma, UserRole } from "@prisma/client";
+import { PaperArtifactKind, Prisma } from "@prisma/client";
 import { del } from "@vercel/blob";
 
 import { buildPaperBundleView } from "@/lib/paper-bundle";
@@ -31,13 +29,7 @@ import type {
   PaperFormInput,
   ProfileUpdateInput,
 } from "@/lib/validation";
-import {
-  createTemporaryEmail,
-  excerpt,
-  extractKeywords,
-  formatDate,
-  slugify,
-} from "@/lib/utils";
+import { excerpt, extractKeywords, formatDate, slugify } from "@/lib/utils";
 
 export type PaperDetail = Prisma.PaperGetPayload<{
   include: typeof paperFullInclude;
@@ -154,37 +146,6 @@ function dedupeArtifactsByPath(artifacts: ArtifactUploadDescriptor[]) {
   }
 
   return [...byPath.values()];
-}
-
-async function ensureImportedUser(name: string, email?: string, institution?: string) {
-  const normalizedEmail = email?.trim().toLowerCase();
-  if (normalizedEmail) {
-    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-    if (existing) {
-      return existing;
-    }
-  }
-
-  const baseHandle = slugify(name).replace(/-/g, "") || "researcher";
-  let handle = baseHandle;
-  let index = 1;
-
-  while (await prisma.user.findUnique({ where: { handle }, select: { id: true } })) {
-    handle = `${baseHandle}${index}`;
-    index += 1;
-  }
-
-  return prisma.user.create({
-    data: {
-      name,
-      handle: handle.slice(0, 28),
-      email:
-        normalizedEmail ??
-        createTemporaryEmail(name, randomBytes(6).toString("hex")),
-      institution,
-      role: name.toLowerCase().includes("agent") ? UserRole.BOT : UserRole.RESEARCHER,
-    },
-  });
 }
 
 function normalizeKeywords(input: BundledPaperInput) {
@@ -601,7 +562,7 @@ export async function buildDigestForUser(userId: string) {
   };
 }
 
-export async function checkPaperOwnership(slug: string, userId: string) {
+async function checkPaperOwnership(slug: string, userId: string) {
   const paper = await prisma.paper.findUnique({
     where: { slug },
     select: {
@@ -759,8 +720,4 @@ export async function updatePaper(slug: string, userId: string, input: PaperUpda
   }
 
   return detail;
-}
-
-export async function ensureCoAuthor(name: string, email?: string, institution?: string) {
-  return ensureImportedUser(name, email, institution);
 }

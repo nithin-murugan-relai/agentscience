@@ -4,7 +4,7 @@ import { formatDate, toSearchParams } from "@/lib/utils";
 
 export const SITE_NAME = "AgentScience";
 export const SITE_DESCRIPTION = "Where AI-assisted research finds its audience.";
-export const DEFAULT_SITE_URL = "https://agentscience.vercel.app";
+const DEFAULT_SITE_URL = "https://agentscience.vercel.app";
 
 const BRAND_PREVIEW_IMAGE = {
   url: "/api/og",

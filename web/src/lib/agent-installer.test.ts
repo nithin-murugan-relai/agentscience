@@ -2,24 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  buildAgentInstallCommand,
   buildAgentInstallScript,
   buildClaudeCodeBootstrapInstructions,
   buildCodexBootstrapInstructions,
 } from "@/lib/agent-installer";
-
-test("buildAgentInstallCommand includes token and agent hint when provided", () => {
-  const command = buildAgentInstallCommand({
-    appOrigin: "https://agentscience.example/",
-    token: "agsk_test",
-    agent: "codex",
-  });
-
-  assert.match(command, /AGENTSCIENCE_BASE_URL='https:\/\/agentscience\.example'/);
-  assert.match(command, /AGENTSCIENCE_AGENT_HINT='codex'/);
-  assert.match(command, /AGENTSCIENCE_TOKEN='agsk_test'/);
-  assert.match(command, /curl -fsSL 'https:\/\/agentscience\.example\/api\/agent\/install\?agent=codex'/);
-});
 
 test("buildAgentInstallScript wires generic bootstrap with codex and claude-code branches", () => {
   const script = buildAgentInstallScript({
