@@ -59,6 +59,27 @@ function SettingsIcon() {
   );
 }
 
+function PapersIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M7 3h7l4 4v14H7z" />
+      <path d="M14 3v5h5" />
+      <path d="M10 12h6" />
+      <path d="M10 16h6" />
+    </svg>
+  );
+}
+
 export function SiteNav() {
   const pathname = usePathname() ?? "/";
 
@@ -107,6 +128,7 @@ export function SiteNav() {
             }}
           >
             <UserButton.MenuItems>
+              <UserButton.Link label="Your papers" labelIcon={<PapersIcon />} href="/papers/me" />
               <UserButton.Link
                 label="Settings"
                 labelIcon={<SettingsIcon />}

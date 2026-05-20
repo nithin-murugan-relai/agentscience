@@ -470,6 +470,27 @@ export async function getProfileByHandle(handle: string) {
   });
 }
 
+export async function getAccountPapers(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      ...publicUserSelect,
+      authoredPapers: {
+        include: {
+          paper: {
+            include: paperListInclude,
+          },
+        },
+        orderBy: {
+          paper: {
+            publishedAt: "desc",
+          },
+        },
+      },
+    },
+  });
+}
+
 export async function updateProfileForUser(userId: string, input: ProfileUpdateInput) {
   let publicationProfileCompletedAt: Date | undefined;
 
