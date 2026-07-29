@@ -1,0 +1,24 @@
+{
+  "schema_version": "relai.runtime_manifest.v1",
+  "env": [
+    {
+      "name": "AGENT_MODEL",
+      "required": false,
+      "sensitive": false,
+      "reason": "Optional Claude model alias passed to the headless AgentScience harness."
+    },
+    {
+      "name": "AGENT_MAX_TURNS",
+      "required": false,
+      "sensitive": false,
+      "reason": "Optional maximum turn budget for each simulator run."
+    },
+    {
+      "name": "AGENT_TIMEOUT_S",
+      "required": false,
+      "sensitive": false,
+      "reason": "Optional timeout in seconds for each headless Claude session."
+    }
+  ],
+  "files": []
+}

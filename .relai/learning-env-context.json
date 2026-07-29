@@ -1,0 +1,17 @@
+{
+  "schema_version": "relai.learning_env_context.v1",
+  "agent": {
+    "entrypoint": "agentscience_agent.agent:build_agent",
+    "runner_summary": "Runs the AgentScience prompt wrapper through the simulator adapter, which builds the default agent prompt and executes one raw string task with agentscience_agent.run_agent()."
+  },
+  "components": [],
+  "log_notes": [
+    "Adapter metadata includes num_turns, hit_unknown_subcommand, and agent_transcript from the underlying headless Claude run.",
+    "The simulator forces AGENTSCIENCE_BASE_URL to a localhost sandbox and uses a throwaway token so platform auth checks stay local and publish-style routes fail closed."
+  ],
+  "learning_env_guidance": [
+    "Agent environments should pass a raw string in FixedTurn.content. Do not wrap the task in JSON or another helper object.",
+    "Prefer read-only repo inspection or local CLI validation tasks. The underlying agent can invoke Bash, Read, Glob, Grep, Write, and Edit from the repo root.",
+    "When scenario stability matters, pin AGENT_MODEL, AGENT_MAX_TURNS, and AGENT_TIMEOUT_S through runtime env configuration."
+  ]
+}
