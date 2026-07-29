@@ -1,0 +1,15 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentscience-agent"
+version = "0.1.0"
+description = "Wrap the AgentScience prompt-driven research agent behind RELAI's build_agent/run_agent shape so RELAI can optimize its prompt (prompt-only scope) via a headless Claude Code harness."
+requires-python = ">=3.10"
+authors = [{ name = "RELAI x Rippletide integration" }]
+keywords = ["relai", "agentscience", "prompt-optimization", "llm-agents"]
+dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentscience_agent"]
