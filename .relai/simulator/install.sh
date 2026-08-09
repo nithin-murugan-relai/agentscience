@@ -506,3 +506,18 @@ install_relai_sdk "$VENV_PYTHON" uv
 uv pip install --python "$VENV_PYTHON" -e "$ROOT_DIR"
 # END PROJECT DEPENDENCY INSTALL
 uv pip install --python "$VENV_PYTHON" -e "$SIM_DIR"
+
+# BEGIN PROJECT NODE DEPENDENCY INSTALL
+# cli/node_modules is gitignored, so fresh optimizer workspaces lack
+# @agentscience/personality and the agentscience CLI cannot start.
+if [ ! -d "$ROOT_DIR/cli/node_modules/@agentscience/personality" ]; then
+  if command -v npm >/dev/null 2>&1; then
+    npm ci --prefix "$ROOT_DIR/cli" --no-audit --no-fund
+  elif [ -d "/Users/mns/developer/agentscience/cli/node_modules" ]; then
+    # offline fallback: reuse the main clone's install
+    ln -s "/Users/mns/developer/agentscience/cli/node_modules" "$ROOT_DIR/cli/node_modules"
+  else
+    echo "warning: cli/node_modules missing and npm unavailable; agentscience CLI will not start" >&2
+  fi
+fi
+# END PROJECT NODE DEPENDENCY INSTALL
