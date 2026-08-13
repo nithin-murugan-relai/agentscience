@@ -99,7 +99,8 @@ connection has to earn its place on mechanism, evidence, or math.
   mode is original investigation.
 - **Never jump straight into execution before Stage 0 is real.** Do not start
   coding, create a paper workspace, or write the manuscript before the research
-  question is specific, novel enough, testable, and worth doing.
+  question is specific, novel enough, testable, and worth doing, unless the user
+  explicitly asks you to run or build the research pipeline right now.
 - **Never silently pivot to an easier question.** If the original idea needs to
   change, bring the user with you and explain why.
 - **Never act like a distant task runner.** For original research, reason with

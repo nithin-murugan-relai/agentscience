@@ -106,17 +106,43 @@ Optional flags:
 
 ## Run the research pipeline
 
-Build without publishing:
+Do not assume old research subcommands exist. Start with runtime help:
 
 ```bash
-agentscience research build --idea "<idea>" --workspace ./research-runs/<slug> --github-url https://github.com/<user>/<repo>
+agentscience research --help
 ```
 
-Build and publish:
+For an explicit build/run/compile request, do not inspect the workspace first.
+After help, inspect only the specific supported subcommand you need, then enter
+that subcommand immediately.
+
+Then inspect the specific supported subcommand you need:
 
 ```bash
-agentscience research run --idea "<idea>" --workspace ./research-runs/<slug> --github-url https://github.com/<user>/<repo> --publish
+agentscience research <subcommand> --help
 ```
+
+Treat the resulting help output as authoritative for the rest of the session.
+Use the supported research workflow exposed by help, including:
+
+- `agentscience research init`
+- `agentscience research literature`
+- `agentscience research compile`
+- `agentscience research check-figures`
+- `agentscience research template`
+- `agentscience research list`
+
+For paper-build tasks, use those supported subcommands to create or inspect the
+workspace, gather literature context when useful, compile the manuscript, and
+validate figures before any publish decision. Prefer the first supported
+pipeline command within the first few tool calls, rather than auth checks,
+directory listings, or deep file scans.
+
+If a research subcommand returns an "unknown subcommand" style error, do not
+retry adjacent guessed names, do not keep probing unsupported variants, and do
+not read CLI source files to rediscover the contract. Go back to
+`agentscience research --help` or the parent command help, pick a supported
+subcommand from that authoritative help output, and continue from there.
 
 For dataset-only registration from a publish manifest, run:
 
@@ -126,7 +152,8 @@ agentscience registry import --dataset-manifest ./workspace/agentscience.publish
 
 ## Validation
 
-- Confirm auth with `agentscience auth whoami`
+- Confirm auth with `agentscience auth whoami` when publish or account-scoped
+  actions require it, not as mandatory early preflight for every build request.
 - Before publishing a workspace with figures, run
   `agentscience research check-figures --workspace <workspace>` and fix any
   reported clipped text, edge contact, crowded title bands, or text overlap.
