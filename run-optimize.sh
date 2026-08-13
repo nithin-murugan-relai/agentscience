@@ -60,9 +60,12 @@ echo "ok   network stable"
 
 # --- repo state ---------------------------------------------------------------
 say "Repo state"
-if [ -n "$(git status --porcelain -- ':(exclude)*.pyc' | grep -v '^??')" ]; then
-  git status --short -- ':(exclude)*.pyc' | grep -v '^??'
-  fail "tracked files are modified. Commit or restore them first."
+# `relai optimize` demands a completely clean checkout, untracked files included.
+# Match that exactly: a laxer check here just moves the failure later, which is
+# how the 2026-08-13 02:53 run died after waiting seven hours for AC power.
+if [ -n "$(git status --porcelain)" ]; then
+  git status --short
+  fail "working tree is not clean. relai optimize refuses to start unless git status is empty."
 fi
 echo "ok   working tree clean (branch $(git rev-parse --abbrev-ref HEAD))"
 
@@ -94,9 +97,17 @@ echo "relai optimize exited with $status" | tee -a "$LOG"
 # --- recovery: the CLI does not retry PR creation or result upload -------------
 say "Post-run recovery check"
 
+if [ "$status" -ne 0 ]; then
+  echo "optimize FAILED with exit $status. Nothing to recover. Last lines:"
+  sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' "$LOG" | grep -v '^[[:space:]]*$' | tail -5
+  exit "$status"
+fi
+
+# Only consider branches this run created. Matching the newest optimizer branch
+# unconditionally would report success against a previous run's branch.
 branch=$(git branch --list 'relai/optimizer/*' --sort=-committerdate | head -1 | tr -d ' +*')
-if [ -z "$branch" ]; then
-  echo "no optimizer branch was created (no changes accepted, or the run died early)"
+if [ -z "$branch" ] || [ -n "$branch" ] && ! grep -q "$branch" "$LOG"; then
+  echo "no optimizer branch was created by this run (no changes accepted)"
   exit "$status"
 fi
 echo "optimizer branch: $branch"
