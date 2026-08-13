@@ -48,3 +48,13 @@ research-runs/
 .relai/optimizer-scope.json
 .relai/simulator.env
 .relai/tag-records/
+
+# Python bytecode (was tracked; rewritten by every simulator run, which broke
+# `relai optimize`, since it requires a clean checkout)
+__pycache__/
+*.pyc
+
+# Local run artifacts
+optimize-*.log
+round4-launcher.log
+.relai/observability-*/
