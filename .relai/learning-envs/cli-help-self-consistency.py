@@ -20,6 +20,7 @@ anchor is still informative.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any
 
 from relai import (
@@ -58,15 +59,20 @@ IMPLEMENTED_RESEARCH_SUBCOMMANDS = (
 UNIMPLEMENTED_RESEARCH_SUBCOMMANDS = ("build", "run")
 
 TOOL_LINE_RE = re.compile(r"^TOOL\s+([^:]+):\s*(.*)$")
-TOP_LEVEL_HELP_RE = re.compile(
-    r"\bagentscience\s+(--help|-h|help)\b|\bagentscience\s*$",
-    re.MULTILINE,
-)
+# Only an explicit top-level help invocation counts. An earlier version also
+# accepted a line merely ending in "agentscience", which matched things like
+# `which agentscience`.
+TOP_LEVEL_HELP_RE = re.compile(r"\bagentscience\s+(--help|-h|help)\b")
 RESEARCH_HELP_RE = re.compile(r"\bagentscience\s+research\s+(--help|-h)\b")
 # Matches a help/usage line that advertises an unimplemented research subcommand.
 ADVERTISED_UNIMPLEMENTED_RE = re.compile(
     r"agentscience\s+research\s+(build|run)\b"
 )
+# Any research subcommand named in a help example, implemented or not.
+ADVERTISED_ANY_RESEARCH_RE = re.compile(r"agentscience\s+research\s+([a-z][\w-]*)")
+# A "  name   Description." line inside a `Subcommands:` block. Column alignment
+# is not reliable: `check-figures` is followed by a single space, not two.
+SUBCOMMAND_LINE_RE = re.compile(r"^\s{2,}([a-z][\w-]*)\s+\S")
 HELP_OUTPUT_MARKERS = (
     "Usage:",
     "Subcommands:",
@@ -231,69 +237,101 @@ def _evaluate_top_level_help_consulted(
     )
 
 
+def _find_cli_source() -> str | None:
+    """Locate cli/bin/agentscience by walking up from the working directory."""
+    here = Path.cwd().resolve()
+    for base in [here, *here.parents]:
+        candidate = base / "cli" / "bin" / "agentscience"
+        if candidate.is_file():
+            return candidate.read_text(errors="replace")
+    return None
+
+
+def _advertised_and_implemented(source: str) -> tuple[set[str], set[str]]:
+    """Research subcommands the CLI advertises vs the ones it documents as real.
+
+    ``advertised`` comes from the top-level help template (the block containing
+    ``Examples:``). ``implemented`` comes from the ``Subcommands:`` list that
+    ``agentscience research --help`` prints, which tracks the dispatcher.
+    """
+    advertised: set[str] = set()
+    examples_at = source.find("Examples:")
+    if examples_at != -1:
+        block = source[examples_at : source.find("`;", examples_at)]
+        advertised = {m.group(1) for m in ADVERTISED_ANY_RESEARCH_RE.finditer(block)}
+
+    implemented: set[str] = set()
+    research_help_at = source.find("research: `Usage:")
+    if research_help_at != -1:
+        block = source[research_help_at : source.find("`,", research_help_at)]
+        subcommands_at = block.find("Subcommands:")
+        if subcommands_at != -1:
+            for line in block[subcommands_at:].splitlines()[1:]:
+                match = SUBCOMMAND_LINE_RE.match(line)
+                if match:
+                    implemented.add(match.group(1))
+
+    return advertised, implemented
+
+
 def _evaluate_help_advertises_only_implemented(
     simulation_result: SimulationResult,
 ) -> EvaluationResult:
-    transcript, blob = _extract_transcript(simulation_result)
-    if not transcript:
+    """Check the CLI's help text directly rather than through the transcript.
+
+    Reading this from the transcript is not reliable: captured tool output is
+    truncated before the end of the Examples block, so the offending line is
+    often absent and the check silently passes. Inspecting the source is
+    deterministic and immune to that.
+    """
+    source = _find_cli_source()
+    if source is None:
         return EvaluationResult(
             score=0.0,
             feedback=(
-                "Could not locate the run transcript needed to inspect the CLI's "
-                "help output."
+                "Could not locate `cli/bin/agentscience` from the working "
+                "directory, so the CLI's help self-consistency could not be "
+                "verified."
             ),
         )
 
-    records = _parse_tool_records(transcript)
-    help_records = _help_invocations(records)
-    if not help_records:
+    advertised, implemented = _advertised_and_implemented(source)
+    if not advertised or not implemented:
         return EvaluationResult(
             score=0.0,
             feedback=(
-                "No CLI help output was captured, so its self-consistency could "
-                "not be verified. Read `agentscience --help` first."
+                "Could not parse the CLI's help blocks "
+                f"(advertised={sorted(advertised)}, implemented={sorted(implemented)}). "
+                "Expected a top-level `Examples:` block and a `research:` help "
+                "block listing `Subcommands:`."
             ),
         )
 
-    offenders: list[str] = []
-    for record in help_records:
-        output = _joined_results(record)
-        if not any(marker in output for marker in HELP_OUTPUT_MARKERS):
-            continue
-        for match in ADVERTISED_UNIMPLEMENTED_RE.finditer(output):
-            offenders.append(match.group(0))
-
-    # Formatting-independent fallback: these strings exist only in the CLI's own
-    # help example for the unimplemented subcommand.
-    if not offenders:
-        for fingerprint in HELP_EXAMPLE_FINGERPRINTS:
-            if fingerprint in blob:
-                offenders.append("agentscience research run")
-                break
+    offenders = sorted(advertised - implemented)
 
     if offenders:
-        unique = sorted(set(offenders))
         return EvaluationResult(
             score=0.0,
             feedback=(
-                "The CLI's own help output advertises research subcommands that "
-                "its dispatcher rejects with `Unknown research subcommand`: "
-                + ", ".join(f"`{item}`" for item in unique)
+                "`cli/bin/agentscience` advertises research subcommands in its "
+                "top-level help that its dispatcher rejects with `Unknown "
+                "research subcommand`: "
+                + ", ".join(f"`agentscience research {item}`" for item in offenders)
                 + ". An agent that trusts this documentation is led straight "
                 "into a dead command, so the help text itself is the defect. "
-                "The implemented research subcommands are: "
-                + ", ".join(f"`{name}`" for name in IMPLEMENTED_RESEARCH_SUBCOMMANDS)
-                + ". Fix the CLI's help so it only advertises subcommands the "
-                "dispatcher implements. This cannot be fixed by changing the "
-                "agent prompt."
+                "The documented subcommands are: "
+                + ", ".join(f"`{name}`" for name in sorted(implemented))
+                + ". Fix the CLI's top-level help so it only advertises "
+                "subcommands the dispatcher implements. This cannot be fixed by "
+                "changing the agent prompt."
             ),
         )
 
     return EvaluationResult(
         score=1.0,
         feedback=(
-            "Every research subcommand shown in the CLI's help output is "
-            "actually implemented by the dispatcher."
+            "Every research subcommand advertised in the CLI's top-level help "
+            f"({', '.join(sorted(advertised))}) is implemented."
         ),
     )
 
