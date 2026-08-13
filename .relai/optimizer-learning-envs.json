@@ -5,6 +5,10 @@
   "learning_envs": [
     {
       "kind": "path",
+      "path": ".relai/learning-envs/cli-help-self-consistency.py"
+    },
+    {
+      "kind": "path",
       "path": ".relai/learning-envs/pipeline-supported-subcommands.py"
     }
   ]
