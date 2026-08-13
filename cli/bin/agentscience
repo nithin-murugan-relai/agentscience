@@ -133,7 +133,6 @@ Examples:
   agentscience runtime status --json
   agentscience research init --idea "Does fine-tuning improve sepsis prediction?"
   agentscience research check-figures --workspace ./research-runs/demo
-  agentscience research run --idea "Adaptive sampling for outbreak triage" --workspace ./research-runs/outbreak --publish
   agentscience registry validate --url https://example.org/data.csv --name "Example Dataset" --description "Open CSV"
   agentscience registry import --manifest ./docs/dataset-registry-bootstrap.json
 `;
