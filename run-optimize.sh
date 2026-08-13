@@ -26,8 +26,12 @@ fail() { printf '\nABORT: %s\n' "$1"; exit 1; }
 say "Preflight"
 
 # --- power: the thing that killed two runs -----------------------------------
+# A multi-hour run on battery either dies from clamshell sleep or drains flat,
+# so wait for the cable rather than starting something that cannot finish.
 if ! pmset -g batt | grep -q "AC Power"; then
-  fail "on battery. Plug in first - caffeinate cannot stop clamshell sleep on battery."
+  echo "on battery ($(pmset -g batt | grep -oE '[0-9]+%' | head -1)). Waiting for AC power."
+  echo "Plug in and this starts by itself. Ctrl-C to give up."
+  while ! pmset -g batt | grep -q "AC Power"; do sleep 20; done
 fi
 echo "ok   on AC power"
 
