@@ -5,7 +5,7 @@
   "learning_envs": [
     {
       "kind": "path",
-      "path": ".relai/learning-envs/pipeline-supported-subcommands.py"
+      "path": ".relai/learning-envs/discoverybench-state-the-finding.py"
     }
   ]
 }

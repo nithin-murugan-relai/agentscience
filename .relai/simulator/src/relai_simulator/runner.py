@@ -11,6 +11,7 @@ from typing import Any
 
 import relai
 
+from relai_simulator.adapter_contract import AdapterRuntime
 from relai_simulator.adapter_contract import AgentTurnResult
 
 
@@ -106,10 +107,18 @@ async def _run_agent_environment(
     )
 
     with relai.MockApplication(learning_environment.mocks) as mock_app:
-        adapter = _build_agent_adapter()
+        adapter_runtime = AdapterRuntime(
+            tool_overrides=relai.tool_name_mocks(learning_environment.mocks)
+        )
+        adapter = _build_agent_adapter(
+            agent_target=_agent_target_name(learning_environment),
+            runtime=adapter_runtime,
+        )
+        relai.validate_adapter_capabilities(adapter)
         agent_or_tools = getattr(adapter, "agent_or_tools", None)
-        if agent_or_tools is not None:
-            mock_app.apply_tool_mocks(agent_or_tools)
+        apply_tool_mocks = getattr(mock_app, "apply_tool_mocks", None)
+        if agent_or_tools is not None and callable(apply_tool_mocks):
+            apply_tool_mocks(agent_or_tools)
         recorded_mock_calls = 0
         agent_message: str | None = None
 
@@ -131,6 +140,7 @@ async def _run_agent_environment(
                 turn_result = await _run_adapter_turn(
                     adapter,
                     next_turn.content,
+                    runtime=adapter_runtime,
                 )
                 total_duration_ms += max(0, (time.perf_counter_ns() - started_at) // 1_000_000)
             except Exception as error:
@@ -164,9 +174,9 @@ async def _run_agent_environment(
                 **_safe_metadata(turn_result.metadata),
             )
 
-            for mock_call in mock_app.tool_mock_calls[recorded_mock_calls:]:
+            for mock_call in adapter_runtime.mock_calls[recorded_mock_calls:]:
                 transcript.mock_call(mock_call, turn_index=turn_index)
-            recorded_mock_calls = len(mock_app.tool_mock_calls)
+            recorded_mock_calls = len(adapter_runtime.mock_calls)
             turn_index += 1
 
     return transcript.to_simulation_result(
@@ -177,13 +187,22 @@ async def _run_agent_environment(
     )
 
 
-def _build_agent_adapter() -> Any:
+def _build_agent_adapter(
+    *,
+    agent_target: str | None,
+    runtime: AdapterRuntime,
+) -> Any:
     module = importlib.import_module("relai_simulator.adapter")
-    return module.build_agent_adapter()
+    return module.build_agent_adapter(agent_target=agent_target, runtime=runtime)
 
 
-async def _run_adapter_turn(adapter: Any, user_input: Any) -> AgentTurnResult:
-    result = adapter.run_turn(user_input)
+async def _run_adapter_turn(
+    adapter: Any,
+    user_input: Any,
+    *,
+    runtime: AdapterRuntime,
+) -> AgentTurnResult:
+    result = adapter.run_turn(user_input, runtime=runtime)
     if inspect.isawaitable(result):
         result = await result
     if isinstance(result, AgentTurnResult):
@@ -217,6 +236,11 @@ def _target_label(learning_environment: relai.RELAIEnvironment) -> str:
     if isinstance(import_path, str) and import_path:
         return import_path
     return getattr(target, "type", "agent")
+
+
+def _agent_target_name(learning_environment: relai.RELAIEnvironment) -> str | None:
+    target = learning_environment.target
+    return getattr(target, "agent_target", None)
 
 
 def _safe_metadata(metadata: dict[str, object]) -> dict[str, object]:

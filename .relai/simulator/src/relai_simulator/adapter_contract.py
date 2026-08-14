@@ -1,36 +1,22 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+import relai
 
-@dataclass(slots=True)
-class ToolCallRecord:
-    name: str
-    arguments: object
-    call_id: str | None = None
-    metadata: dict[str, object] = field(default_factory=dict)
-
-
-@dataclass(slots=True)
-class ToolResultRecord:
-    name: str
-    result: object | None = None
-    error: str | None = None
-    call_id: str | None = None
-    metadata: dict[str, object] = field(default_factory=dict)
-
-
-@dataclass(slots=True)
-class AgentTurnResult:
-    assistant_message: str | None
-    metadata: dict[str, object] = field(default_factory=dict)
-    tool_calls: list[ToolCallRecord] = field(default_factory=list)
-    tool_results: list[ToolResultRecord] = field(default_factory=list)
+AdapterRuntime = relai.AdapterRuntime
+AgentTurnResult = relai.AgentTurnResult
+ToolCallRecord = relai.ToolCallRecord
+ToolResultRecord = relai.ToolResultRecord
 
 
 class AgentAdapter(Protocol):
+    capabilities: frozenset[str]
     agent_or_tools: object | None
 
-    def run_turn(self, user_input: Any) -> AgentTurnResult | Any:
+    def run_turn(
+        self,
+        user_input: Any,
+        runtime: AdapterRuntime | None = None,
+    ) -> AgentTurnResult | Any:
         ...
