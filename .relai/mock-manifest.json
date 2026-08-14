@@ -1,4 +1,59 @@
 {
   "schema_version": "relai.mock_manifest.v1",
-  "items": []
+  "items": [
+    {
+      "id": "claude-bash",
+      "target": "Bash",
+      "kind": "hosted_tool",
+      "final_policy": "cannot_mock",
+      "reason": "The agent exposes Claude's Bash tool only inside the external claude subprocess configured in src/agentscience_agent/agent.py, so the simulator cannot replace it locally.",
+      "source": "src/agentscience_agent/agent.py",
+      "cannot_mock_reason": "Tool execution is owned by the external claude CLI process rather than a locally interceptable Python callable."
+    },
+    {
+      "id": "claude-read",
+      "target": "Read",
+      "kind": "hosted_tool",
+      "final_policy": "cannot_mock",
+      "reason": "The agent exposes Claude's Read tool only inside the external claude subprocess configured in src/agentscience_agent/agent.py, so the simulator cannot replace it locally.",
+      "source": "src/agentscience_agent/agent.py",
+      "cannot_mock_reason": "Tool execution is owned by the external claude CLI process rather than a locally interceptable Python callable."
+    },
+    {
+      "id": "claude-glob",
+      "target": "Glob",
+      "kind": "hosted_tool",
+      "final_policy": "cannot_mock",
+      "reason": "The agent exposes Claude's Glob tool only inside the external claude subprocess configured in src/agentscience_agent/agent.py, so the simulator cannot replace it locally.",
+      "source": "src/agentscience_agent/agent.py",
+      "cannot_mock_reason": "Tool execution is owned by the external claude CLI process rather than a locally interceptable Python callable."
+    },
+    {
+      "id": "claude-grep",
+      "target": "Grep",
+      "kind": "hosted_tool",
+      "final_policy": "cannot_mock",
+      "reason": "The agent exposes Claude's Grep tool only inside the external claude subprocess configured in src/agentscience_agent/agent.py, so the simulator cannot replace it locally.",
+      "source": "src/agentscience_agent/agent.py",
+      "cannot_mock_reason": "Tool execution is owned by the external claude CLI process rather than a locally interceptable Python callable."
+    },
+    {
+      "id": "claude-write",
+      "target": "Write",
+      "kind": "hosted_tool",
+      "final_policy": "cannot_mock",
+      "reason": "The agent exposes Claude's Write tool only inside the external claude subprocess configured in src/agentscience_agent/agent.py, so the simulator cannot replace it locally.",
+      "source": "src/agentscience_agent/agent.py",
+      "cannot_mock_reason": "Tool execution is owned by the external claude CLI process rather than a locally interceptable Python callable."
+    },
+    {
+      "id": "claude-edit",
+      "target": "Edit",
+      "kind": "hosted_tool",
+      "final_policy": "cannot_mock",
+      "reason": "The agent exposes Claude's Edit tool only inside the external claude subprocess configured in src/agentscience_agent/agent.py, so the simulator cannot replace it locally.",
+      "source": "src/agentscience_agent/agent.py",
+      "cannot_mock_reason": "Tool execution is owned by the external claude CLI process rather than a locally interceptable Python callable."
+    }
+  ]
 }
