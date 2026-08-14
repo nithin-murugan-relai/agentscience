@@ -51,9 +51,12 @@ def build_agent(prompt: str | None = None) -> Agent:
     optimized prompt.
     """
     if prompt is None:
-        from .prompt import AGENTSCIENCE_SYSTEM_PROMPT
+        from .prompt import (
+            AGENTSCIENCE_SYSTEM_PROMPT,
+            strengthen_multi_part_findings,
+        )
 
-        prompt = AGENTSCIENCE_SYSTEM_PROMPT
+        prompt = strengthen_multi_part_findings(AGENTSCIENCE_SYSTEM_PROMPT)
     return Agent(prompt=prompt)
 
 
