@@ -76,6 +76,50 @@ def _load_evaluator():
     return run_eval_gold_vs_gen_NL_hypo_workflow
 
 
+def _normalise_variable(name: str) -> str:
+    return "".join(ch for ch in str(name).lower() if ch.isalnum())
+
+
+def _sub_hypothesis_variables(extraction: Any) -> set[str]:
+    """Every variable the benchmark's own extractor pulled from a hypothesis."""
+    found: set[str] = set()
+    if not isinstance(extraction, dict):
+        return found
+    for entry in extraction.get("sub_hypo") or []:
+        if not isinstance(entry, dict):
+            continue
+        for variable in entry.get("variables") or []:
+            token = _normalise_variable(variable)
+            if token:
+                found.add(token)
+    return found
+
+
+def _ungated_variable_overlap(record: dict[str, Any]) -> float:
+    """F1 between the variables in the gold and generated hypotheses.
+
+    `final_score` is gated on context matching: when the judge decides the two
+    hypotheses describe different contexts, no pair is matched and every
+    downstream component reports 0.0 even if the answer named exactly the right
+    variables. That leaves an optimizer nothing to climb, which is the failure
+    that wasted an earlier run on another project.
+
+    This uses the benchmark's own extracted hypotheses (already present in the
+    record, so no extra judge calls) and compares variables directly, without the
+    context gate. It is a training signal only; `final_score` stays the headline.
+    """
+    gold = _sub_hypothesis_variables(record.get("gold_sub_hypo"))
+    generated = _sub_hypothesis_variables(record.get("gen_sub_hypo"))
+    if not gold or not generated:
+        return 0.0
+    shared = len(gold & generated)
+    if not shared:
+        return 0.0
+    precision = shared / len(generated)
+    recall = shared / len(gold)
+    return 2 * precision * recall / (precision + recall)
+
+
 def _components(record: dict[str, Any]) -> dict[str, Any]:
     """Pull the graded parts the benchmark computes on the way to final_score."""
     out: dict[str, Any] = {
@@ -101,7 +145,8 @@ def _components(record: dict[str, Any]) -> dict[str, Any]:
                 variable_scores.append(float(score))
             elif "rel" in key.lower():
                 relationship_scores.append(float(score))
-    out["variable_score"] = (
+    # Gated values: only defined for pairs that survived the context match.
+    out["variable_score_gated"] = (
         sum(variable_scores) / len(variable_scores) if variable_scores else 0.0
     )
     out["relationship_score"] = (
@@ -109,6 +154,9 @@ def _components(record: dict[str, Any]) -> dict[str, Any]:
         if relationship_scores
         else 0.0
     )
+    # `variable_score` is the ungated overlap, because this is what the optimizer
+    # trains on and it must stay informative when the context gate closes.
+    out["variable_score"] = _ungated_variable_overlap(record)
     return out
 
 
