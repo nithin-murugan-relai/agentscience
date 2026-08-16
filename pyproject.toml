@@ -9,7 +9,19 @@ description = "Wrap the AgentScience prompt-driven research agent behind RELAI's
 requires-python = ">=3.10"
 authors = [{ name = "RELAI x Rippletide integration" }]
 keywords = ["relai", "agentscience", "prompt-optimization", "llm-agents"]
-dependencies = []
+# Needed so the simulator adapter can call DiscoveryBench's own evaluator.
+# Declared here rather than installed by hand because optimizer workspaces are
+# fresh checkouts that rebuild the venv from `uv pip install -e $ROOT_DIR`; a
+# manually installed package would be absent there.
+dependencies = [
+    "openai>=1.40",
+    "numpy",
+    "pandas",
+    "scipy",
+    "scikit-learn",
+    "sympy",
+    "ipython",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agentscience_agent"]

@@ -128,7 +128,14 @@ resolve_relai_sdk_metadata() {
   require_command jq
   RELAI_API_URL="$(read_relai_config_value api url)"
   RELAI_API_KEY="$(read_relai_config_value api key)"
-  RELAI_CLI_VERSION="0.1.36"
+  # Ask the backend for the SDK matching the CLI that is actually installed. This
+  # was hardcoded to the CLI version current when the harness was generated
+  # (0.1.36 -> SDK 0.1.25). After `relai update`, the newer CLI's generators emit
+  # SDK APIs the old pin rejects, e.g. AgentTarget(agent_target=...), which broke
+  # both `learning-env create` and `benchmark register` with a pydantic
+  # extra_forbidden error.
+  RELAI_CLI_VERSION="$(relai --version 2>/dev/null | awk '{print $2}')"
+  RELAI_CLI_VERSION="${RELAI_CLI_VERSION:-0.1.36}"
   curl -fsSL \
     -H "Authorization: Token ${RELAI_API_KEY}" \
     -H "X-RELAI-CLI-Version: ${RELAI_CLI_VERSION}" \
@@ -513,9 +520,6 @@ uv pip install --python "$VENV_PYTHON" -e "$SIM_DIR"
 if [ ! -d "$ROOT_DIR/cli/node_modules/@agentscience/personality" ]; then
   if command -v npm >/dev/null 2>&1; then
     npm ci --prefix "$ROOT_DIR/cli" --no-audit --no-fund
-  elif [ -d "/Users/mns/developer/agentscience/cli/node_modules" ]; then
-    # offline fallback: reuse the main clone's install
-    ln -s "/Users/mns/developer/agentscience/cli/node_modules" "$ROOT_DIR/cli/node_modules"
   else
     echo "warning: cli/node_modules missing and npm unavailable; agentscience CLI will not start" >&2
   fi
