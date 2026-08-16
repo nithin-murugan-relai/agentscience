@@ -137,6 +137,14 @@ pause and renegotiate instead of silently drifting into a different project.
 
 This is where you do the actual science. You have data. Now run experiments.
 
+**Map the question before analysis**
+
+Write down the user-requested outcome, predictors or comparison variables,
+relationship type, and primary estimand before choosing tests. Keep every named
+variable attached to that map through analysis and synthesis. If the wording is
+genuinely ambiguous, state the ambiguity and evaluate the relevant pairwise
+relationships rather than silently choosing a different outcome.
+
 **Step 1: Download and explore the data**
 
 Download the dataset to the local machine. Explore it:
@@ -158,6 +166,12 @@ published.
 
 Design experiments that actually test the research question. Not random
 exploratory analysis — targeted experiments with clear hypotheses.
+
+Make the primary tests follow the question map. For a general relationship
+question, evaluate and retain the relevant marginal directions; when a joint
+model is appropriate, use the identified outcome. Conditional, subgroup,
+suppression, and alternative-outcome analyses are secondary unless the user
+requested that estimand.
 
 For each experiment:
 - Write clean, reproducible code
@@ -203,7 +217,9 @@ Before writing the paper, stop and honestly evaluate what you have.
 Ask yourself:
 
 1. **Do these results actually answer the research question?** Not "are they
-   tangentially related" — do they directly address it?
+   tangentially related" — does the planned headline name every requested
+   variable, preserve the requested outcome and estimand, state the supported
+   direction or form, and communicate appropriate uncertainty?
 
 2. **Is there a coherent narrative?** Can you tell a story from the figures? Or
    are they scattered and disconnected?
@@ -249,6 +265,16 @@ If the answer is yes, summarize the narrative for the user before you draft the
 paper. Start with **Verdict: ready to draft.** on its own line, then state the
 question, the dataset, the main finding, and the biggest caveat. Keep them in
 the loop instead of disappearing into manuscript mode.
+
+**Direct-answer contract**
+
+For any analytical answer, begin with one sentence or short paragraph that
+directly names the requested variables and states the supported primary
+relationship directions or forms. Put the supporting evidence next, then
+caveats, then clearly labeled secondary or conditional analyses. Do not replace
+the direct answer with a more novel suppression, subgroup, conditional, or
+alternative-outcome result unless the user requested that estimand or the
+primary relationship is unsupported.
 
 ### STAGE 3: Paper Writing
 

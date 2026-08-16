@@ -4,8 +4,160 @@
   ],
   "learning_envs": [
     {
-      "kind": "path",
-      "path": ".relai/learning-envs/pipeline-supported-subcommands.py"
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 0,
+      "sample_id": "steampunk-culture_0_0",
+      "environment_id": "steampunk-culture_0_0",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-0"
+      ]
+    },
+    {
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 1,
+      "sample_id": "literary-classics_0_1",
+      "environment_id": "literary-classics_0_1",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-1"
+      ]
+    },
+    {
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 2,
+      "sample_id": "solar-power_0_3",
+      "environment_id": "solar-power_0_3",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-2"
+      ]
+    },
+    {
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 3,
+      "sample_id": "virtual-reality_2_0",
+      "environment_id": "virtual-reality_2_0",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-3"
+      ]
+    },
+    {
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 4,
+      "sample_id": "theater-productions_0_2",
+      "environment_id": "theater-productions_0_2",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-4"
+      ]
+    },
+    {
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 5,
+      "sample_id": "marine-conservation_2_1",
+      "environment_id": "marine-conservation_2_1",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-5"
+      ]
+    },
+    {
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 6,
+      "sample_id": "solar-power_0_0",
+      "environment_id": "solar-power_0_0",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-6"
+      ]
+    },
+    {
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 7,
+      "sample_id": "space-tourism_0_2",
+      "environment_id": "space-tourism_0_2",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-7"
+      ]
+    },
+    {
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 8,
+      "sample_id": "fashion-design_0_1",
+      "environment_id": "fashion-design_0_1",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-8"
+      ]
+    },
+    {
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 9,
+      "sample_id": "urban-gardening_2_1",
+      "environment_id": "urban-gardening_2_1",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-9"
+      ]
+    },
+    {
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 10,
+      "sample_id": "virtual-reality_0_3",
+      "environment_id": "virtual-reality_0_3",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-10"
+      ]
+    },
+    {
+      "kind": "benchmark_sample",
+      "benchmark_id": "discoverybench-official",
+      "benchmark_path": ".relai/benchmarks/discoverybench-official.py",
+      "sample_index": 11,
+      "sample_id": "underwater-archaeology_1_1",
+      "environment_id": "underwater-archaeology_1_1",
+      "description": "Tests whether the agent analyzes the provided dataset and reaches the same finding that DiscoveryBench's published evaluator rewards.",
+      "tags": [
+        "end-to-end",
+        "benchmark-discoverybench-official-sample-11"
+      ]
     }
   ]
 }
