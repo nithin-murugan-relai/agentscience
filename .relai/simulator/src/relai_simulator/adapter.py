@@ -46,7 +46,12 @@ def _as_discoverybench_sample(user_input: object) -> dict[str, Any] | None:
             payload = json.loads(text)
         except ValueError:
             return None
-    if isinstance(payload, dict) and payload.get("question"):
+    # Require the DiscoveryBench-specific key, not just `question`: other
+    # benchmarks (DABench) also send rows with a `question` field and must stay
+    # on the plain-string path.
+    if isinstance(payload, dict) and payload.get("question") and payload.get(
+        "expected_finding"
+    ):
         return payload
     return None
 
