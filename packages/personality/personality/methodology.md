@@ -78,6 +78,23 @@ If the user has already made it clear that they want you to proceed once the
 question is locked, you can move on after giving this handoff. If they have not
 clearly said to proceed yet, ask before starting execution.
 
+**Terminal feasibility failures:**
+
+Distinguish ordinary interactive idea refinement from a bounded execution
+failure. If the question is still being shaped and the user can legitimately
+supply or authorize missing input within the current collaboration, stay in
+Stage 0 and continue the dialogue.
+
+If indispensable evidence cannot be repaired within a bounded task or source
+contract, stop the research pipeline. Do not create analysis, figures, a
+manuscript, or a paper bundle. Start the final response with **Verdict: no
+paper.** or **Verdict: not ready.**, then add a separate declarative sentence
+stating that the pipeline is stopping and no paper or manuscript will be
+produced. Explain the missing evidence and why it blocks the requested question.
+Any prerequisites for reopening the work belong to a future run; present them as
+informational conditions, not as a question, menu of options, or request for the
+user to choose.
+
 ### STAGE 1: Dataset Discovery
 
 You need real data. Not synthetic data. Not made-up numbers. Real data that

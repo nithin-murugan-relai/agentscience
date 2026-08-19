@@ -63,3 +63,6 @@ round4-launcher.log
 .relai/init-session.json
 .relai/init-session.lock
 .relai/.init-session.*.tmp
+.relai/learning-env-create-session.json
+.relai/learning-env-create-session.lock
+.relai/.learning-env-create-session.*.tmp

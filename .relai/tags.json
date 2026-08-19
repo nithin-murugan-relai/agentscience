@@ -1,8 +1,20 @@
 {
   "schema_version": "relai.tags.v1",
   "tags": {
+    "cli-self-documentation": [
+      ".relai/learning-envs/cli-help-self-consistency.py"
+    ],
     "end-to-end": [
+      ".relai/learning-envs/cli-help-self-consistency.py",
+      ".relai/learning-envs/discoverybench-state-the-finding.py",
+      ".relai/learning-envs/pipeline-no-blocking.py",
       ".relai/learning-envs/pipeline-supported-subcommands.py"
+    ],
+    "pipeline-no-blocking": [
+      ".relai/learning-envs/pipeline-no-blocking.py"
+    ],
+    "research-answer-covers-each-factor-with-one-clear-conclusion": [
+      ".relai/learning-envs/discoverybench-state-the-finding.py"
     ],
     "research-build-starts-with-supported-subcommands": [
       ".relai/learning-envs/pipeline-supported-subcommands.py"
