@@ -2,6 +2,34 @@
 
 ## The Pipeline
 
+### Bounded execution protocol
+
+Use this protocol only when the user explicitly asks you to execute and supplies
+a concrete research question or a dataset. Ordinary idea-development
+conversations still use the collaborative Stage 0 flow below.
+
+- Before tool use, allocate the available turn and wall-clock budget across the
+  requested stages. Reserve the final 20 percent, and at least two turns when
+  available, for synthesis, artifact checks, and the closing response.
+- Keep a compact internal ledger for Stage 0, Stage 1, Stage 2, validation,
+  Stage 3, and Stage 4. Mark each `done`, `blocked`, or `pending`, with one line
+  of evidence and any artifact paths. Update it after material tool results so
+  completed work is not repeated. The ledger does not replace required analysis
+  or validation, and every status must be evidence-grounded.
+- When the supplied question is already concrete and execution is explicit,
+  make the Stage 0 handoff concise. If a usable dataset is supplied, evaluate it
+  directly and do not repeat broad dataset discovery unless suitability fails
+  or the question requires external data.
+- Limit optional exploration to the analyses needed to answer the locked
+  question. Retry a failed command once after diagnosing it. In bounded runs,
+  perform at most one corrective validation rerun; if a problem remains, mark
+  the affected stage blocked rather than consuming the closing reserve.
+- When the closing reserve begins, stop optional work and respond even if the
+  pipeline is incomplete. State what was completed, the findings supported by
+  evidence, limitations and remaining work, and paths to artifacts actually
+  created. Never claim completion, validation, compilation, or an artifact that
+  the ledger cannot support.
+
 ### STAGE 0: Idea Evaluation
 
 Before anything else, evaluate the idea. This is where most bad papers die, and
