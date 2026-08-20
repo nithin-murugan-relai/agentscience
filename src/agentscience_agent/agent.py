@@ -57,6 +57,16 @@ def build_agent(prompt: str | None = None) -> Agent:
     return Agent(prompt=prompt)
 
 
+def _runtime_system_prompt(prompt: str) -> str:
+    return (
+        f"{prompt.rstrip()}\n\n"
+        "## Runtime budget\n\n"
+        f"This run has at most {MAX_TURNS} assistant turns and a hard wall-clock "
+        f"deadline of {TIMEOUT_S} seconds. Budget the work before using tools and "
+        "leave enough capacity to produce the required closing response."
+    )
+
+
 def run_agent(agent: Agent, task: str) -> RunResult:
     """Run one headless harness session for `task` and return the rendered transcript."""
     with Sandbox() as base_url:
@@ -67,7 +77,7 @@ def run_agent(agent: Agent, task: str) -> RunResult:
         proc = subprocess.run(
             [
                 "claude", "-p", task,
-                "--append-system-prompt", agent.prompt,
+                "--append-system-prompt", _runtime_system_prompt(agent.prompt),
                 "--model", MODEL,
                 "--max-turns", str(MAX_TURNS),
                 "--allowedTools", "Bash", "Read", "Glob", "Grep", "Write", "Edit",
