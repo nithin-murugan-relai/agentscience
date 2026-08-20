@@ -7,8 +7,12 @@
     "end-to-end": [
       ".relai/learning-envs/cli-help-self-consistency.py",
       ".relai/learning-envs/discoverybench-state-the-finding.py",
+      ".relai/learning-envs/pipeline-budget-discipline.py",
       ".relai/learning-envs/pipeline-no-blocking.py",
       ".relai/learning-envs/pipeline-supported-subcommands.py"
+    ],
+    "pipeline-budget-discipline": [
+      ".relai/learning-envs/pipeline-budget-discipline.py"
     ],
     "pipeline-no-blocking": [
       ".relai/learning-envs/pipeline-no-blocking.py"
